@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>可观测性 | SAR-Sense</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛰️</text></svg>">
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+  <div class="bg-glow bg-glow-3"></div>
+  <div class="particles"></div>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="navbar-brand">
+        <span class="logo-icon">🛰️</span>
+        <span>SAR-Sense</span>
+      </a>
+      <ul class="navbar-nav">
+        <li><a href="index.html">首页</a></li>
+        <li><a href="detection.html">SAR检测</a></li>
+        <li><a href="chat.html">智能问答</a></li>
+        <li><a href="knowledge.html">知识库</a></li>
+        <li><a href="metrics.html">可观测性</a></li>
+      </ul>
+      <div class="navbar-actions">
+        <a href="chat.html" class="btn btn-primary">开始使用</a>
+      </div>
+      <button class="mobile-menu-btn" aria-label="菜单">☰</button>
+    </div>
+  </nav>
+
+  <section class="metrics-page section" style="padding-top: 120px; min-height: 100vh;">
+    <div class="container">
+      <div class="section-header reveal">
+        <h2>Agent 可观测性面板</h2>
+        <p>实时监控工具调用、成功率、响应时间等关键指标</p>
+      </div>
+
+      <!-- Metrics Cards -->
+      <div class="metrics-cards reveal">
+        <div class="m-card m-card-blue">
+          <div class="m-card-value" id="metricRounds">0</div>
+          <div class="m-card-label">对话轮次</div>
+        </div>
+        <div class="m-card m-card-amber">
+          <div class="m-card-value" id="metricToolCalls">0</div>
+          <div class="m-card-label">工具调用次数</div>
+        </div>
+        <div class="m-card m-card-green">
+          <div class="m-card-value" id="metricSuccessRate">0%</div>
+          <div class="m-card-label">工具调用成功率</div>
+        </div>
+        <div class="m-card m-card-pink">
+          <div class="m-card-value" id="metricAvgCalls">0</div>
+          <div class="m-card-label">每轮平均调用</div>
+        </div>
+      </div>
+
+      <div class="metrics-actions reveal">
+        <button class="btn btn-secondary" id="resetBtn">🔄 重置指标</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="knowledge-container reveal">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="tabDistribution">📈 工具调用分布</button>
+          <button class="tab-btn" data-tab="tabTimeline">📋 调用时间线</button>
+          <button class="tab-btn" data-tab="tabDetails">📊 工具详情</button>
+        </div>
+
+        <div class="tab-panels">
+          <div class="tab-panel active" id="tabDistribution">
+            <div class="chart-wrapper">
+              <canvas id="toolChart"></canvas>
+            </div>
+          </div>
+
+          <div class="tab-panel" id="tabTimeline">
+            <div class="timeline-list" id="timelineList"></div>
+          </div>
+
+          <div class="tab-panel" id="tabDetails">
+            <div id="toolDetailsTable"></div>
+            <div id="loopDetection"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/metrics.js"></script>
+</body>
+</html>

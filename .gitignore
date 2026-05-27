@@ -1,0 +1,22 @@
+# Vendored YOLO - 不需要索引
+ultralytics/
+
+# Python
+__pycache__/
+*.pyc
+.env
+
+# ChromaDB
+chroma_db/
+
+# CodeGraph
+.codegraph/
+
+# IDE
+.idea/
+.vscode/
+
+# 运行时数据
+conversations/
+logs/
+server.log

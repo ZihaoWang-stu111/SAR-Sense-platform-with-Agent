@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SAR 船舶检测 | SAR-Sense</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛰️</text></svg>">
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+  <div class="bg-glow bg-glow-3"></div>
+  <div class="particles"></div>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="navbar-brand">
+        <span class="logo-icon">🛰️</span>
+        <span>SAR-Sense</span>
+      </a>
+      <ul class="navbar-nav">
+        <li><a href="index.html">首页</a></li>
+        <li><a href="detection.html">SAR检测</a></li>
+        <li><a href="chat.html">智能问答</a></li>
+        <li><a href="knowledge.html">知识库</a></li>
+        <li><a href="metrics.html">可观测性</a></li>
+      </ul>
+      <div class="navbar-actions">
+        <a href="chat.html" class="btn btn-primary">开始使用</a>
+      </div>
+      <button class="mobile-menu-btn" aria-label="菜单">☰</button>
+    </div>
+  </nav>
+
+  <section class="detection section" style="padding-top: 120px; min-height: 100vh;">
+    <div class="container">
+      <div class="section-header reveal">
+        <h2>SAR 船舶检测</h2>
+        <p>上传 SAR 图像，YOLO 引擎自动识别船舶目标</p>
+      </div>
+
+      <div class="detection-container reveal">
+        <div class="detection-upload-area" id="uploadArea">
+          <div class="upload-icon">📤</div>
+          <h3>上传 SAR 图像</h3>
+          <p>支持 JPG、JPEG、PNG、TIF 格式</p>
+          <input type="file" id="imageInput" accept=".jpg,.jpeg,.png,.tif" hidden>
+          <button class="btn btn-primary" id="uploadBtn">选择文件</button>
+          <div class="upload-filename" id="filename"></div>
+        </div>
+
+        <div class="detection-results" id="detectionResults" style="display: none;">
+          <div class="results-grid">
+            <div class="result-card">
+              <h4>原始图像</h4>
+              <div class="image-container">
+                <img id="originalImage" src="" alt="原始图像">
+              </div>
+            </div>
+            <div class="result-card">
+              <h4>检测结果</h4>
+              <div class="image-container">
+                <img id="resultImage" src="" alt="检测结果">
+              </div>
+            </div>
+          </div>
+
+          <div class="detection-metrics">
+            <div class="metric-item">
+              <div class="metric-number" id="shipCount">0</div>
+              <div class="metric-text">检测目标数</div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-number" id="detectionStatus">-</div>
+              <div class="metric-text">检测状态</div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-number" id="detectionTime">-</div>
+              <div class="metric-text">检测耗时</div>
+            </div>
+          </div>
+
+          <div class="detection-actions">
+            <button class="btn btn-primary" id="detectBtn">开始检测</button>
+            <button class="btn btn-secondary" id="resetBtn">重新上传</button>
+          </div>
+        </div>
+
+        <div class="detection-loading" id="detectionLoading" style="display: none;">
+          <div class="loading-spinner"></div>
+          <p>YOLO 引擎正在分析...</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/detection.js"></script>
+</body>
+</html>

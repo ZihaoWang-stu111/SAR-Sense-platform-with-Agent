@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>知识库管理 | SAR-Sense</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛰️</text></svg>">
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+  <div class="bg-glow bg-glow-3"></div>
+  <div class="particles"></div>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="navbar-brand">
+        <span class="logo-icon">🛰️</span>
+        <span>SAR-Sense</span>
+      </a>
+      <ul class="navbar-nav">
+        <li><a href="index.html">首页</a></li>
+        <li><a href="detection.html">SAR检测</a></li>
+        <li><a href="chat.html">智能问答</a></li>
+        <li><a href="knowledge.html">知识库</a></li>
+        <li><a href="metrics.html">可观测性</a></li>
+      </ul>
+      <div class="navbar-actions">
+        <a href="chat.html" class="btn btn-primary">开始使用</a>
+      </div>
+      <button class="mobile-menu-btn" aria-label="菜单">☰</button>
+    </div>
+  </nav>
+
+  <section class="knowledge section" style="padding-top: 120px; min-height: 100vh;">
+    <div class="container">
+      <div class="section-header reveal">
+        <h2>知识库管理</h2>
+        <p>上传文档、智能分块、向量入库，构建专属知识检索系统</p>
+      </div>
+
+      <div class="knowledge-container reveal">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="tabUpload">📤 上传文件</button>
+          <button class="tab-btn" data-tab="tabFiles">📋 文件列表</button>
+        </div>
+
+        <div class="tab-panels">
+          <!-- Upload Tab -->
+          <div class="tab-panel active" id="tabUpload">
+            <div class="upload-section">
+              <div class="kb-upload-area" id="kbUploadArea">
+                <div class="upload-icon">📤</div>
+                <h3>上传知识库文件</h3>
+                <p>支持 TXT / PDF 格式，拖拽或点击上传</p>
+                <input type="file" id="kbFileInput" accept=".txt,.pdf" multiple hidden>
+                <button class="btn btn-primary" id="kbUploadBtn">选择文件</button>
+              </div>
+
+              <div class="selected-files-area" id="selectedFilesArea" style="display: none;">
+                <span class="selected-label">📎 已选择：</span>
+                <span class="selected-names" id="selectedFiles"></span>
+              </div>
+
+              <div class="status-message" id="uploadStatus" style="display: none;"></div>
+
+              <div class="ingest-area">
+                <button class="btn btn-primary btn-lg" id="ingestBtn" disabled>
+                  <span class="btn-spinner" style="display: none;">⏳</span>
+                  <span class="btn-text">一键入库</span>
+                </button>
+                <p class="ingest-hint">上传后点击入库，自动分块写入向量数据库</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Files Tab -->
+          <div class="tab-panel" id="tabFiles">
+            <div class="files-header">
+              <div class="stats-cards">
+                <div class="stat-card">
+                  <div class="stat-value" id="fileCount">0</div>
+                  <div class="stat-label">文件数量</div>
+                </div>
+                <div class="stat-card stat-card-accent">
+                  <div class="stat-value">ChromaDB</div>
+                  <div class="stat-label">向量引擎</div>
+                </div>
+              </div>
+            </div>
+            <div class="file-list" id="fileList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/knowledge.js"></script>
+</body>
+</html>

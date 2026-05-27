@@ -1,0 +1,20 @@
+collection_name: agent_prjct
+persist_directory: chroma_db
+k: 3
+data_path: data
+md5_hex_store: md5.text
+allow_knowledge_file_type: ["txt", "pdf"]
+
+chunk_size : 240
+chunk_overlap : 40
+txt_chunk_size : 220
+txt_chunk_overlap : 40
+pdf_chunk_size : 420
+pdf_chunk_overlap : 60
+separators: ["\n\n", "\n", ".", "!", "?", "。", "！", "？", " ", ""]
+
+# 语义断点分块配置
+semantic_chunking_enabled: true
+semantic_threshold: 0.5          # 余弦相似度阈值，低于此值视为话题切换
+semantic_min_chunk_size: 100     # 最小chunk（字符数），小于此值的会和相邻chunk合并
+semantic_max_chunk_size: 800     # 最大chunk（字符数），超出则回溯到上一个断点切分

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SAR-Sense - 基于深度学习的合成孔径雷达船舶检测智能平台">
+  <title>SAR-Sense | 智能船舶检测平台</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛰️</text></svg>">
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+  <div class="bg-glow bg-glow-3"></div>
+  <div class="particles"></div>
+
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="index.html" class="navbar-brand">
+        <span class="logo-icon">🛰️</span>
+        <span>SAR-Sense</span>
+      </a>
+      <ul class="navbar-nav">
+        <li><a href="index.html">首页</a></li>
+        <li><a href="detection.html">SAR检测</a></li>
+        <li><a href="chat.html">智能问答</a></li>
+        <li><a href="knowledge.html">知识库</a></li>
+        <li><a href="metrics.html">可观测性</a></li>
+      </ul>
+      <div class="navbar-actions">
+        <a href="detection.html" class="btn btn-secondary">开始检测</a>
+        <a href="chat.html" class="btn btn-primary">开始使用</a>
+      </div>
+      <button class="mobile-menu-btn" aria-label="菜单">☰</button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero section" id="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          <span>YOLO 驱动 · 实时检测</span>
+        </div>
+
+        <h1>
+          <span class="text-gradient">SAR-Sense</span><br>
+          智能船舶检测平台
+        </h1>
+
+        <p class="hero-description">
+          基于深度学习的合成孔径雷达船舶检测系统。集成 YOLO 视觉引擎、LangChain 智能体、
+          RAG 知识检索和全链路可观测性，为您提供专业级 SAR 图像分析服务。
+        </p>
+
+        <div class="hero-actions">
+          <a href="detection.html" class="btn btn-primary">
+            开始检测 →
+          </a>
+          <a href="chat.html" class="btn btn-secondary">
+            智能问答
+          </a>
+        </div>
+
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat-value text-gradient">98.5%</div>
+            <div class="hero-stat-label">检测准确率</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value text-gradient"><100ms</div>
+            <div class="hero-stat-label">平均响应时间</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value text-gradient">13+</div>
+            <div class="hero-stat-label">智能工具</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="hero-mockup animate-float">
+          <div class="mockup-header">
+            <div class="mockup-dot"></div>
+            <div class="mockup-dot"></div>
+            <div class="mockup-dot"></div>
+          </div>
+          <div class="mockup-body">
+            <div class="mockup-card">
+              <div class="mockup-card-title">检测数量</div>
+              <div class="mockup-card-value">1,247</div>
+            </div>
+            <div class="mockup-card">
+              <div class="mockup-card-title">准确率</div>
+              <div class="mockup-card-value">98.5%</div>
+            </div>
+            <div class="mockup-chart">
+              <div class="chart-line"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features section" id="features">
+    <div class="container">
+      <div class="section-header reveal">
+        <h2>核心功能</h2>
+        <p>四大核心模块，覆盖从数据采集到智能分析的完整工作流</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card reveal stagger">
+          <div class="feature-icon">🔍</div>
+          <h3>SAR 检测工作台</h3>
+          <p>
+            基于 YOLO 深度学习模型的 SAR 图像船舶检测。支持多种图像格式，
+            毫秒级推理速度，精准定位多尺度船舶目标。
+          </p>
+          <ul class="feature-list">
+            <li>YOLO 视觉引擎</li>
+            <li>实时推理（<100ms）</li>
+            <li>多尺度目标检测</li>
+            <li>可视化结果输出</li>
+          </ul>
+        </div>
+
+        <div class="feature-card reveal stagger">
+          <div class="feature-icon">🤖</div>
+          <h3>智能体问答</h3>
+          <p>
+            ReAct 架构的 LangChain 智能体，支持流式输出、思维链可视化、
+            文件附件和对话持久化，提供深度分析能力。
+          </p>
+          <ul class="feature-list">
+            <li>ReAct 推理架构</li>
+            <li>13+ 专业工具调用</li>
+            <li>思维链可视化</li>
+            <li>流式实时输出</li>
+          </ul>
+        </div>
+
+        <div class="feature-card reveal stagger">
+          <div class="feature-icon">📚</div>
+          <h3>知识库管理</h3>
+          <p>
+            ChromaDB 向量数据库驱动的 RAG 知识检索系统。支持文档上传、
+            智能分块、向量嵌入和混合检索。
+          </p>
+          <ul class="feature-list">
+            <li>ChromaDB 向量库</li>
+            <li>混合检索引擎</li>
+            <li>BGE 重排序</li>
+            <li>文档智能分块</li>
+          </ul>
+        </div>
+
+        <div class="feature-card reveal stagger">
+          <div class="feature-icon">📊</div>
+          <h3>可观测性仪表板</h3>
+          <p>
+            全链路监控系统，实时追踪工具调用、成功率、响应时间等关键指标，
+            支持异常检测和循环调用告警。
+          </p>
+          <ul class="feature-list">
+            <li>实时性能监控</li>
+            <li>工具调用分析</li>
+            <li>异常循环检测</li>
+            <li>可视化报表</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Data Preview Section -->
+  <section class="data-preview section" id="data-preview">
+    <div class="container">
+      <div class="section-header reveal">
+        <h2>实时数据预览</h2>
+        <p>监控检测性能，洞察数据趋势</p>
+      </div>
+
+      <div class="preview-container reveal">
+        <div class="preview-header">
+          <div class="preview-header-left">
+            <h4>检测数据分析</h4>
+          </div>
+          <div class="preview-tabs">
+            <button class="preview-tab active">24小时</button>
+            <button class="preview-tab">7天</button>
+            <button class="preview-tab">30天</button>
+          </div>
+        </div>
+
+        <div class="preview-body">
+          <div class="chart-container">
+            <canvas id="detectionChart"></canvas>
+          </div>
+
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-value">1,247</div>
+              <div class="metric-label">今日检测</div>
+              <div class="metric-change positive">↑ 12.5%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">98.5%</div>
+              <div class="metric-label">准确率</div>
+              <div class="metric-change positive">↑ 2.3%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">87ms</div>
+              <div class="metric-label">平均响应</div>
+              <div class="metric-change positive">↓ 15ms</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value">3,891</div>
+              <div class="metric-label">知识库文档</div>
+              <div class="metric-change positive">↑ 156</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Security Section -->
+  <section class="security section" id="security">
+    <div class="container">
+      <div class="section-header reveal">
+        <h2>安全特性</h2>
+        <p>企业级安全保障，守护您的数据资产</p>
+      </div>
+
+      <div class="security-grid">
+        <div class="security-card reveal stagger">
+          <div class="security-icon">🔐</div>
+          <h3>数据加密传输</h3>
+          <p>全程 TLS 1.3 加密，确保数据在传输过程中的安全性和完整性</p>
+        </div>
+        <div class="security-card reveal stagger">
+          <div class="security-icon">🏠</div>
+          <h3>本地化部署</h3>
+          <p>支持私有化部署，数据不出内网，满足严格的合规要求</p>
+        </div>
+        <div class="security-card reveal stagger">
+          <div class="security-icon">👥</div>
+          <h3>权限控制</h3>
+          <p>细粒度的 RBAC 权限管理，确保不同角色只能访问授权资源</p>
+        </div>
+        <div class="security-card reveal stagger">
+          <div class="security-icon">📋</div>
+          <h3>审计日志</h3>
+          <p>完整的操作审计追踪，记录所有关键操作，支持合规审查</p>
+        </div>
+        <div class="security-card reveal stagger">
+          <div class="security-icon">🛡️</div>
+          <h3>模型安全</h3>
+          <p>模型文件加密存储，防止模型泄露和恶意篡改</p>
+        </div>
+        <div class="security-card reveal stagger">
+          <div class="security-icon">🔄</div>
+          <h3>备份恢复</h3>
+          <p>自动备份机制，支持数据和配置的快速恢复</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust Indicators -->
+  <section class="trust section" id="trust">
+    <div class="container">
+      <div class="section-header reveal">
+        <h2>信任指标</h2>
+        <p>用数据说话，用实力证明</p>
+      </div>
+
+      <div class="trust-grid">
+        <div class="trust-card reveal stagger">
+          <div class="trust-value" data-target="98.5" data-suffix="%">0%</div>
+          <div class="trust-label">检测准确率</div>
+          <div class="trust-bar">
+            <div class="trust-bar-fill" data-width="98.5%"></div>
+          </div>
+        </div>
+        <div class="trust-card reveal stagger">
+          <div class="trust-value" data-target="87" data-suffix="ms">0ms</div>
+          <div class="trust-label">平均响应时间</div>
+          <div class="trust-bar">
+            <div class="trust-bar-fill" data-width="87%"></div>
+          </div>
+        </div>
+        <div class="trust-card reveal stagger">
+          <div class="trust-value" data-target="10" data-suffix="+">0+</div>
+          <div class="trust-label">支持场景</div>
+          <div class="trust-bar">
+            <div class="trust-bar-fill" data-width="100%"></div>
+          </div>
+        </div>
+        <div class="trust-card reveal stagger">
+          <div class="trust-value" data-target="3891" data-suffix="">0</div>
+          <div class="trust-label">知识库文档</div>
+          <div class="trust-bar">
+            <div class="trust-bar-fill" data-width="75%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Stack -->
+  <section class="tech-stack section" id="tech">
+    <div class="container">
+      <div class="section-header reveal">
+        <h2>技术栈</h2>
+        <p>采用业界领先的技术架构</p>
+      </div>
+
+      <div class="tech-grid">
+        <div class="tech-card reveal stagger">
+          <div class="tech-logo">YOLO</div>
+          <h4>YOLO v8</h4>
+          <p>实时目标检测</p>
+        </div>
+        <div class="tech-card reveal stagger">
+          <div class="tech-logo">LC</div>
+          <h4>LangChain</h4>
+          <p>AI Agent 框架</p>
+        </div>
+        <div class="tech-card reveal stagger">
+          <div class="tech-logo">CDB</div>
+          <h4>ChromaDB</h4>
+          <p>向量数据库</p>
+        </div>
+        <div class="tech-card reveal stagger">
+          <div class="tech-logo">DS</div>
+          <h4>DashScope</h4>
+          <p>大模型服务</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta section" id="cta">
+    <div class="container">
+      <div class="cta-content reveal">
+        <h2>准备好开始了吗？</h2>
+        <p>立即体验 SAR-Sense 智能船舶检测平台，开启您的 SAR 图像分析之旅</p>
+        <div class="cta-actions">
+          <a href="detection.html" class="btn btn-primary">免费试用</a>
+          <a href="chat.html" class="btn btn-secondary">联系我们</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <a href="index.html" class="navbar-brand">
+            <span class="logo-icon">🛰️</span>
+            <span>SAR-Sense</span>
+          </a>
+          <p>基于深度学习的合成孔径雷达船舶检测智能平台，为您提供专业级 SAR 图像分析服务。</p>
+        </div>
+        <div class="footer-links">
+          <h4>产品</h4>
+          <ul>
+            <li><a href="detection.html">SAR 检测</a></li>
+            <li><a href="chat.html">智能问答</a></li>
+            <li><a href="knowledge.html">知识库</a></li>
+            <li><a href="metrics.html">可观测性</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>资源</h4>
+          <ul>
+            <li><a href="#">开发文档</a></li>
+            <li><a href="#">API 参考</a></li>
+            <li><a href="#">示例代码</a></li>
+            <li><a href="#">更新日志</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>公司</h4>
+          <ul>
+            <li><a href="#">关于我们</a></li>
+            <li><a href="#">联系方式</a></li>
+            <li><a href="#">隐私政策</a></li>
+            <li><a href="#">服务条款</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div class="footer-copyright">© 2024 SAR-Sense. All rights reserved.</div>
+        <div class="footer-social">
+          <a href="#" class="social-link" aria-label="GitHub">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
