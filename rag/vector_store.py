@@ -100,8 +100,9 @@ class VectorStoreService:
             segment = [sentences[j].page_content for j in range(start, end + 1)]
             merged = "\n".join(segment)
 
+            base_meta = sentences[start].metadata if sentences[start].metadata else {}
             if len(merged) <= self.semantic_max_size:
-                chunks.append(Document(page_content=merged))
+                chunks.append(Document(page_content=merged, metadata=base_meta))
             else:
                 # 超长段落在句子边界做子切分
                 sub_texts = []
@@ -109,14 +110,14 @@ class VectorStoreService:
                 for j in range(start, end + 1):
                     seg = sentences[j].page_content
                     if sub_len + len(seg) > self.semantic_max_size and sub_texts:
-                        chunks.append(Document(page_content="\n".join(sub_texts)))
+                        chunks.append(Document(page_content="\n".join(sub_texts), metadata=base_meta))
                         sub_texts = [seg]
                         sub_len = len(seg)
                     else:
                         sub_texts.append(seg)
                         sub_len += len(seg)
                 if sub_texts:
-                    chunks.append(Document(page_content="\n".join(sub_texts)))
+                    chunks.append(Document(page_content="\n".join(sub_texts), metadata=base_meta))
 
             start = end + 1
 
@@ -208,6 +209,9 @@ class VectorStoreService:
             except Exception as e:
                 logger.error(f"加载知识库{path}失败, 错误详情: {str(e)}", exc_info=True)
                 continue
+
+        if new_count > 0:
+            self.hybrid_engine.rebuild_bm25()
 
         return new_count, skipped_count
 

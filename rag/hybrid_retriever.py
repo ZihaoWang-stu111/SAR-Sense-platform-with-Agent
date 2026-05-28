@@ -22,7 +22,7 @@ class DynamicHybridRetriever:
             docs = []
             for doc_content, meta in zip(all_data.get('documents', []), all_data.get('metadatas', [])):
                 if doc_content:
-                    docs.append(Document(page_content=doc_content, metadata=meta))
+                    docs.append(Document(page_content=doc_content, metadata=meta or {}))
 
             if not docs:
                 logger.warning("知识库为空，BM25 初始化跳过。")
@@ -36,6 +36,10 @@ class DynamicHybridRetriever:
         except Exception as e:
             logger.error(f"初始化 BM25 检索器失败: {str(e)}", exc_info=True)
             return None
+
+    def rebuild_bm25(self):
+        """文档变更后重建 BM25 索引"""
+        self.bm25_retriever = self._build_bm25()
 
     def _get_dynamic_weights(self, query: str):
         """根据用户提问的长度和词密度，动态分配 [向量权重, BM25权重]"""
