@@ -270,7 +270,6 @@ async def chat_stream(request: Request):
             import threading
             from queue import Queue
 
-            _thought_chain["steps"] = []
             event_queue = Queue()
 
             # Start conversation metrics
