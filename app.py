@@ -975,7 +975,7 @@ elif page == "🤖 智能体问答":
 
         response_messages = []
         with st.spinner("智能客服思考中..."):
-            res_stream = st.session_state["agent"].execute_stream(st.session_state["messages"])
+            res_stream = st.session_state["agent"].execute_stream(st.session_state["messages"][-10:])
 
             with stream_placeholder.container():
                 st.chat_message("user").write(display_prompt)

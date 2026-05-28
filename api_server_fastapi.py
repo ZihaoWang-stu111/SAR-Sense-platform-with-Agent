@@ -241,58 +241,6 @@ async def detect_ships(image: UploadFile = File(...)):
 
 # ==================== Chat API ====================
 
-@app.post("/api/chat")
-async def chat(request: Request):
-    """Non-streaming chat endpoint"""
-    try:
-        logger.info("Chat request received")
-        data = await request.json()
-        message = data.get('message', '')
-        messages_history = data.get('messages', [])
-
-        if not message:
-            raise HTTPException(status_code=400, detail='No message provided')
-
-        logger.info(f"Processing message: {message[:50]}...")
-
-        from agent.react_agent import _thought_chain
-
-        logger.info("Loading agent...")
-        agent = get_agent()
-        logger.info("Agent loaded")
-
-        # Build messages list
-        messages = messages_history + [{"role": "user", "content": message}]
-
-        # Execute agent with streaming and collect response
-        _thought_chain["steps"] = []
-        response_chunks = []
-        logger.info("Executing agent stream...")
-        for chunk in agent.execute_stream(messages):
-            if chunk and chunk.strip():
-                response_chunks.append(chunk)
-
-        # Combine all chunks into final response
-        response = "".join(response_chunks).strip()
-        logger.info(f"Response generated, length: {len(response)}")
-
-        # Get thought chain
-        thought_steps = list(_thought_chain["steps"]) if _thought_chain["steps"] else []
-
-        return {
-            'success': True,
-            'response': response,
-            'thought_steps': thought_steps
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @app.post("/api/chat/stream")
 async def chat_stream(request: Request):
     """Streaming chat endpoint using SSE"""
@@ -314,7 +262,7 @@ async def chat_stream(request: Request):
         logger.info("Agent loaded for streaming")
 
         # Build messages list
-        messages = messages_history + [{"role": "user", "content": message}]
+        messages = messages_history[-10:] + [{"role": "user", "content": message}]
 
         async def generate():
             """SSE generator for streaming response"""
