@@ -82,7 +82,11 @@
               <div class="stats-cards">
                 <div class="stat-card">
                   <div class="stat-value" id="fileCount">0</div>
-                  <div class="stat-label">文件数量</div>
+                  <div class="stat-label">已入库文档</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="chunkCount">0</div>
+                  <div class="stat-label">向量切片</div>
                 </div>
                 <div class="stat-card stat-card-accent">
                   <div class="stat-value">ChromaDB</div>
@@ -90,6 +94,7 @@
                 </div>
               </div>
             </div>
+            <div class="status-message status-info" id="fileListStatus" style="display: none;"></div>
             <div class="file-list" id="fileList"></div>
           </div>
         </div>

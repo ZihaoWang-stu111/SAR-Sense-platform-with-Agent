@@ -1,5 +1,6 @@
 import time
 import os
+import html
 import streamlit as st
 import pandas as pd
 from PIL import Image
@@ -1028,14 +1029,15 @@ elif page == "📚 知识库管理":
             saved_count = 0
             already_saved = st.session_state.setdefault("_saved_files", set())
             for uploaded_file in uploaded_files:
-                save_path = os.path.join(data_dir, uploaded_file.name)
-                if uploaded_file.name in already_saved or os.path.exists(save_path):
+                safe_name = os.path.basename(uploaded_file.name)
+                save_path = os.path.join(data_dir, safe_name)
+                if safe_name in already_saved or os.path.exists(save_path):
                     continue
                 with open(save_path, "wb") as f:
                     f.write(uploaded_file.getbuffer())
                 saved_count += 1
-                already_saved.add(uploaded_file.name)
-                st.success(f"✅ 已保存：`{uploaded_file.name}`")
+                already_saved.add(safe_name)
+                st.success(f"✅ 已保存：`{safe_name}`")
 
             if saved_count > 0:
                 st.info(f"共保存 {saved_count} 个文件到 `data/` 目录，请点击下方按钮入库。")
@@ -1046,37 +1048,54 @@ elif page == "📚 知识库管理":
             with st.spinner("正在加载向量库服务并处理文件..."):
                 try:
                     vs = VectorStoreService()
-                    new_count, skipped_count = vs.load_document()
+                    new_count, updated_count, skipped_count, removed_count = vs.load_document()
                     st.session_state["_saved_files"] = set()
-                    if new_count > 0:
-                        st.success(f"✅ 知识库入库完成！成功入库 {new_count} 个文件。")
+                    if new_count > 0 or updated_count > 0:
+                        msg = f"✅ 知识库入库完成！新增 {new_count}、更新 {updated_count} 个文件。"
+                        if removed_count > 0:
+                            msg += f" 已清理 {removed_count} 个已删除文件的残留数据。"
+                        st.success(msg)
                     elif skipped_count > 0:
-                        st.info(f"ℹ️ 共扫描 {skipped_count} 个文件，均已入库过，无需重复处理。")
+                        st.info(f"ℹ️ 共扫描文件均无变更，无需重复处理。")
                     else:
                         st.info("ℹ️ 未检测到新文件，请先上传文件。")
                 except Exception as e:
                     st.error(f"❌ 入库失败：{str(e)}")
 
     with tab2:
-        st.markdown("### 📋 已上传文件")
+        st.markdown("### 📋 已入库文档")
 
-        allow_types = tuple(chroma_conf.get("allow_knowledge_file_type", ["txt", "pdf"]))
-        existing_files = []
-        if os.path.isdir(data_dir):
-            for f in os.listdir(data_dir):
-                if f.endswith(allow_types):
-                    existing_files.append(f)
+        try:
+            vs = VectorStoreService()
+            manifest = vs.manifest
+        except Exception as e:
+            manifest = {}
+            st.error(f"❌ 读取 manifest 失败：{str(e)}")
 
-        if existing_files:
-            col_status1, col_status2 = st.columns(2)
+        docs = sorted(
+            manifest.items(),
+            key=lambda item: item[1].get("ingested_at", ""),
+            reverse=True
+        )
+        total_chunks = sum(entry.get("chunk_count", 0) for _, entry in docs)
+
+        if docs:
+            col_status1, col_status2, col_status3 = st.columns(3)
             with col_status1:
                 st.markdown(f"""
                 <div class="metric-card">
-                    <div class="metric-value">{len(existing_files)}</div>
-                    <div class="metric-label">📄 文件总数</div>
+                    <div class="metric-value">{len(docs)}</div>
+                    <div class="metric-label">📄 已入库文档</div>
                 </div>
                 """, unsafe_allow_html=True)
             with col_status2:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-value">{total_chunks}</div>
+                    <div class="metric-label">🧩 向量切片</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with col_status3:
                 st.markdown("""
                 <div class="metric-card" style="background:linear-gradient(135deg, #eff6ff, #dbeafe); border-color:#93c5fd;">
                     <div class="metric-value" style="color:#2563eb;">ChromaDB</div>
@@ -1086,28 +1105,52 @@ elif page == "📚 知识库管理":
 
             st.markdown("<br>", unsafe_allow_html=True)
 
-            for idx, fname in enumerate(existing_files, 1):
-                fpath = os.path.join(data_dir, fname)
-                fsize = os.path.getsize(fpath)
-                if fsize < 1024:
-                    size_str = f"{fsize} B"
-                elif fsize < 1024 * 1024:
-                    size_str = f"{fsize / 1024:.1f} KB"
-                else:
-                    size_str = f"{fsize / (1024 * 1024):.1f} MB"
+            for idx, (fname, entry) in enumerate(docs, 1):
+                doc_id = entry.get("doc_id", "-")
+                file_hash = entry.get("file_hash", "")
+                hash_short = f"{file_hash[:8]}...{file_hash[-6:]}" if len(file_hash) > 16 else (file_hash or "-")
+                chunk_count = entry.get("chunk_count", 0)
+                chunk_method = entry.get("chunk_method", "-")
+                file_type = entry.get("file_type", "-")
+                status = entry.get("status", "active")
+                ingested_at = entry.get("ingested_at", "-").replace("T", " ")
+                icon = "📕" if file_type == "pdf" else "📄"
+                safe_name = html.escape(fname)
+                safe_doc_id = html.escape(str(doc_id))
+                safe_hash = html.escape(hash_short)
 
-                icon = "📄" if fname.endswith(".txt") else "📕"
                 st.markdown(f"""
-                <div class="custom-card" style="display:flex; align-items:center; justify-content:space-between; padding:0.8rem 1.2rem; margin-bottom:0.4rem;">
-                    <div style="display:flex; align-items:center; gap:0.6rem;">
-                        <span style="font-size:1.3rem;">{icon}</span>
-                        <span style="font-weight:600; color:#1e293b;">{fname}</span>
+                <div class="custom-card" style="padding:1rem 1.1rem; margin-bottom:0.55rem;">
+                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem;">
+                        <div style="display:flex; align-items:flex-start; gap:0.7rem; min-width:0;">
+                            <span style="font-size:1.4rem; line-height:1.2;">{icon}</span>
+                            <div style="min-width:0;">
+                                <div style="font-weight:700; color:#1e293b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{safe_name}</div>
+                                <div style="font-size:0.78rem; color:#64748b; margin-top:0.22rem;">
+                                    doc_id: <code>{safe_doc_id}</code> · {file_type} · {chunk_method}
+                                </div>
+                            </div>
+                        </div>
+                        <span style="font-size:0.72rem; color:#0d9488; background:#ecfdf5; border:1px solid #99f6e4; border-radius:999px; padding:0.18rem 0.55rem;">{status}</span>
                     </div>
-                    <span style="font-size:0.82rem; color:#64748b;">{size_str}</span>
+                    <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:0.5rem; margin-top:0.75rem;">
+                        <div style="font-size:0.76rem; color:#64748b;">chunks<br><b style="color:#0f172a;">{chunk_count}</b></div>
+                        <div style="font-size:0.76rem; color:#64748b;">hash<br><b style="color:#0f172a;">{safe_hash}</b></div>
+                        <div style="font-size:0.76rem; color:#64748b;">indexed<br><b style="color:#0f172a;">{ingested_at}</b></div>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
+
+                delete_col, spacer_col = st.columns([1, 5])
+                with delete_col:
+                    if st.button("删除", key=f"kb_delete_{doc_id}", help="删除 Chroma 向量和 data/ 下的原始文件"):
+                        deleted_chunks = vs.delete_document_by_doc_id(doc_id, delete_file=True)
+                        st.success(f"已删除 {fname}，清理 {deleted_chunks} 个 chunk。")
+                        st.rerun()
+                with spacer_col:
+                    st.caption("删除后不会在下一次入库时被自动扫回。")
         else:
-            st.info("📭 知识库暂无文件，请切换到「上传文件」标签页添加。")
+            st.info("📭 knowledge manifest 暂无已入库文档，请切换到「上传文件」标签页添加。")
 
 elif page == "📊 可观测性":
     st.markdown("""

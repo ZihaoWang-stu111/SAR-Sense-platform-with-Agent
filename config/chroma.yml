@@ -2,7 +2,7 @@ collection_name: agent_prjct
 persist_directory: chroma_db
 k: 3
 data_path: data
-md5_hex_store: md5.text
+manifest_store: manifest.json
 allow_knowledge_file_type: ["txt", "pdf"]
 
 chunk_size : 240

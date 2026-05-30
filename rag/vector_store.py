@@ -6,7 +6,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from utils.path_tool import get_abs_path
 import os
 from utils.logger_handler import logger
-from utils.file_handler import text_loader, pdf_loader, listdir_with_allowed_type, get_file_md5_hex
+from utils.file_handler import text_loader, pdf_loader, listdir_with_allowed_type, \
+    get_file_hash, load_manifest, save_manifest, check_file_status, update_manifest_entry
 from rag.hybrid_retriever import DynamicHybridRetriever
 
 class VectorStoreService:
@@ -35,6 +36,10 @@ class VectorStoreService:
         self.semantic_threshold = chroma_conf.get("semantic_threshold", 0.5)
         self.semantic_min_size = chroma_conf.get("semantic_min_chunk_size", 100)
         self.semantic_max_size = chroma_conf.get("semantic_max_chunk_size", 800)
+
+        # Manifest 注册表（替代原 md5.text）
+        self.manifest_path = get_abs_path(chroma_conf["manifest_store"])
+        self.manifest = load_manifest(self.manifest_path)
 
     def get_retriever(self, query: str):
         return self.hybrid_engine.get_retriever(query)
@@ -91,7 +96,7 @@ class VectorStoreService:
             if sim < self.semantic_threshold:
                 boundaries.append(i)
 
-        # 第4步：按断点合并句子为 chunk
+        # 第4步：按断点合并句子为 chunk（chunk_index 由 _enrich_chunks 统一分配）
         chunks = []
         start = 0
         all_ends = boundaries + [len(sentences) - 1]
@@ -121,25 +126,31 @@ class VectorStoreService:
 
             start = end + 1
 
-        # 第5步：合并过小的 chunk 到相邻 chunk
+        # 第5步：合并过小的 chunk 到相邻 chunk（保留首个 chunk 的 metadata）
         final_chunks = []
         pending = None
         for ch in chunks:
             if len(ch.page_content) < self.semantic_min_size:
                 if pending:
-                    pending = Document(page_content=pending.page_content + "\n" + ch.page_content)
+                    pending = Document(
+                        page_content=pending.page_content + "\n" + ch.page_content,
+                        metadata=pending.metadata
+                    )
                 else:
                     pending = ch
             else:
                 if pending:
                     merged_text = pending.page_content + "\n" + ch.page_content
-                    final_chunks.append(Document(page_content=merged_text))
+                    # 保留较大 chunk 的 metadata（含 page 等有用字段）
+                    merged_meta = ch.metadata if ch.metadata else pending.metadata
+                    final_chunks.append(Document(page_content=merged_text, metadata=merged_meta))
                     pending = None
                 else:
                     final_chunks.append(ch)
         if pending and final_chunks:
             final_chunks[-1] = Document(
-                page_content=final_chunks[-1].page_content + "\n" + pending.page_content
+                page_content=final_chunks[-1].page_content + "\n" + pending.page_content,
+                metadata=final_chunks[-1].metadata
             )
         elif pending:
             final_chunks.append(pending)
@@ -150,26 +161,76 @@ class VectorStoreService:
         )
         return result
 
+    def _enrich_chunks(self, chunks, doc_id, file_hash, file_path, file_type):
+        """为 chunk 批量注入完整 metadata（doc_id / chunk_id / file_hash / source / filename / file_type / chunk_index）
+           并生成稳定 chunk_id 序列"""
+        filename = os.path.basename(file_path)
+        enriched_chunks = []
+        chunk_ids = []
+
+        for i, chunk in enumerate(chunks):
+            cid = f"{doc_id}_{i}"
+            meta = {
+                "doc_id": doc_id,
+                "chunk_id": cid,
+                "file_hash": file_hash,
+                "source": file_path,
+                "filename": filename,
+                "file_type": file_type,
+                "chunk_index": i,
+            }
+            # PDF 文档如果有 page 信息，保留
+            if "page" in chunk.metadata:
+                meta["page"] = chunk.metadata["page"]
+
+            enriched_chunks.append(Document(
+                page_content=chunk.page_content,
+                metadata=meta
+            ))
+            chunk_ids.append(cid)
+
+        return enriched_chunks, chunk_ids
+
+    def delete_document(self, filename, delete_file=False):
+        """按文件名删除该文档的所有向量及 manifest 记录。
+
+        delete_file=True 时同步删除 data/ 下的原始文件，避免下次入库又被扫描回来。
+        """
+        entry = self.manifest.get(filename)
+        if not entry:
+            logger.warning(f"manifest 中未找到 {filename}")
+            return 0
+
+        chunk_ids = entry.get("chunk_ids", [])
+        if chunk_ids:
+            self.vector_store.delete(ids=chunk_ids)
+            logger.info(f"已删除 {filename} 的 {len(chunk_ids)} 个向量")
+
+        if delete_file:
+            data_dir = os.path.abspath(get_abs_path(chroma_conf["data_path"]))
+            file_path = os.path.abspath(os.path.join(data_dir, filename))
+            if file_path.startswith(data_dir + os.sep) and os.path.exists(file_path):
+                os.remove(file_path)
+                logger.info(f"已删除原始文件 {file_path}")
+
+        del self.manifest[filename]
+        save_manifest(self.manifest_path, self.manifest)
+        self.hybrid_engine.rebuild_bm25()
+        return len(chunk_ids)
+
+    def delete_document_by_doc_id(self, doc_id, delete_file=False):
+        """按 doc_id 删除文档（比文件名更稳定，避免重名/改名/乱码问题）"""
+        for fname, entry in self.manifest.items():
+            if entry.get("doc_id") == doc_id:
+                return self.delete_document(fname, delete_file=delete_file)
+        logger.warning(f"manifest 中未找到 doc_id={doc_id}")
+        return 0
+
     def load_document(self):
         """
-        加载文件，存入向量库
-        :return: (new_count, skipped_count) 实际新入库数量和跳过数量
+        加载文件，存入向量库（manifest 模式去重 + 稳定 chunk ID）
+        :return: (new_count, updated_count, skipped_count, removed_count)
         """
-        def check_md5_hex(md5_for_check):
-            if not os.path.exists(get_abs_path(chroma_conf["md5_hex_store"])):
-                open(get_abs_path(chroma_conf["md5_hex_store"]), 'w', encoding="UTF-8").close()
-                return False
-            with open(get_abs_path(chroma_conf["md5_hex_store"]), 'r', encoding="UTF-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if md5_for_check == line:
-                        return True
-            return False
-
-        def save_md5_hex(md5_for_check):
-            with open(get_abs_path(chroma_conf["md5_hex_store"]), 'a', encoding="utf-8") as f:
-                f.write(md5_for_check + "\n")
-
         def get_file_documents(read_path):
             if read_path.endswith("txt"):
                 return text_loader(read_path)
@@ -177,43 +238,114 @@ class VectorStoreService:
                 return pdf_loader(read_path)
             return []
 
-        allow_files_path = listdir_with_allowed_type(get_abs_path(chroma_conf["data_path"]),
-                                                     tuple(chroma_conf["allow_knowledge_file_type"]))
+        allow_files_path = listdir_with_allowed_type(
+            get_abs_path(chroma_conf["data_path"]),
+            tuple(chroma_conf["allow_knowledge_file_type"])
+        )
 
         new_count = 0
+        updated_count = 0
         skipped_count = 0
+        duplicate_count = 0
 
         for path in allow_files_path:
-            md5_hex = get_file_md5_hex(path)
-            if check_md5_hex(md5_hex):
-                logger.info(f"加载知识库{path}下的文件已经存在，跳过")
+            filename = os.path.basename(path)
+            file_hash = get_file_hash(path)
+            file_type = path.rsplit(".", 1)[-1] if "." in path else "unknown"
+
+            if file_hash is None:
+                logger.error(f"文件 {filename} hash 计算失败，跳过")
+                continue
+
+            # 判断文件状态：NEW / UPDATED / SAME / DUPLICATE
+            status = check_file_status(self.manifest, filename, file_hash)
+
+            if status == "SAME":
+                logger.info(f"文件 {filename} 未变更，跳过")
                 skipped_count += 1
                 continue
+
+            if status == "DUPLICATE":
+                # 同内容文件已以另一个名字入库，跳过不重复入库
+                logger.info(f"文件 {filename} 内容与其他文件重复，跳过入库")
+                duplicate_count += 1
+                skipped_count += 1
+                continue
+
+            # UPDATED: 文件内容变了 → 删旧向量，重新入库
+            if status == "UPDATED":
+                logger.info(f"文件 {filename} 已更新，删除旧向量后重新入库")
+                self.delete_document(filename)
+
+            # 生成 doc_id
+            doc_id = file_hash[:16]
+
             try:
                 documents = get_file_documents(path)
                 if not documents:
-                    logger.error(f"加载知识库{path}文件下内容为空，跳过")
+                    logger.error(f"文件 {filename} 内容为空，跳过")
                     continue
+
+                # 分块
+                chunk_method = "semantic"
                 split_document = None
-                if self.semantic_enabled:#先尝试语义分块
+                if self.semantic_enabled:
                     split_document = self._semantic_split(documents)
                 if split_document is None:
                     split_document = self._get_splitter(path).split_documents(documents)
+                    chunk_method = "fixed"
                 if not split_document:
-                    logger.error(f"加载知识库{path}分片后内容为空，跳过")
+                    logger.error(f"文件 {filename} 分片后内容为空，跳过")
                     continue
-                self.vector_store.add_documents(split_document)
-                save_md5_hex(md5_hex)
-                new_count += 1
-                logger.info(f"加载知识库{path}下的文件成功")
+
+                # 注入 metadata + 生成稳定 ID
+                enriched_chunks, chunk_ids = self._enrich_chunks(
+                    split_document, doc_id, file_hash, path, file_type
+                )
+
+                # 写入 ChromaDB（带稳定 ID → 不会产生重复向量）
+                self.vector_store.add_documents(
+                    enriched_chunks, ids=chunk_ids
+                )
+
+                # 更新 manifest
+                update_manifest_entry(
+                    self.manifest, filename, doc_id, file_hash,
+                    chunk_count=len(enriched_chunks),
+                    chunk_ids=chunk_ids,
+                    chunk_method=chunk_method,
+                    file_type=file_type
+                )
+                # 计数：NEW 只算 new_count，UPDATED 只算 updated_count
+                if status == "NEW":
+                    new_count += 1
+                elif status == "UPDATED":
+                    updated_count += 1
+                logger.info(
+                    f"文件 {filename} 入库成功 [{status}] "
+                    f"({chunk_method}, {len(enriched_chunks)} chunks, doc_id={doc_id})"
+                )
+
             except Exception as e:
-                logger.error(f"加载知识库{path}失败, 错误详情: {str(e)}", exc_info=True)
+                logger.error(f"文件 {filename} 入库失败: {str(e)}", exc_info=True)
                 continue
 
-        if new_count > 0:
+        # 清理：manifest 中的文件已物理删除 → 移除残留记录
+        current_filenames = {os.path.basename(p) for p in allow_files_path}
+        stale_files = [f for f in self.manifest if f not in current_filenames]
+        removed_count = 0
+        for stale in stale_files:
+            logger.info(f"文件 {stale} 已不存在，清理残留向量")
+            self.delete_document(stale)
+            removed_count += 1
+
+        # 持久化 manifest
+        save_manifest(self.manifest_path, self.manifest)
+
+        if new_count > 0 or updated_count > 0 or removed_count > 0:
             self.hybrid_engine.rebuild_bm25()
 
-        return new_count, skipped_count
+        return new_count, updated_count, skipped_count, removed_count
 
 
 
