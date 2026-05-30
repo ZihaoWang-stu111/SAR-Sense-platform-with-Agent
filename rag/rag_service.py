@@ -33,13 +33,18 @@ class RagSummarizeService:
         return final_docs
 
 
-    def rag_summarize(self,query):
-        counter = 0
+    def rag_summarize(self, query):
         context = ""
-        for doc in self.retriever_docs(query):
-            counter += 1
-            source = doc.metadata.get('source', '未知文档')
-            context += f"[参考资料{counter}] (来源:{source}): {doc.page_content}\n"
+        for i, doc in enumerate(self.retriever_docs(query), 1):
+            filename = doc.metadata.get('filename', '未知文档')
+            chunk_id = doc.metadata.get('chunk_id', '-')
+            chunk_index = doc.metadata.get('chunk_index', '-')
+            page = doc.metadata.get('page', '-')
+            score = doc.metadata.get('rerank_score', '-')
+            if isinstance(score, float):
+                score = f"{score:.4f}"
+            context += f"[{i}] {doc.page_content}\n"
+            context += f"来源: {filename} | chunk_id={chunk_id} | chunk_index={chunk_index} | page={page} | score={score}\n\n"
 
         return self.chain.invoke(
             {"input": query,
