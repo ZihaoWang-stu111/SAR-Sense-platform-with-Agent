@@ -248,7 +248,9 @@ async def chat_stream(request: Request):
         logger.info("Streaming chat request received")
         data = await request.json()
         message = data.get('message', '')
+        display_message = data.get('display_message', message)
         messages_history = data.get('messages', [])
+        conversation_id = data.get('conversation_id')
 
         if not message:
             raise HTTPException(status_code=400, detail='No message provided')
@@ -261,8 +263,19 @@ async def chat_stream(request: Request):
         agent = get_agent()
         logger.info("Agent loaded for streaming")
 
-        # Build messages list
-        messages = messages_history[-10:] + [{"role": "user", "content": message}]
+        # Build messages list — 优先用对话记忆压缩，降级为硬截断
+        conv_mgr = get_conv_manager()
+        if conversation_id:
+            # 持久化纯文本（不含附件内容），保持对话记录干净
+            conv_mgr.append_message(conversation_id, "user", display_message)
+            # build_chat_pack 从 JSON 读取历史做压缩
+            messages = conv_mgr.build_chat_pack(conversation_id)
+            # 替换最后一条为当前完整消息（含附件内容），确保 Agent 能看到附件
+            if messages and messages[-1].get("role") == "user":
+                messages[-1] = {"role": "user", "content": message}
+        else:
+            # 无 conversation_id 时降级：硬截断最近 10 轮
+            messages = messages_history[-10:] + [{"role": "user", "content": message}]
 
         async def generate():
             """SSE generator for streaming response"""

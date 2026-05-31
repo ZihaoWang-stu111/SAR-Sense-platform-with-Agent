@@ -937,9 +937,12 @@ elif page == "🤖 智能体问答":
         st.session_state["messages"].append({"role": "user", "content": auto_prompt})
         conv_mgr.append_message(st.session_state["current_conv_id"], "user", auto_prompt)
 
+        # 对话记忆压缩：摘要 + 最近 N 轮
+        chat_pack = conv_mgr.build_chat_pack(st.session_state["current_conv_id"])
+
         response_messages = []
         with st.spinner("🤖 AI助手正在检测并分析SAR图像..."):
-            res_stream = st.session_state["agent"].execute_stream(st.session_state["messages"])
+            res_stream = st.session_state["agent"].execute_stream(chat_pack)
 
             with stream_placeholder.container():
                 st.chat_message("user").write(auto_prompt)
@@ -974,9 +977,12 @@ elif page == "🤖 智能体问答":
         st.session_state["messages"].append({"role": "user", "content": effective_prompt})
         conv_mgr.append_message(st.session_state["current_conv_id"], "user", effective_prompt)
 
+        # 对话记忆压缩：摘要 + 最近 N 轮
+        chat_pack = conv_mgr.build_chat_pack(st.session_state["current_conv_id"])
+
         response_messages = []
         with st.spinner("智能客服思考中..."):
-            res_stream = st.session_state["agent"].execute_stream(st.session_state["messages"][-10:])
+            res_stream = st.session_state["agent"].execute_stream(chat_pack)
 
             with stream_placeholder.container():
                 st.chat_message("user").write(display_prompt)

@@ -294,11 +294,11 @@ async function sendMessage() {
   const userMessage = { role: 'user', content: message || '请分析附件内容' };
   state.messages.push(userMessage);
   renderMessages();
-  appendMessageToConversation('user', message || '请分析附件内容');
+  // 用户消息由后端 /api/chat/stream 统一写入对话记录（纯文本），此处不再重复追加
 
   chatInput.value = '';
   chatInput.style.height = 'auto';
-  await sendMessageStreaming(fullMessage);
+  await sendMessageStreaming(fullMessage, message || '请分析附件内容');
 }
 
 async function extractFileContent(file) {
@@ -318,7 +318,7 @@ async function extractFileContent(file) {
   }
 }
 
-async function sendMessageStreaming(message) {
+async function sendMessageStreaming(message, displayMessage) {
   state.isStreaming = true;
   const assistantMessage = { role: 'assistant', content: '', thoughtSteps: [], pendingChunks: [], isTyping: false };
   state.messages.push(assistantMessage);
@@ -333,7 +333,12 @@ async function sendMessageStreaming(message) {
     const response = await fetch(`${API_BASE}/api/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, messages: messagesHistory })
+      body: JSON.stringify({
+        message,
+        display_message: displayMessage,
+        messages: messagesHistory,
+        conversation_id: state.currentConversationId
+      })
     });
 
     const reader = response.body.getReader();

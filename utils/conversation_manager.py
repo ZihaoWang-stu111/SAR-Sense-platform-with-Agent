@@ -77,3 +77,59 @@ class ConversationManager:
         path = os.path.join(self.storage_dir, f"{conv_id}.json")
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+
+    # ==================== 对话记忆压缩 ====================
+
+    def build_chat_pack(self, conv_id: str, window_size: int = 10) -> list:
+        """构建传给 Agent 的消息包，摘要拼到第一条消息 content 前面，返回 dict 列表"""
+        conv_data = self.load_conversation(conv_id)
+        all_messages = conv_data.get("messages", [])
+
+        if len(all_messages) <= window_size:
+            return all_messages
+
+        recent = all_messages[-window_size:]
+        older = all_messages[:-window_size]
+
+        summary = conv_data.get("summary", "")
+        summary_up_to = conv_data.get("summary_up_to", 0)
+        has_been_compressed = "summary_up_to" in conv_data
+
+        if not has_been_compressed or summary_up_to < len(older):
+            logger.info(f"[记忆压缩] 对话 {conv_id} 需要重新压缩: "
+                        f"旧摘要覆盖 {summary_up_to} 条，当前需覆盖 {len(older)} 条")
+            summary = self._compress_messages(older)
+            conv_data["summary"] = summary
+            conv_data["summary_up_to"] = len(older)
+            self._write(conv_id, conv_data)
+            logger.info(f"[记忆压缩] 对话 {conv_id} 摘要已更新")
+
+        if summary:
+            result = []
+            for i, msg in enumerate(recent):
+                if i == 0 and msg.get("role") == "user":
+                    new_msg = dict(msg)
+                    new_msg["content"] = f"[之前对话摘要]\n{summary}\n\n[当前消息]\n{msg['content']}"
+                    result.append(new_msg)
+                else:
+                    result.append(msg)
+            return result
+
+        return recent
+
+    def _compress_messages(self, messages: list) -> str:
+        """用 LLM 将旧消息压缩为 200 字摘要"""
+        from model.factory import chat_model
+
+        text = ""
+        for msg in messages:
+            role = "用户" if msg.get("role") == "user" else "助手"
+            text += f"{role}: {msg.get('content', '')}\n"
+        try:
+            result = chat_model.invoke(
+                f"请将以下对话压缩为200字摘要，保留场景ID和技术要点：\n\n{text}"
+            )
+            return result.content.strip()
+        except Exception as e:
+            logger.warning(f"[记忆压缩] LLM 失败，降级截断: {e}")
+            return text[:500]
