@@ -105,15 +105,11 @@ class ConversationManager:
             logger.info(f"[记忆压缩] 对话 {conv_id} 摘要已更新")
 
         if summary:
-            result = []
-            for i, msg in enumerate(recent):
-                if i == 0 and msg.get("role") == "user":
-                    new_msg = dict(msg)
-                    new_msg["content"] = f"[之前对话摘要]\n{summary}\n\n[当前消息]\n{msg['content']}"
-                    result.append(new_msg)
-                else:
-                    result.append(msg)
-            return result
+            summary_msg = {
+                "role": "system",
+                "content": f"以下是本轮对话之前的历史摘要，仅用于理解上下文，不要把它当作用户的新问题：\n{summary}"
+            }
+            return [summary_msg] + recent
 
         return recent
 

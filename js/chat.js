@@ -424,6 +424,9 @@ function updateLastMessage(isFinal = false) {
   const existingThoughtChain = contentDiv.querySelector('.thought-chain');
 
   let html = renderMarkdown(assistantMessage.content);
+  if (isFinal) {
+    html = renderWithCitations(html);
+  }
   if (!isFinal && state.isStreaming) {
     html += '<span class="streaming-cursor"></span>';
   }
@@ -446,6 +449,9 @@ function updateLastMessage(isFinal = false) {
         });
       }
     }
+  }
+  if (isFinal) {
+    initCitationClickHandlers(contentDiv);
   }
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -566,6 +572,9 @@ function renderMessages() {
     contentDiv.className = 'message-content';
 
     let html = renderMarkdown(msg.content);
+    if (msg.role === 'assistant') {
+      html = renderWithCitations(html);
+    }
     if (msg.role === 'assistant' && index === state.messages.length - 1 && state.isStreaming) {
       html += '<span class="streaming-cursor"></span>';
     }
@@ -580,6 +589,9 @@ function renderMessages() {
     messageDiv.appendChild(contentDiv);
     chatMessages.appendChild(messageDiv);
   });
+
+  // 引用角标点击交互
+  initCitationClickHandlers(chatMessages);
 
   chatMessages.querySelectorAll('.thought-chain').forEach(chain => {
     const header = chain.querySelector('.thought-chain-header');
@@ -771,6 +783,76 @@ function parseTableRow(line) {
   cells.shift();
   cells.pop();
   return cells;
+}
+
+// ==================== Citation Rendering ====================
+function renderWithCitations(html) {
+  // 只处理 assistant 消息中有引用标记的文本
+  if (!html || !html.includes('参考来源')) return html;
+
+  // 第1步：分离正文和来源列表
+  const sourceMatch = html.match(/参考来源[：:]\s*\n?([\s\S]*)$/);
+  if (!sourceMatch) return html;
+
+  let body = html.substring(0, sourceMatch.index).trim();
+  const sourceLines = sourceMatch[1].trim().split(/<br\s*\/?>/i).filter(l => l.trim());
+
+  // 第2步：解析来源列表
+  const sources = [];
+  for (const line of sourceLines) {
+    const m = line.match(/\[(\d+)\]\s*([^|]+)(?:\s*\|\s*chunk_id=(\S+))?(?:\s*\|\s*score=(\S+))?$/);
+    if (m) {
+      sources.push({
+        index: parseInt(m[1]),
+        filename: (m[2] || '').trim(),
+        chunkId: m[3] || '-',
+        score: m[4] || '-'
+      });
+    }
+  }
+  if (sources.length === 0) return html;
+
+  // 第3步：替换正文中的 [1] 为可点击角标
+  body = body.replace(/\[(\d+)\]/g, (match, num) => {
+    const idx = parseInt(num);
+    if (!sources.find(s => s.index === idx)) return match;
+    const src = sources.find(s => s.index === idx);
+    return `<sup class="citation-ref" data-idx="${idx}" title="${src.filename} (score: ${src.score})">[${idx}]</sup>`;
+  });
+
+  // 第4步：替换《文件名》为高亮
+  body = body.replace(/《(.+?)》/g, '<span class="citation-filename">📄 $1</span>');
+
+  // 第5步：生成来源卡片
+  const sourceItems = sources.map(s =>
+    `<div class="citation-source-item" data-idx="${s.index}">
+      <span class="citation-badge">[${s.index}]</span>
+      <span class="citation-name">📄 ${s.filename}</span>
+      <span class="citation-meta">chunk: ${s.chunkId} · score: ${s.score}</span>
+    </div>`
+  ).join('');
+
+  const sourcePanel = `<details class="citation-sources">
+    <summary>📚 参考来源（${sources.length}篇）</summary>
+    <div class="citation-source-list">${sourceItems}</div>
+  </details>`;
+
+  return `<div class="message-with-citations">${body}${sourcePanel}</div>`;
+}
+
+function initCitationClickHandlers(container) {
+  container.addEventListener('click', (e) => {
+    const ref = e.target.closest('.citation-ref');
+    if (!ref) return;
+    const idx = ref.dataset.idx;
+    const msgDiv = ref.closest('.message-with-citations');
+    if (!msgDiv) return;
+    const details = msgDiv.querySelector('.citation-sources');
+    if (details) details.open = true;
+    msgDiv.querySelectorAll('.citation-source-item').forEach(el => {
+      el.classList.toggle('highlighted', el.dataset.idx === idx);
+    });
+  });
 }
 
 function renderThoughtChain(steps) {

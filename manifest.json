@@ -265,17 +265,18 @@
     "ingested_at": "2026-05-30T15:46:55",
     "status": "active"
   },
-  "王子豪简历.pdf": {
-    "doc_id": "1ea7dd5ad3f79185",
-    "file_hash": "1ea7dd5ad3f791858e9e668f22d495ed1d69116a04e3d7acc4445f5f7f4aa490",
-    "chunk_count": 2,
+  "王子豪简历(1).pdf": {
+    "doc_id": "5c693dbcfd11be68",
+    "file_hash": "5c693dbcfd11be68660c428e10c39e22ddb1f9ffe32741a0e142b14fb16830f6",
+    "chunk_count": 3,
     "chunk_ids": [
-      "1ea7dd5ad3f79185_0",
-      "1ea7dd5ad3f79185_1"
+      "5c693dbcfd11be68_0",
+      "5c693dbcfd11be68_1",
+      "5c693dbcfd11be68_2"
     ],
     "chunk_method": "semantic",
     "file_type": "pdf",
-    "ingested_at": "2026-05-30T15:46:56",
+    "ingested_at": "2026-06-01T09:57:59",
     "status": "active"
   }
 }
