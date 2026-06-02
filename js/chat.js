@@ -5,8 +5,12 @@ const API_BASE = '';
 const state = {
   currentConversationId: null,
   messages: [],
-  isStreaming: false,
-  attachedFile: null
+  attachedFile: null,
+
+  // 多Reader管理（支持后台流式输出）
+  activeReaders: new Map(),      // conversationId -> { reader, abortController, startTime }
+  streamingStatus: new Map(),    // conversationId -> { isStreaming, progress }
+  backgroundMessages: new Map()  // conversationId -> messages[]
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -119,7 +123,18 @@ function renderConversationList(conversations) {
   conversations.forEach(conv => {
     const item = document.createElement('div');
     item.className = `conversation-item ${conv.id === state.currentConversationId ? 'active' : ''}`;
+
+    // 添加生成状态图标
+    let statusIcon = '';
+    if (state.streamingStatus.has(conv.id)) {
+      const status = state.streamingStatus.get(conv.id);
+      if (status.isStreaming) {
+        statusIcon = '<span class="streaming-indicator" title="正在生成">⏳</span>';
+      }
+    }
+
     item.innerHTML = `
+      ${statusIcon}
       <span class="conversation-title">${escapeHtml(conv.title)}</span>
       <button class="conversation-delete" data-id="${conv.id}" title="删除">✕</button>
     `;
@@ -138,11 +153,41 @@ function renderConversationList(conversations) {
 
 async function loadConversation(convId) {
   try {
+    const previousConvId = state.currentConversationId;
+
+    // 不中断SSE，只是转入后台
+    if (previousConvId && state.activeReaders.has(previousConvId)) {
+      console.log(`[Background] 会话 ${previousConvId} 转入后台继续生成`);
+
+      // 将当前正在打字的消息的 pendingChunks 立即累积到 content
+      const lastMessage = state.messages[state.messages.length - 1];
+      if (lastMessage && lastMessage.role === 'assistant') {
+        // 等待打字机完成当前 chunk（避免丢失正在打字的内容）
+        while (lastMessage.isTyping) {
+          await new Promise(resolve => setTimeout(resolve, 20));
+        }
+        // 累积所有剩余的 pendingChunks
+        if (lastMessage.pendingChunks) {
+          while (lastMessage.pendingChunks.length > 0) {
+            lastMessage.content += lastMessage.pendingChunks.shift();
+          }
+        }
+        console.log(`[Background] 已累积当前消息内容，长度: ${lastMessage.content.length}`);
+      }
+      // 不调用cancel，让SSE连接继续运行
+    }
+
     const response = await fetch(`${API_BASE}/api/conversations/${convId}`);
     const data = await response.json();
     if (data.success) {
       state.currentConversationId = convId;
       state.messages = data.conversation.messages || [];
+
+      // 如果新会话也在后台streaming，同步状态
+      if (state.activeReaders.has(convId)) {
+        syncBackgroundMessages(convId);
+      }
+
       renderMessages();
       loadConversations();
     }
@@ -185,17 +230,63 @@ async function deleteConversation(convId) {
   }
 }
 
-async function appendMessageToConversation(role, content, thoughtSteps = null) {
-  if (!state.currentConversationId) return;
+async function appendMessageToConversation(conversationId, role, content, thoughtSteps = null) {
+  console.log(`[appendMessageToConversation] 调用，conversationId: ${conversationId}, role: ${role}, content长度: ${content.length}`);
+  if (!conversationId) {
+    console.error('[appendMessageToConversation] conversationId为空，跳过保存');
+    return;
+  }
   try {
-    await fetch(`${API_BASE}/api/conversations/${state.currentConversationId}/messages`, {
+    const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role, content, thought_steps: thoughtSteps })
     });
+    console.log(`[appendMessageToConversation] 保存成功，conversationId: ${conversationId}`);
   } catch (error) {
     console.error('Failed to append message:', error);
   }
+}
+
+// 同步后台消息到当前会话
+function syncBackgroundMessages(conversationId) {
+  const bgMessages = state.backgroundMessages.get(conversationId);
+  if (bgMessages && bgMessages.length > 0) {
+    const lastMsg = bgMessages[bgMessages.length - 1];
+
+    // 检查是否已在messages中
+    const existingIndex = state.messages.findIndex(m =>
+      m.role === 'assistant' && !m.streamDone
+    );
+
+    if (existingIndex >= 0) {
+      state.messages[existingIndex] = lastMsg;
+    } else {
+      state.messages.push(lastMsg);
+    }
+  }
+}
+
+// 后台完成通知
+function notifyBackgroundCompletion(conversationId) {
+  console.log(`[Background] 会话 ${conversationId} 完成`);
+
+  // 页面标题提示
+  if (document.hidden) {
+    document.title = '(1) 回答完成 - SAR-Sense';
+  }
+
+  // 侧边栏高亮
+  setTimeout(() => {
+    const item = document.querySelector(`.conversation-item[onclick*="${conversationId}"]`);
+    if (item) {
+      item.classList.add('completed-pulse');
+      setTimeout(() => item.classList.remove('completed-pulse'), 3000);
+    }
+  }, 100);
+
+  // 刷新侧边栏
+  loadConversations();
 }
 
 // ==================== Chat Feature ====================
@@ -211,7 +302,32 @@ function initChat() {
   if (!chatMessages || !chatInput) return;
 
   if (newConvBtn) {
-    newConvBtn.addEventListener('click', () => {
+    newConvBtn.addEventListener('click', async () => {
+      const previousConvId = state.currentConversationId;
+
+      // 如果之前的会话正在streaming，转入后台
+      if (previousConvId && state.activeReaders.has(previousConvId)) {
+        console.log(`[Background] 会话 ${previousConvId} 转入后台继续生成`);
+
+        // 将当前正在打字的消息的 pendingChunks 立即累积到 content
+        const lastMessage = state.messages[state.messages.length - 1];
+        if (lastMessage && lastMessage.role === 'assistant') {
+          // 等待打字机完成当前 chunk
+          while (lastMessage.isTyping) {
+            await new Promise(resolve => setTimeout(resolve, 20));
+          }
+          // 累积所有剩余的 pendingChunks
+          if (lastMessage.pendingChunks) {
+            while (lastMessage.pendingChunks.length > 0) {
+              lastMessage.content += lastMessage.pendingChunks.shift();
+            }
+          }
+          console.log(`[Background] 已累积当前消息内容，长度: ${lastMessage.content.length}`);
+        }
+        // 不中断，让它继续运行
+      }
+
+      // 清空状态
       state.currentConversationId = null;
       state.messages = [];
       state.attachedFile = null;
@@ -250,6 +366,26 @@ function initChat() {
       sendMessage();
     }
   });
+
+  // 超时清理机制
+  setInterval(() => {
+    const now = Date.now();
+    const TIMEOUT = 5 * 60 * 1000;  // 5分钟超时
+
+    state.activeReaders.forEach((info, convId) => {
+      if (now - info.startTime > TIMEOUT) {
+        console.warn(`[Timeout] 会话 ${convId} 超时，强制中断`);
+        info.abortController.abort();
+      }
+    });
+  }, 30000);  // 每30秒检查一次
+
+  // 页面可见性变化时恢复标题
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      document.title = 'SAR-Sense';
+    }
+  });
 }
 
 function updateAttachmentIndicator() {
@@ -267,7 +403,17 @@ async function sendMessage() {
   const chatInput = document.getElementById('chatInput');
   let message = chatInput.value.trim();
   if (!message && !state.attachedFile) return;
-  if (state.isStreaming) return;
+
+  // 检查当前会话是否正在流式输出
+  const currentConvId = state.currentConversationId;
+  if (state.streamingStatus.has(currentConvId)) return;
+
+  // 并发限制：最多3个会话同时生成
+  const MAX_CONCURRENT = 3;
+  if (state.activeReaders.size >= MAX_CONCURRENT) {
+    alert('同时最多3个会话生成，请等待完成后再试');
+    return;
+  }
 
   if (!state.currentConversationId) {
     const preview = message.substring(0, 20) || '附件分析';
@@ -318,7 +464,188 @@ async function extractFileContent(file) {
   }
 }
 
+// 后台流式处理
+async function processStreamInBackground(reader, conversationId) {
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  // 创建后台消息对象
+  let assistantMessage = {
+    role: 'assistant',
+    content: '',
+    thoughtSteps: [],
+    streamDone: false,
+    pendingChunks: [],
+    isTyping: false
+  };
+
+  // 缓存到后台消息中
+  if (!state.backgroundMessages.has(conversationId)) {
+    state.backgroundMessages.set(conversationId, []);
+  }
+  state.backgroundMessages.get(conversationId).push(assistantMessage);
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+
+            if (data.type === 'chunk') {
+              assistantMessage.content += data.content;
+
+              // 更新进度
+              const status = state.streamingStatus.get(conversationId);
+              if (status) {
+                status.progress = assistantMessage.content.length;
+              }
+            } else if (data.type === 'thought_step') {
+              assistantMessage.thoughtSteps.push(data.step);
+            } else if (data.type === 'done') {
+              assistantMessage.streamDone = true;
+
+              // 完成后自动保存
+              await appendMessageToConversation(conversationId, 'assistant', assistantMessage.content, assistantMessage.thoughtSteps);
+
+              // 通知用户
+              notifyBackgroundCompletion(conversationId);
+            } else if (data.type === 'error') {
+              assistantMessage.content += `\n\n[错误: ${data.message}]`;
+            }
+          } catch (e) {
+            console.error('[Background] Parse error:', e);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    if (error.name !== 'AbortError') {
+      console.error(`[Background] 会话 ${conversationId} 错误:`, error);
+      assistantMessage.content += '\n\n[⚠️ 连接中断]';
+    }
+  } finally {
+    state.backgroundMessages.delete(conversationId);
+  }
+}
+
 async function sendMessageStreaming(message, displayMessage) {
+  const conversationId = state.currentConversationId;
+  const abortController = new AbortController();
+
+  // 注册到活跃readers
+  state.activeReaders.set(conversationId, {
+    reader: null,
+    abortController,
+    startTime: Date.now()
+  });
+
+  state.streamingStatus.set(conversationId, {
+    isStreaming: true,
+    progress: 0
+  });
+
+  const assistantMessage = { role: 'assistant', content: '', thoughtSteps: [], pendingChunks: [], isTyping: false };
+  state.messages.push(assistantMessage);
+  renderMessages();
+
+  const chatMessages = document.getElementById('chatMessages');
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  startTypewriterEffect();
+
+  try {
+    const messagesHistory = state.messages.slice(0, -2).map(m => ({ role: m.role, content: m.content }));
+    const response = await fetch(`${API_BASE}/api/chat/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        display_message: displayMessage,
+        messages: messagesHistory,
+        conversation_id: conversationId
+      }),
+      signal: abortController.signal
+    });
+
+    const reader = response.body.getReader();
+    state.activeReaders.get(conversationId).reader = reader;
+
+    // 前台处理：实时更新UI（始终用前台模式，因为发送时就是当前会话）
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === 'chunk') {
+              assistantMessage.pendingChunks.push(data.content);
+            } else if (data.type === 'thought_step') {
+              assistantMessage.thoughtSteps.push(data.step);
+              updateThoughtChainRealtime(assistantMessage.thoughtSteps);
+            } else if (data.type === 'done') {
+              assistantMessage.streamDone = true;
+            } else if (data.type === 'error') {
+              assistantMessage.pendingChunks.push(`\n\n[错误: ${data.message}]`);
+            }
+          } catch (e) {}
+        }
+      }
+    }
+
+    // 等待打字机效果完成（仅当前会话）
+    const isForeground = conversationId === state.currentConversationId;
+    console.log(`[Stream End] 会话 ${conversationId}，当前会话: ${state.currentConversationId}，模式: ${isForeground ? '前台' : '后台'}`);
+
+    if (isForeground) {
+      // 前台模式：等待打字机完成
+      while (assistantMessage.pendingChunks.length > 0 || assistantMessage.isTyping) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      updateLastMessage(true);
+      console.log(`[前台模式] 会话 ${conversationId} 完成，内容长度: ${assistantMessage.content.length}`);
+    } else {
+      // 后台模式：直接累积所有内容，不等待打字机
+      console.log(`[后台模式] 会话 ${conversationId} 切换到后台，pendingChunks: ${assistantMessage.pendingChunks.length}`);
+      while (assistantMessage.pendingChunks.length > 0) {
+        assistantMessage.content += assistantMessage.pendingChunks.shift();
+      }
+      console.log(`[后台模式] 会话 ${conversationId} 完成，内容长度: ${assistantMessage.content.length}`);
+      // 通知用户后台会话已完成
+      notifyBackgroundCompletion(conversationId);
+    }
+
+    console.log(`[保存消息] 会话 ${conversationId}，角色: assistant，内容长度: ${assistantMessage.content.length}`);
+    await appendMessageToConversation(conversationId, 'assistant', assistantMessage.content, assistantMessage.thoughtSteps);
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      console.log('[Stream] 用户取消');
+    } else {
+      console.error('Streaming error:', error);
+      assistantMessage.content += '\n\n[连接错误，请重试]';
+      updateLastMessage(true);
+    }
+  } finally {
+    state.activeReaders.delete(conversationId);
+    state.streamingStatus.delete(conversationId);
+  }
+}
+
+async function sendMessageStreaming_OLD(message, displayMessage) {
   state.isStreaming = true;
   const assistantMessage = { role: 'assistant', content: '', thoughtSteps: [], pendingChunks: [], isTyping: false };
   state.messages.push(assistantMessage);
@@ -342,6 +669,7 @@ async function sendMessageStreaming(message, displayMessage) {
     });
 
     const reader = response.body.getReader();
+    state.currentReader = reader;  // 保存 reader 引用
     const decoder = new TextDecoder();
     let buffer = '';
 
@@ -376,13 +704,15 @@ async function sendMessageStreaming(message, displayMessage) {
     }
 
     updateLastMessage(true);
-    appendMessageToConversation('assistant', assistantMessage.content, assistantMessage.thoughtSteps);
+    appendMessageToConversation(state.currentConversationId, 'assistant', assistantMessage.content, assistantMessage.thoughtSteps);
   } catch (error) {
     console.error('Streaming error:', error);
     assistantMessage.content += '\n\n[连接错误，请重试]';
     updateLastMessage(true);
+  } finally {
+    state.isStreaming = false;
+    state.currentReader = null;  // 清理 reader 引用
   }
-  state.isStreaming = false;
 }
 
 let isTypewriterRunning = false;
@@ -394,20 +724,35 @@ function startTypewriterEffect() {
 }
 
 async function processTypewriterQueue() {
-  while (state.isStreaming || state.messages[state.messages.length - 1]?.pendingChunks?.length > 0) {
-    const assistantMessage = state.messages[state.messages.length - 1];
-    if (!assistantMessage) break;
+  const currentConvId = state.currentConversationId;
+  while (state.streamingStatus.has(currentConvId)) {
+    // 安全检查：确保当前会话没有切换
+    if (currentConvId !== state.currentConversationId) {
+      console.log('[Typewriter] 会话已切换，停止打字机效果');
+      break;
+    }
 
-    if (assistantMessage.pendingChunks.length > 0) {
-      const chunk = assistantMessage.pendingChunks.shift();
-      assistantMessage.isTyping = true;
-      for (let i = 0; i < chunk.length; i++) {
-        assistantMessage.content += chunk[i];
-        updateLastMessage(false);
-        await new Promise(resolve => setTimeout(resolve, 15));
+    // 处理所有未完成的 assistant 消息
+    let hasWork = false;
+    for (let i = state.messages.length - 1; i >= 0; i--) {
+      const msg = state.messages[i];
+      if (msg.role === 'assistant' && msg.pendingChunks && msg.pendingChunks.length > 0) {
+        const chunk = msg.pendingChunks.shift();
+        msg.isTyping = true;
+        for (let j = 0; j < chunk.length; j++) {
+          msg.content += chunk[j];
+          if (i === state.messages.length - 1) {
+            updateLastMessage(false);
+          }
+          await new Promise(resolve => setTimeout(resolve, 15));
+        }
+        msg.isTyping = false;
+        hasWork = true;
+        break; // 一次处理一个 chunk
       }
-      assistantMessage.isTyping = false;
-    } else {
+    }
+
+    if (!hasWork) {
       await new Promise(resolve => setTimeout(resolve, 50));
     }
   }
@@ -427,7 +772,8 @@ function updateLastMessage(isFinal = false) {
   if (isFinal) {
     html = renderWithCitations(html);
   }
-  if (!isFinal && state.isStreaming) {
+  const currentConvId = state.currentConversationId;
+  if (!isFinal && state.streamingStatus.has(currentConvId)) {
     html += '<span class="streaming-cursor"></span>';
   }
 
@@ -457,6 +803,13 @@ function updateLastMessage(isFinal = false) {
 }
 
 function updateThoughtChainRealtime(thoughtSteps) {
+  // 防御检查：确保当前会话正在流式输出
+  const currentConvId = state.currentConversationId;
+  if (!state.streamingStatus.has(currentConvId)) return;
+
+  // 防御检查：确保有消息存在
+  if (state.messages.length === 0) return;
+
   const chatMessages = document.getElementById('chatMessages');
   const lastMessage = chatMessages.lastElementChild;
   if (!lastMessage || !lastMessage.classList.contains('assistant')) return;
@@ -497,12 +850,36 @@ function updateThoughtChainRealtime(thoughtSteps) {
     final_answer: { icon: '💡', label: '生成回答' }
   };
 
+  // 统计每个工具名的调用次数，为多次调用添加序号
+  const toolCallCounts = {};
+  const toolCallNumbers = new Map();  // tool_call_id -> 显示序号
+
+  thoughtSteps.forEach(step => {
+    if (step.step_type === 'tool_call' && step.tool_name && step.tool_call_id) {
+      const name = step.tool_name;
+      toolCallCounts[name] = (toolCallCounts[name] || 0) + 1;
+      toolCallNumbers.set(step.tool_call_id, toolCallCounts[name]);
+    }
+  });
+
   let html = '';
   thoughtSteps.forEach(step => {
     const config = stepConfig[step.step_type] || stepConfig.thinking;
     let label = config.label;
-    if (step.step_type === 'tool_call' && step.tool_name) label = `调用 ${step.tool_name}`;
-    else if (step.step_type === 'tool_result' && step.tool_name) label = `观察结果 (${step.tool_name})`;
+
+    if (step.step_type === 'tool_call' && step.tool_name) {
+      const count = toolCallCounts[step.tool_name] || 1;
+      const num = toolCallNumbers.get(step.tool_call_id) || 1;
+      const suffix = count > 1 ? ` #${num}` : '';
+      label = `调用 ${step.tool_name}${suffix}`;
+    }
+    else if (step.step_type === 'tool_result' && step.tool_name) {
+      const toolName = step.tool_name;
+      const count = toolCallCounts[toolName] || 1;
+      const num = toolCallNumbers.get(step.tool_call_id) || '';
+      const suffix = count > 1 && num ? ` #${num}` : '';
+      label = `观察结果 (${toolName}${suffix})`;
+    }
 
     let bodyHtml = escapeHtml(step.content || '');
     if (step.tool_args && Object.keys(step.tool_args).length > 0) {
@@ -575,7 +952,8 @@ function renderMessages() {
     if (msg.role === 'assistant') {
       html = renderWithCitations(html);
     }
-    if (msg.role === 'assistant' && index === state.messages.length - 1 && state.isStreaming) {
+    const currentConvId = state.currentConversationId;
+    if (msg.role === 'assistant' && index === state.messages.length - 1 && state.streamingStatus.has(currentConvId)) {
       html += '<span class="streaming-cursor"></span>';
     }
     contentDiv.innerHTML = html;
@@ -790,14 +1168,36 @@ function renderWithCitations(html) {
   // 只处理 assistant 消息中有引用标记的文本
   if (!html || !html.includes('参考来源')) return html;
 
-  // 第1步：分离正文和来源列表
-  const sourceMatch = html.match(/参考来源[：:]\s*\n?([\s\S]*)$/);
-  if (!sourceMatch) return html;
+  try {
+    // 容错中文冒号、英文冒号、全角冒号，允许前后空格
+    const matches = [...html.matchAll(/参考来源\s*[：:︰]\s*/g)];
+    if (matches.length === 0) return html;
 
-  let body = html.substring(0, sourceMatch.index).trim();
-  const sourceLines = sourceMatch[1].trim().split(/<br\s*\/?>/i).filter(l => l.trim());
+    // 调试：打印原始 HTML 和匹配到的"参考来源"数量
+    console.log('[renderWithCitations] 匹配到', matches.length, '个"参考来源"');
+    console.log('[renderWithCitations] HTML 长度:', html.length);
 
-  // 第2步：解析来源列表
+    // 单次 RAG：保持原有逻辑
+    if (matches.length === 1) {
+      return renderSingleRagCitation(html, matches[0]);
+    }
+
+    // 多次 RAG：新逻辑
+    return renderMultipleRagCitations(html, matches);
+  } catch (e) {
+    console.error('[renderWithCitations] 解析失败，显示原始内容', e);
+    return html; // 优雅降级：出错时返回原始 HTML
+  }
+}
+
+function renderSingleRagCitation(html, match) {
+  // 现有的单次 RAG 逻辑
+  const splitIdx = match.index + match[0].length;
+  let body = html.substring(0, match.index).trim();
+  const sourceBlock = html.substring(splitIdx).trim();
+  const sourceLines = sourceBlock.split(/<br\s*\/?>/i).filter(l => l.trim());
+
+  // 解析来源列表
   const sources = [];
   for (const line of sourceLines) {
     const m = line.match(/\[(\d+)\]\s*([^|]+)(?:\s*\|\s*chunk_id=(\S+))?(?:\s*\|\s*score=(\S+))?$/);
@@ -812,7 +1212,7 @@ function renderWithCitations(html) {
   }
   if (sources.length === 0) return html;
 
-  // 第3步：替换正文中的 [1] 为可点击角标
+  // 替换正文中的 [1] 为可点击角标
   body = body.replace(/\[(\d+)\]/g, (match, num) => {
     const idx = parseInt(num);
     if (!sources.find(s => s.index === idx)) return match;
@@ -820,10 +1220,10 @@ function renderWithCitations(html) {
     return `<sup class="citation-ref" data-idx="${idx}" title="${src.filename} (score: ${src.score})">[${idx}]</sup>`;
   });
 
-  // 第4步：替换《文件名》为高亮
+  // 替换《文件名》为高亮
   body = body.replace(/《(.+?)》/g, '<span class="citation-filename">📄 $1</span>');
 
-  // 第5步：生成来源卡片
+  // 生成来源卡片
   const sourceItems = sources.map(s =>
     `<div class="citation-source-item" data-idx="${s.index}">
       <span class="citation-badge">[${s.index}]</span>
@@ -838,6 +1238,102 @@ function renderWithCitations(html) {
   </details>`;
 
   return `<div class="message-with-citations">${body}${sourcePanel}</div>`;
+}
+
+function renderMultipleRagCitations(html, matches) {
+  console.log('[renderMultipleRagCitations] 开始解析，参考来源数量:', matches.length);
+
+  let bodyParts = [html.substring(0, matches[0].index).trim()];
+  let sourceGroups = [];  // 按 RAG 调用分组的来源
+
+  for (let i = 0; i < matches.length; i++) {
+    const sourceStart = matches[i].index + matches[i][0].length;
+    const nextSectionStart = (i + 1 < matches.length) ? matches[i + 1].index : html.length;
+    const section = html.substring(sourceStart, nextSectionStart);
+
+    console.log(`[renderMultipleRagCitations] 第${i+1}个"参考来源"区域长度:`, section.length);
+
+    const lines = section.split(/<br\s*\/?>/i).map(l => l.trim()).filter(l => l);
+
+    const sources = [];
+    let j = 0;
+
+    // 解析来源列表行
+    while (j < lines.length) {
+      const m = lines[j].match(/\[(\d+)\]\s*([^|]+)(?:\s*\|\s*chunk_id=(\S+))?(?:\s*\|\s*score=(\S+))?$/);
+      if (m) {
+        sources.push({
+          index: parseInt(m[1]),
+          filename: m[2].trim(),
+          chunkId: m[3] || '-',
+          score: m[4] || '-'
+        });
+        j++;
+      } else {
+        break;  // 遇到非来源行，停止解析
+      }
+    }
+
+    if (sources.length > 0) {
+      sourceGroups.push({ groupIndex: i + 1, sources });
+      console.log(`[renderMultipleRagCitations] 第${i+1}组解析到 ${sources.length} 个来源`);
+
+      // 验证：如果该区域非来源行过多，可能是误判
+      const nonSourceLines = lines.length - j;
+      if (nonSourceLines > sources.length * 2) {
+        // 非来源行太多，可能是 LLM 在回答中提到了"参考来源"这个词，而不是真正的来源列表
+        console.warn(`[renderMultipleRagCitations] 第${i+1}个区域可能不是真正的来源列表（非来源行: ${nonSourceLines}, 来源行: ${sources.length}）`);
+        sourceGroups.pop(); // 移除刚添加的组
+      }
+    }
+
+    // 收集后续正文（来源列表之后的内容）
+    if (j < lines.length) {
+      const remainingText = lines.slice(j).join('<br>');
+      if (remainingText.trim()) {
+        console.log(`[renderMultipleRagCitations] 第${i+1}组后续正文长度:`, remainingText.length);
+        bodyParts.push(remainingText);
+      }
+    }
+  }
+
+  // 如果没有解析到任何来源，回退到原始 HTML
+  if (sourceGroups.length === 0) return html;
+
+  // 合并正文（包含第一段 + 所有中间段 + 最后的对比分析）
+  const body = bodyParts.filter(p => p && p.trim()).join('<br><br>');
+
+  console.log('[renderMultipleRagCitations] 最终正文长度:', body.length);
+  console.log('[renderMultipleRagCitations] 正文片段数量:', bodyParts.length);
+
+  // 替换《文件名》为高亮
+  const bodyWithHighlight = body.replace(/《(.+?)》/g, '<span class="citation-filename">📄 $1</span>');
+
+  // 生成分组来源面板
+  const groupHtmls = sourceGroups.map(group => {
+    const items = group.sources.map(s =>
+      `<div class="citation-source-item">
+        <span class="citation-badge">[${s.index}]</span>
+        <span class="citation-name">📄 ${s.filename}</span>
+        <span class="citation-meta">chunk: ${s.chunkId} · score: ${s.score}</span>
+      </div>`
+    ).join('');
+
+    return `
+      <div class="citation-group">
+        <div class="citation-group-title">🔍 第${group.groupIndex}次检索</div>
+        ${items}
+      </div>
+    `;
+  }).join('');
+
+  const totalSources = sourceGroups.reduce((sum, g) => sum + g.sources.length, 0);
+  const sourcePanel = `<details class="citation-sources">
+    <summary>📚 参考来源（${totalSources}篇，来自${sourceGroups.length}次检索）</summary>
+    <div class="citation-source-list">${groupHtmls}</div>
+  </details>`;
+
+  return `<div class="message-with-citations">${bodyWithHighlight}${sourcePanel}</div>`;
 }
 
 function initCitationClickHandlers(container) {
@@ -863,6 +1359,18 @@ function renderThoughtChain(steps) {
     final_answer: { icon: '💡', label: '生成回答', color: '#06b6d4' }
   };
 
+  // 统计每个工具名的调用次数，为多次调用添加序号
+  const toolCallCounts = {};
+  const toolCallNumbers = new Map();  // tool_call_id -> 显示序号
+
+  steps.forEach(step => {
+    if (step.step_type === 'tool_call' && step.tool_name && step.tool_call_id) {
+      const name = step.tool_name;
+      toolCallCounts[name] = (toolCallCounts[name] || 0) + 1;
+      toolCallNumbers.set(step.tool_call_id, toolCallCounts[name]);
+    }
+  });
+
   let html = `
     <div class="thought-chain">
       <div class="thought-chain-header">
@@ -879,8 +1387,20 @@ function renderThoughtChain(steps) {
   steps.forEach(step => {
     const config = stepConfig[step.step_type] || stepConfig.thinking;
     let label = config.label;
-    if (step.step_type === 'tool_call' && step.tool_name) label = `调用 ${step.tool_name}`;
-    else if (step.step_type === 'tool_result' && step.tool_name) label = `观察结果 (${step.tool_name})`;
+
+    if (step.step_type === 'tool_call' && step.tool_name) {
+      const count = toolCallCounts[step.tool_name] || 1;
+      const num = toolCallNumbers.get(step.tool_call_id) || 1;
+      const suffix = count > 1 ? ` #${num}` : '';
+      label = `调用 ${step.tool_name}${suffix}`;
+    }
+    else if (step.step_type === 'tool_result' && step.tool_name) {
+      const toolName = step.tool_name;
+      const count = toolCallCounts[toolName] || 1;
+      const num = toolCallNumbers.get(step.tool_call_id) || '';
+      const suffix = count > 1 && num ? ` #${num}` : '';
+      label = `观察结果 (${toolName}${suffix})`;
+    }
 
     let bodyHtml = escapeHtml(step.content || '');
     if (step.tool_args && Object.keys(step.tool_args).length > 0) {

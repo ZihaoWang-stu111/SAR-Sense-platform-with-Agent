@@ -86,10 +86,15 @@ class ConversationManager:
         all_messages = conv_data.get("messages", [])
 
         if len(all_messages) <= window_size:
-            return all_messages
+            return [self._clean_message(msg) for msg in all_messages]
 
-        recent = all_messages[-window_size:]
-        older = all_messages[:-window_size]
+        recent = [self._clean_message(msg) for msg in all_messages[-window_size:]]
+        # 对齐：确保 recent 以 user 消息开头
+        for idx, msg in enumerate(recent):
+            if msg.get("role") == "user":
+                recent = recent[idx:]
+                break
+        older = all_messages[:len(all_messages) - len(recent)]
 
         summary = conv_data.get("summary", "")
         summary_up_to = conv_data.get("summary_up_to", 0)
@@ -112,6 +117,14 @@ class ConversationManager:
             return [summary_msg] + recent
 
         return recent
+
+    @staticmethod
+    def _clean_message(msg: dict) -> dict:
+        """Keep only model-facing fields when building Agent input."""
+        return {
+            "role": msg.get("role", "user"),
+            "content": msg.get("content", "")
+        }
 
     def _compress_messages(self, messages: list) -> str:
         """用 LLM 将旧消息压缩为 200 字摘要"""

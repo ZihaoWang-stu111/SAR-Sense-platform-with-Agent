@@ -257,7 +257,7 @@ async def chat_stream(request: Request):
 
         logger.info(f"Processing streaming message: {message[:50]}...")
 
-        from agent.react_agent import _thought_chain
+        from agent.react_agent import _thought_chains
 
         logger.info("Loading agent for streaming...")
         agent = get_agent()
@@ -292,7 +292,7 @@ async def chat_stream(request: Request):
             def run_agent():
                 """Run agent in a separate thread"""
                 try:
-                    for chunk in agent.execute_stream(messages):
+                    for chunk in agent.execute_stream(messages, conversation_id):
                         if chunk and chunk.strip():
                             event_queue.put(('chunk', chunk))
                 except Exception as e:
@@ -310,7 +310,11 @@ async def chat_stream(request: Request):
 
                 while True:
                     # Check for new thought chain steps
-                    current_steps = _thought_chain["steps"]
+                    if conversation_id and conversation_id in _thought_chains:
+                        current_steps = _thought_chains[conversation_id]["steps"]
+                    else:
+                        current_steps = []
+
                     if len(current_steps) > last_step_count:
                         new_steps = current_steps[last_step_count:]
                         for step in new_steps:
@@ -346,15 +350,16 @@ async def chat_stream(request: Request):
                     await asyncio.sleep(0.05)
 
                 # Send any remaining thought steps
-                current_steps = _thought_chain["steps"]
-                if len(current_steps) > last_step_count:
-                    new_steps = current_steps[last_step_count:]
-                    for step in new_steps:
-                        data = json.dumps({
-                            'type': 'thought_step',
-                            'step': step
-                        }, ensure_ascii=False)
-                        yield f"data: {data}\n\n"
+                if conversation_id and conversation_id in _thought_chains:
+                    current_steps = _thought_chains[conversation_id]["steps"]
+                    if len(current_steps) > last_step_count:
+                        new_steps = current_steps[last_step_count:]
+                        for step in new_steps:
+                            data = json.dumps({
+                                'type': 'thought_step',
+                                'step': step
+                            }, ensure_ascii=False)
+                            yield f"data: {data}\n\n"
 
                 # Send done signal
                 data = json.dumps({'type': 'done'})
@@ -371,6 +376,12 @@ async def chat_stream(request: Request):
 
             finally:
                 metrics.end_conversation()
+
+                # 清理该会话的思考链，防止内存泄漏
+                if conversation_id and conversation_id in _thought_chains:
+                    del _thought_chains[conversation_id]
+
+                logger.info("Streaming response completed")
 
         return StreamingResponse(
             generate(),

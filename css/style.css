@@ -2945,3 +2945,53 @@ p {
   margin-left: auto;
   font-size: 0.9em;
 }
+
+/* 分组来源样式 */
+.citation-group {
+  margin-bottom: 12px;
+}
+.citation-group:last-child {
+  margin-bottom: 0;
+}
+.citation-group-title {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: #6366f1;
+  margin-bottom: 6px;
+  padding-left: 4px;
+  border-left: 3px solid #6366f1;
+}
+
+/* 后台流式输出状态指示 */
+.streaming-indicator {
+  display: inline-block;
+  margin-right: 8px;
+  animation: pulse 1.5s ease-in-out infinite;
+  font-size: 0.9em;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
+}
+
+/* 完成闪烁效果 */
+.completed-pulse {
+  animation: completePulse 0.5s ease-in-out 3;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.2), transparent);
+}
+
+@keyframes completePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
