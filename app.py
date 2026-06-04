@@ -5,7 +5,7 @@ import streamlit as st
 import pandas as pd
 from PIL import Image
 from ultralytics import YOLO
-from agent.react_agent import ReactAgent, _thought_chain
+from agent.react_agent import ReactAgent, _thought_chains
 from rag.vector_store import VectorStoreService
 from utils.config_handler import chroma_conf
 from utils.path_tool import get_abs_path
@@ -563,6 +563,80 @@ def inject_custom_css():
         color: #475569;
         font-size: 0.78rem;
     }
+
+    /* 溯源 UI 样式 */
+    .message-with-citations {
+        margin-top: 8px;
+    }
+    .citation-panel {
+        margin-top: 12px;
+        border-top: 1px solid rgba(100,116,139,0.2);
+        padding-top: 8px;
+    }
+    .citation-panel summary {
+        cursor: pointer;
+        font-size: 0.85rem;
+        color: #64748b;
+        user-select: none;
+        padding: 4px 0;
+        list-style: none;
+    }
+    .citation-panel summary:hover {
+        color: #475569;
+    }
+    .citation-panel summary::-webkit-details-marker {
+        display: none;
+    }
+    .citation-list {
+        margin-top: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .citation-group {
+        margin-bottom: 12px;
+    }
+    .citation-group:last-child {
+        margin-bottom: 0;
+    }
+    .citation-group-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #6366f1;
+        margin-bottom: 6px;
+        padding-left: 4px;
+        border-left: 3px solid #6366f1;
+    }
+    .citation-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 0.82rem;
+        background: rgba(100,116,139,0.05);
+    }
+    .citation-item:hover {
+        background: rgba(100,116,139,0.1);
+    }
+    .citation-badge {
+        background: #38bdf8;
+        color: #1e293b;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .citation-name {
+        color: #1e293b;
+        font-weight: 500;
+    }
+    .citation-meta {
+        color: #64748b;
+        margin-left: auto;
+        font-size: 0.9rem;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -571,11 +645,21 @@ def _render_thought_chain_html(steps):
     if not steps or len(steps) <= 1:
         return ""
 
+    # 统计每个工具名的调用次数，为多次调用添加序号
+    tool_call_counts = {}
+    tool_call_numbers = {}  # tool_call_id -> 显示序号
+
+    for step in steps:
+        if step["step_type"] == "tool_call" and step.get("tool_name") and step.get("tool_call_id"):
+            name = step["tool_name"]
+            tool_call_counts[name] = tool_call_counts.get(name, 0) + 1
+            tool_call_numbers[step["tool_call_id"]] = tool_call_counts[name]
+
     step_count = len(steps)
     step_config = {
         "thinking": {"icon": "🤔", "label": "思考", "color": "#38bdf8", "bg": "rgba(56,189,248,0.08)"},
-        "tool_call": {"icon": "🔧", "label_fn": lambda s: f"调用 {s.get('tool_name', '')}", "color": "#22c55e", "bg": "rgba(34,197,94,0.08)"},
-        "tool_result": {"icon": "👁️", "label_fn": lambda s: f"观察结果 ({s.get('tool_name', '')})", "color": "#f59e0b", "bg": "rgba(245,158,11,0.08)"},
+        "tool_call": {"icon": "🔧", "color": "#22c55e", "bg": "rgba(34,197,94,0.08)"},
+        "tool_result": {"icon": "👁️", "color": "#f59e0b", "bg": "rgba(245,158,11,0.08)"},
         "final_answer": {"icon": "💡", "label": "生成回答", "color": "#0d9488", "bg": "rgba(13,148,136,0.08)"},
     }
 
@@ -588,10 +672,21 @@ def _render_thought_chain_html(steps):
         color = cfg["color"]
         bg = cfg["bg"]
 
-        if "label_fn" in cfg:
-            label = cfg["label_fn"](step)
+        # 生成标签（带序号）
+        if step["step_type"] == "tool_call" and step.get("tool_name"):
+            tool_name = step["tool_name"]
+            count = tool_call_counts.get(tool_name, 1)
+            num = tool_call_numbers.get(step.get("tool_call_id"), 1)
+            suffix = f" #{num}" if count > 1 else ""
+            label = f"调用 {tool_name}{suffix}"
+        elif step["step_type"] == "tool_result" and step.get("tool_name"):
+            tool_name = step["tool_name"]
+            count = tool_call_counts.get(tool_name, 1)
+            num = tool_call_numbers.get(step.get("tool_call_id"), "")
+            suffix = f" #{num}" if count > 1 and num else ""
+            label = f"观察结果 ({tool_name}{suffix})"
         else:
-            label = cfg["label"]
+            label = cfg.get("label", step["step_type"])
 
         content = step.get("content", "")
         tool_args = step.get("tool_args", {})
@@ -617,6 +712,141 @@ def _render_thought_chain_html(steps):
 
     html_parts.append("</div></details>")
     return "".join(html_parts)
+
+
+def _render_citations_html(content):
+    """解析内容中的多个"参考来源"并渲染溯源 UI"""
+    if not content or "参考来源" not in content:
+        return content
+
+    import re
+    matches = list(re.finditer(r'参考来源[：:]', content))
+
+    if len(matches) == 0:
+        return content
+
+    # 单次 RAG
+    if len(matches) == 1:
+        return _render_single_rag_citation(content, matches[0])
+
+    # 多次 RAG
+    return _render_multiple_rag_citations(content, matches)
+
+
+def _render_single_rag_citation(content, match):
+    """处理单次 RAG 的参考来源"""
+    split_idx = match.end()
+    body = content[:match.start()].strip()
+    source_block = content[split_idx:].strip()
+
+    import re
+    sources = []
+    for line in source_block.split('\n'):
+        line = line.strip()
+        m = re.match(r'\[(\d+)\]\s*([^|]+)(?:\s*\|\s*chunk_id=(\S+))?(?:\s*\|\s*score=(\S+))?', line)
+        if m:
+            sources.append({
+                'index': m.group(1),
+                'filename': m.group(2).strip(),
+                'chunk_id': m.group(3) or '-',
+                'score': m.group(4) or '-'
+            })
+
+    if not sources:
+        return content
+
+    # 生成溯源 HTML
+    source_items = ''.join([
+        f"<div class='citation-item'>"
+        f"<span class='citation-badge'>[{s['index']}]</span>"
+        f"<span class='citation-name'>📄 {s['filename']}</span>"
+        f"<span class='citation-meta'>chunk: {s['chunk_id']} · score: {s['score']}</span>"
+        f"</div>"
+        for s in sources
+    ])
+
+    citation_html = f"""
+    <details class='citation-panel'>
+        <summary>📚 参考来源（{len(sources)}篇）</summary>
+        <div class='citation-list'>{source_items}</div>
+    </details>
+    """
+
+    return f"<div class='message-with-citations'>{body}{citation_html}</div>"
+
+
+def _render_multiple_rag_citations(content, matches):
+    """处理多次 RAG 的参考来源"""
+    import re
+
+    body_parts = [content[:matches[0].start()].strip()]
+    source_groups = []
+
+    for i, match in enumerate(matches):
+        source_start = match.end()
+        next_section_start = matches[i + 1].start() if i + 1 < len(matches) else len(content)
+        section = content[source_start:next_section_start]
+        lines = [l.strip() for l in section.split('\n') if l.strip()]
+
+        sources = []
+        j = 0
+
+        # 解析来源列表行
+        while j < len(lines):
+            m = re.match(r'\[(\d+)\]\s*([^|]+)(?:\s*\|\s*chunk_id=(\S+))?(?:\s*\|\s*score=(\S+))?', lines[j])
+            if m:
+                sources.append({
+                    'index': m.group(1),
+                    'filename': m.group(2).strip(),
+                    'chunk_id': m.group(3) or '-',
+                    'score': m.group(4) or '-'
+                })
+                j += 1
+            else:
+                break
+
+        if sources:
+            source_groups.append({'group_index': i + 1, 'sources': sources})
+
+        # 收集后续正文
+        if j < len(lines):
+            remaining = '\n'.join(lines[j:])
+            if remaining.strip():
+                body_parts.append(remaining)
+
+    if not source_groups:
+        return content
+
+    # 合并正文
+    body = '\n\n'.join([p for p in body_parts if p and p.strip()])
+
+    # 生成分组溯源 HTML
+    group_htmls = []
+    for group in source_groups:
+        items = ''.join([
+            f"<div class='citation-item'>"
+            f"<span class='citation-badge'>[{s['index']}]</span>"
+            f"<span class='citation-name'>📄 {s['filename']}</span>"
+            f"<span class='citation-meta'>chunk: {s['chunk_id']} · score: {s['score']}</span>"
+            f"</div>"
+            for s in group['sources']
+        ])
+        group_htmls.append(
+            f"<div class='citation-group'>"
+            f"<div class='citation-group-title'>🔍 第{group['group_index']}次检索</div>"
+            f"{items}"
+            f"</div>"
+        )
+
+    total_sources = sum(len(g['sources']) for g in source_groups)
+    citation_html = f"""
+    <details class='citation-panel'>
+        <summary>📚 参考来源（{total_sources}篇，来自{len(source_groups)}次检索）</summary>
+        <div class='citation-list'>{''.join(group_htmls)}</div>
+    </details>
+    """
+
+    return f"<div class='message-with-citations'>{body}{citation_html}</div>"
 
 
 # ================= 1. 全局状态初始化 =================
@@ -862,10 +1092,15 @@ elif page == "🤖 智能体问答":
     chat_container = st.container()
     with chat_container:
         for msg in st.session_state["messages"]:
-            if msg["role"] == "assistant" and msg.get("thought_steps") and len(msg["thought_steps"]) > 1:
+            if msg["role"] == "assistant":
                 with st.chat_message(msg["role"]):
-                    st.write(msg["content"])
-                    st.markdown(_render_thought_chain_html(msg["thought_steps"]), unsafe_allow_html=True)
+                    # 渲染消息内容（应用溯源解析）
+                    content_html = _render_citations_html(msg["content"])
+                    st.markdown(content_html, unsafe_allow_html=True)
+
+                    # 渲染思考链
+                    if msg.get("thought_steps") and len(msg["thought_steps"]) > 1:
+                        st.markdown(_render_thought_chain_html(msg["thought_steps"]), unsafe_allow_html=True)
             else:
                 st.chat_message(msg["role"]).write(msg["content"])
 
@@ -942,17 +1177,21 @@ elif page == "🤖 智能体问答":
 
         response_messages = []
         with st.spinner("🤖 AI助手正在检测并分析SAR图像..."):
-            res_stream = st.session_state["agent"].execute_stream(chat_pack)
+            res_stream = st.session_state["agent"].execute_stream(
+                chat_pack,
+                conversation_id=st.session_state["current_conv_id"]
+            )
 
             with stream_placeholder.container():
                 st.chat_message("user").write(auto_prompt)
                 st.chat_message("assistant").write_stream(_capture(res_stream, response_messages))
 
-        assistant_content = response_messages[-1]
+        assistant_content = "".join(response_messages)  # 拼接所有 chunks
         if agent_tools._last_viz_path:
             st.session_state["_pending_viz"] = agent_tools._last_viz_path
             agent_tools._last_viz_path = None
-        thought_snapshot = list(_thought_chain["steps"]) if _thought_chain["steps"] else []
+        conv_id = st.session_state["current_conv_id"]
+        thought_snapshot = list(_thought_chains.get(conv_id, {}).get("steps", []))
         assistant_msg = {"role": "assistant", "content": assistant_content}
         if thought_snapshot:
             assistant_msg["thought_steps"] = thought_snapshot
@@ -982,17 +1221,21 @@ elif page == "🤖 智能体问答":
 
         response_messages = []
         with st.spinner("智能客服思考中..."):
-            res_stream = st.session_state["agent"].execute_stream(chat_pack)
+            res_stream = st.session_state["agent"].execute_stream(
+                chat_pack,
+                conversation_id=st.session_state["current_conv_id"]
+            )
 
             with stream_placeholder.container():
                 st.chat_message("user").write(display_prompt)
                 st.chat_message("assistant").write_stream(_capture(res_stream, response_messages))
 
-        assistant_content = response_messages[-1]
+        assistant_content = "".join(response_messages)  # 拼接所有 chunks
         if agent_tools._last_viz_path:
             st.session_state["_pending_viz"] = agent_tools._last_viz_path
             agent_tools._last_viz_path = None
-        thought_snapshot = list(_thought_chain["steps"]) if _thought_chain["steps"] else []
+        conv_id = st.session_state["current_conv_id"]
+        thought_snapshot = list(_thought_chains.get(conv_id, {}).get("steps", []))
         assistant_msg = {"role": "assistant", "content": assistant_content}
         if thought_snapshot:
             assistant_msg["thought_steps"] = thought_snapshot
