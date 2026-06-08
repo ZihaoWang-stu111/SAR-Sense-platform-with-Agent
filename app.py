@@ -12,7 +12,6 @@ from utils.path_tool import get_abs_path
 from agent.metrics_collector import AgentMetrics
 from utils.conversation_manager import ConversationManager
 from agent.tools import agent_tools
-from collections import defaultdict
 
 
 def inject_custom_css():

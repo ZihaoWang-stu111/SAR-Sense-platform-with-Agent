@@ -644,77 +644,6 @@ async function sendMessageStreaming(message, displayMessage) {
     state.streamingStatus.delete(conversationId);
   }
 }
-
-async function sendMessageStreaming_OLD(message, displayMessage) {
-  state.isStreaming = true;
-  const assistantMessage = { role: 'assistant', content: '', thoughtSteps: [], pendingChunks: [], isTyping: false };
-  state.messages.push(assistantMessage);
-  renderMessages();
-
-  const chatMessages = document.getElementById('chatMessages');
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-  startTypewriterEffect();
-
-  try {
-    const messagesHistory = state.messages.slice(0, -2).map(m => ({ role: m.role, content: m.content }));
-    const response = await fetch(`${API_BASE}/api/chat/stream`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message,
-        display_message: displayMessage,
-        messages: messagesHistory,
-        conversation_id: state.currentConversationId
-      })
-    });
-
-    const reader = response.body.getReader();
-    state.currentReader = reader;  // 保存 reader 引用
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.type === 'chunk') {
-              assistantMessage.pendingChunks.push(data.content);
-            } else if (data.type === 'thought_step') {
-              assistantMessage.thoughtSteps.push(data.step);
-              updateThoughtChainRealtime(assistantMessage.thoughtSteps);
-            } else if (data.type === 'done') {
-              assistantMessage.streamDone = true;
-            } else if (data.type === 'error') {
-              assistantMessage.pendingChunks.push(`\n\n[错误: ${data.message}]`);
-            }
-          } catch (e) {}
-        }
-      }
-    }
-
-    while (assistantMessage.pendingChunks.length > 0 || assistantMessage.isTyping) {
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-
-    updateLastMessage(true);
-    appendMessageToConversation(state.currentConversationId, 'assistant', assistantMessage.content, assistantMessage.thoughtSteps);
-  } catch (error) {
-    console.error('Streaming error:', error);
-    assistantMessage.content += '\n\n[连接错误，请重试]';
-    updateLastMessage(true);
-  } finally {
-    state.isStreaming = false;
-    state.currentReader = null;  // 清理 reader 引用
-  }
-}
-
 let isTypewriterRunning = false;
 
 function startTypewriterEffect() {
@@ -1195,12 +1124,13 @@ function renderSingleRagCitation(html, match) {
   const splitIdx = match.index + match[0].length;
   let body = html.substring(0, match.index).trim();
   const sourceBlock = html.substring(splitIdx).trim();
-  const sourceLines = sourceBlock.split(/<br\s*\/?>/i).filter(l => l.trim());
+  const sourceLines = sourceBlock.split(/<br\s*\/?>/i).map(l => l.trim()).filter(l => l);
 
   // 解析来源列表
   const sources = [];
+  let consumedSourceLines = 0;
   for (const line of sourceLines) {
-    const m = line.match(/\[(\d+)\]\s*([^|]+)(?:\s*\|\s*chunk_id=(\S+))?(?:\s*\|\s*score=(\S+))?$/);
+    const m = line.match(/^\[(\d+)\]\s*([^|]+)(?:\s*\|\s*chunk_id=(\S+))?(?:\s*\|\s*score=(\S+))?$/);
     if (m) {
       sources.push({
         index: parseInt(m[1]),
@@ -1208,25 +1138,43 @@ function renderSingleRagCitation(html, match) {
         chunkId: m[3] || '-',
         score: m[4] || '-'
       });
+      consumedSourceLines += 1;
+    } else {
+      break;
     }
   }
   if (sources.length === 0) return html;
 
-  // 替换正文中的 [1] 为可点击角标
-  body = body.replace(/\[(\d+)\]/g, (match, num) => {
-    const idx = parseInt(num);
-    if (!sources.find(s => s.index === idx)) return match;
-    const src = sources.find(s => s.index === idx);
-    return `<sup class="citation-ref" data-idx="${idx}" title="${src.filename} (score: ${src.score})">[${idx}]</sup>`;
-  });
+  const displayIndexByOriginal = new Map(
+    sources.map((source, idx) => [source.index, idx + 1])
+  );
 
-  // 替换《文件名》为高亮
-  body = body.replace(/《(.+?)》/g, '<span class="citation-filename">📄 $1</span>');
+  const trailingBody = sourceLines.slice(consumedSourceLines).join('<br>').trim();
+
+  const decorateCitationBody = (text) => {
+    let decorated = text;
+
+    // 替换正文中的 [1] 为可点击角标
+    decorated = decorated.replace(/\[(\d+)\]/g, (match, num) => {
+      const idx = parseInt(num);
+      if (!sources.find(s => s.index === idx)) return match;
+      const src = sources.find(s => s.index === idx);
+      const displayIdx = displayIndexByOriginal.get(idx) || idx;
+      return `<sup class="citation-ref" data-idx="${idx}" title="${src.filename} (score: ${src.score})">[${displayIdx}]</sup>`;
+    });
+
+    // 替换《文件名》为高亮
+    decorated = decorated.replace(/《(.+?)》/g, '<span class="citation-filename">📄 $1</span>');
+    return decorated;
+  };
+
+  const mainBody = decorateCitationBody(trailingBody || body);
+  const toolBody = trailingBody ? decorateCitationBody(body) : '';
 
   // 生成来源卡片
   const sourceItems = sources.map(s =>
     `<div class="citation-source-item" data-idx="${s.index}">
-      <span class="citation-badge">[${s.index}]</span>
+      <span class="citation-badge">[${displayIndexByOriginal.get(s.index) || s.index}]</span>
       <span class="citation-name">📄 ${s.filename}</span>
       <span class="citation-meta">chunk: ${s.chunkId} · score: ${s.score}</span>
     </div>`
@@ -1237,14 +1185,20 @@ function renderSingleRagCitation(html, match) {
     <div class="citation-source-list">${sourceItems}</div>
   </details>`;
 
-  return `<div class="message-with-citations">${body}${sourcePanel}</div>`;
+  const toolPanel = toolBody ? `<details class="citation-sources rag-tool-output">
+    <summary>🔎 检索材料</summary>
+    <div class="citation-source-list">${toolBody}</div>
+  </details>` : '';
+
+  return `<div class="message-with-citations">${mainBody}${toolPanel}${sourcePanel}</div>`;
 }
 
 function renderMultipleRagCitations(html, matches) {
   console.log('[renderMultipleRagCitations] 开始解析，参考来源数量:', matches.length);
 
-  let bodyParts = [html.substring(0, matches[0].index).trim()];
   let sourceGroups = [];  // 按 RAG 调用分组的来源
+  let pendingToolBody = html.substring(0, matches[0].index).trim();
+  let finalBody = '';
 
   for (let i = 0; i < matches.length; i++) {
     const sourceStart = matches[i].index + matches[i][0].length;
@@ -1260,7 +1214,7 @@ function renderMultipleRagCitations(html, matches) {
 
     // 解析来源列表行
     while (j < lines.length) {
-      const m = lines[j].match(/\[(\d+)\]\s*([^|]+)(?:\s*\|\s*chunk_id=(\S+))?(?:\s*\|\s*score=(\S+))?$/);
+      const m = lines[j].match(/^\[(\d+)\]\s*([^|]+)(?:\s*\|\s*chunk_id=(\S+))?(?:\s*\|\s*score=(\S+))?$/);
       if (m) {
         sources.push({
           index: parseInt(m[1]),
@@ -1275,39 +1229,38 @@ function renderMultipleRagCitations(html, matches) {
     }
 
     if (sources.length > 0) {
-      sourceGroups.push({ groupIndex: i + 1, sources });
+      sourceGroups.push({
+        groupIndex: i + 1,
+        sources,
+        toolBody: pendingToolBody
+      });
       console.log(`[renderMultipleRagCitations] 第${i+1}组解析到 ${sources.length} 个来源`);
-
-      // 验证：如果该区域非来源行过多，可能是误判
-      const nonSourceLines = lines.length - j;
-      if (nonSourceLines > sources.length * 2) {
-        // 非来源行太多，可能是 LLM 在回答中提到了"参考来源"这个词，而不是真正的来源列表
-        console.warn(`[renderMultipleRagCitations] 第${i+1}个区域可能不是真正的来源列表（非来源行: ${nonSourceLines}, 来源行: ${sources.length}）`);
-        sourceGroups.pop(); // 移除刚添加的组
-      }
     }
 
-    // 收集后续正文（来源列表之后的内容）
-    if (j < lines.length) {
-      const remainingText = lines.slice(j).join('<br>');
-      if (remainingText.trim()) {
-        console.log(`[renderMultipleRagCitations] 第${i+1}组后续正文长度:`, remainingText.length);
-        bodyParts.push(remainingText);
-      }
+    const remainingText = lines.slice(j).join('<br>').trim();
+    if (remainingText) {
+      console.log(`[renderMultipleRagCitations] 第${i+1}组后续正文长度:`, remainingText.length);
+    }
+
+    if (i + 1 < matches.length) {
+      pendingToolBody = remainingText;
+    } else {
+      finalBody = remainingText;
     }
   }
 
   // 如果没有解析到任何来源，回退到原始 HTML
   if (sourceGroups.length === 0) return html;
 
-  // 合并正文（包含第一段 + 所有中间段 + 最后的对比分析）
-  const body = bodyParts.filter(p => p && p.trim()).join('<br><br>');
+  const decorateCitationBody = (text) =>
+    (text || '').replace(/《(.+?)》/g, '<span class="citation-filename">📄 $1</span>');
 
-  console.log('[renderMultipleRagCitations] 最终正文长度:', body.length);
-  console.log('[renderMultipleRagCitations] 正文片段数量:', bodyParts.length);
+  const toolBodies = sourceGroups.map(g => g.toolBody).filter(text => text && text.trim());
+  const shouldFoldTools = Boolean(finalBody);
+  const mainBodyRaw = shouldFoldTools ? finalBody : toolBodies.join('<br><br>');
+  const bodyWithHighlight = decorateCitationBody(mainBodyRaw);
 
-  // 替换《文件名》为高亮
-  const bodyWithHighlight = body.replace(/《(.+?)》/g, '<span class="citation-filename">📄 $1</span>');
+  console.log('[renderMultipleRagCitations] 最终正文长度:', mainBodyRaw.length);
 
   // 生成分组来源面板
   const groupHtmls = sourceGroups.map(group => {
@@ -1333,7 +1286,21 @@ function renderMultipleRagCitations(html, matches) {
     <div class="citation-source-list">${groupHtmls}</div>
   </details>`;
 
-  return `<div class="message-with-citations">${bodyWithHighlight}${sourcePanel}</div>`;
+  const toolGroupHtmls = shouldFoldTools ? sourceGroups
+    .filter(group => group.toolBody && group.toolBody.trim())
+    .map(group => `
+      <div class="citation-group">
+        <div class="citation-group-title">🔍 第${group.groupIndex}次检索</div>
+        <div class="rag-tool-body">${decorateCitationBody(group.toolBody)}</div>
+      </div>
+    `).join('') : '';
+
+  const toolPanel = toolGroupHtmls ? `<details class="citation-sources rag-tool-output">
+    <summary>🔎 检索材料（${toolBodies.length}次）</summary>
+    <div class="citation-source-list">${toolGroupHtmls}</div>
+  </details>` : '';
+
+  return `<div class="message-with-citations">${bodyWithHighlight}${toolPanel}${sourcePanel}</div>`;
 }
 
 function initCitationClickHandlers(container) {

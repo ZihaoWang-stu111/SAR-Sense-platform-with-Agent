@@ -1,7 +1,7 @@
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from utils.config_handler import chroma_conf
-from model.factory import chat_model, embed_model
+from model.factory import embed_model
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from utils.path_tool import get_abs_path
 import os

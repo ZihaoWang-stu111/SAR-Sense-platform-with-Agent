@@ -68,11 +68,6 @@ class ConversationManager:
         if os.path.exists(path):
             os.remove(path)
 
-    def clear_all(self):
-        for fname in os.listdir(self.storage_dir):
-            if fname.endswith(".json"):
-                os.remove(os.path.join(self.storage_dir, fname))
-
     def _write(self, conv_id: str, data: dict):
         path = os.path.join(self.storage_dir, f"{conv_id}.json")
         with open(path, "w", encoding="utf-8") as f:

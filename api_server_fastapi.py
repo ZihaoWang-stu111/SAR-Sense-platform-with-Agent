@@ -13,7 +13,7 @@ import logging
 from io import BytesIO
 
 from fastapi import FastAPI, Request, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image

@@ -1,5 +1,5 @@
 import time
-from langchain.agents.middleware import wrap_tool_call, before_model, dynamic_prompt, ModelRequest
+from langchain.agents.middleware import wrap_tool_call, before_model, dynamic_prompt
 from utils.logger_handler import logger
 from utils.prompt_loader import load_report_prompts,load_system_prompts
 from agent.metrics_collector import AgentMetrics

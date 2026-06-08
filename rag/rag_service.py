@@ -5,7 +5,7 @@ os.environ["ANONYMIZED_TELEMETRY"] = "False"
 from rag.vector_store import VectorStoreService
 from utils.prompt_loader import load_rag_prompts
 from langchain_core.prompts import PromptTemplate
-from model.factory import chat_model,embed_model
+from model.factory import chat_model
 from langchain_core.output_parsers import StrOutputParser
 from rag.reranker import BGERerankerService
 
