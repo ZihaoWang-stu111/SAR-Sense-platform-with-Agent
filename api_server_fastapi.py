@@ -86,7 +86,6 @@ async def startup_event():
 # Global instances
 _yolo_model = None
 _agent = None
-_vector_store = None
 _metrics = None
 _conv_manager = None
 
@@ -112,12 +111,9 @@ def get_agent():
 
 
 def get_vector_store():
-    """Lazy load VectorStoreService"""
-    global _vector_store
-    if _vector_store is None:
-        from rag.vector_store import VectorStoreService
-        _vector_store = VectorStoreService()
-    return _vector_store
+    """Lazy load shared VectorStoreService."""
+    from rag.vector_store import get_vector_store_service
+    return get_vector_store_service()
 
 
 def get_metrics():

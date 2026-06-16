@@ -96,9 +96,13 @@ class ConversationManager:
         has_been_compressed = "summary_up_to" in conv_data
 
         if not has_been_compressed or summary_up_to < len(older):
-            logger.info(f"[记忆压缩] 对话 {conv_id} 需要重新压缩: "
-                        f"旧摘要覆盖 {summary_up_to} 条，当前需覆盖 {len(older)} 条")
-            summary = self._compress_messages(older)
+            new_messages = older[summary_up_to:]
+            logger.info(f"[记忆压缩] 对话 {conv_id} 需要增量压缩: "
+                        f"旧摘要覆盖 {summary_up_to} 条，新增 {len(new_messages)} 条，当前需覆盖 {len(older)} 条")
+            if summary:
+                summary = self._compress_summary_incremental(summary, new_messages)
+            else:
+                summary = self._compress_messages(new_messages)
             conv_data["summary"] = summary
             conv_data["summary_up_to"] = len(older)
             self._write(conv_id, conv_data)
@@ -137,3 +141,26 @@ class ConversationManager:
         except Exception as e:
             logger.warning(f"[记忆压缩] LLM 失败，降级截断: {e}")
             return text[:500]
+
+    def _compress_summary_incremental(self, summary: str, new_messages: list) -> str:
+        """将已有摘要和新增旧消息融合为新的摘要，避免每次重压全部历史。"""
+        from model.factory import chat_model
+
+        text = ""
+        for msg in new_messages:
+            role = "用户" if msg.get("role") == "user" else "助手"
+            text += f"{role}: {msg.get('content', '')}\n"
+
+        if not text.strip():
+            return summary
+
+        try:
+            result = chat_model.invoke(
+                "请将已有摘要和新增对话融合为新的200字摘要，保留场景ID和技术要点。"
+                f"\n\n已有摘要：\n{summary}"
+                f"\n\n新增对话：\n{text}"
+            )
+            return result.content.strip()
+        except Exception as e:
+            logger.warning(f"[记忆压缩] 增量LLM失败，降级拼接截断: {e}")
+            return (summary + "\n" + text)[:500]

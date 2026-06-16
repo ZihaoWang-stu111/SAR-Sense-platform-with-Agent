@@ -63,9 +63,10 @@ def check_file_status(manifest, filename, file_hash):
 
 
 def update_manifest_entry(manifest, filename, doc_id, file_hash,
-                          chunk_count, chunk_ids, chunk_method, file_type):
+                          chunk_count, chunk_ids, chunk_method, file_type,
+                          parent_ids=None, parent_count=None, child_count=None):
     """更新/新增 manifest 条目"""
-    manifest[filename] = {
+    entry = {
         "doc_id": doc_id,
         "file_hash": file_hash,
         "chunk_count": chunk_count,
@@ -75,6 +76,11 @@ def update_manifest_entry(manifest, filename, doc_id, file_hash,
         "ingested_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
         "status": "active"
     }
+    if parent_ids is not None:
+        entry["parent_ids"] = parent_ids
+        entry["parent_count"] = parent_count
+        entry["child_count"] = child_count
+    manifest[filename] = entry
     return manifest
 
 

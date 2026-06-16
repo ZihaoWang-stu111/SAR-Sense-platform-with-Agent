@@ -6,7 +6,7 @@ import pandas as pd
 from PIL import Image
 from ultralytics import YOLO
 from agent.react_agent import ReactAgent, _thought_chains
-from rag.vector_store import VectorStoreService
+from rag.vector_store import get_vector_store_service
 from utils.config_handler import chroma_conf
 from utils.path_tool import get_abs_path
 from agent.metrics_collector import AgentMetrics
@@ -1295,7 +1295,7 @@ elif page == "📚 知识库管理":
         if st.button("🚀 一键入库", type="primary", use_container_width=True):
             with st.spinner("正在加载向量库服务并处理文件..."):
                 try:
-                    vs = VectorStoreService()
+                    vs = get_vector_store_service()
                     new_count, updated_count, skipped_count, removed_count = vs.load_document()
                     st.session_state["_saved_files"] = set()
                     if new_count > 0 or updated_count > 0:
@@ -1314,7 +1314,7 @@ elif page == "📚 知识库管理":
         st.markdown("### 📋 已入库文档")
 
         try:
-            vs = VectorStoreService()
+            vs = get_vector_store_service()
             manifest = vs.manifest
         except Exception as e:
             manifest = {}

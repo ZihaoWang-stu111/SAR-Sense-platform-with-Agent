@@ -5,10 +5,28 @@ from model.factory import embed_model
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from utils.path_tool import get_abs_path
 import os
+from threading import Lock
 from utils.logger_handler import logger
 from utils.file_handler import text_loader, pdf_loader, listdir_with_allowed_type, \
     get_file_hash, load_manifest, save_manifest, check_file_status, update_manifest_entry
 from rag.hybrid_retriever import DynamicHybridRetriever
+from rag.parent_docstore import ParentDocstore
+
+_vector_store_service = None
+_vector_store_lock = Lock()
+
+
+def get_vector_store_service():
+    """Return the shared VectorStoreService instance used by RAG and knowledge management."""
+    global _vector_store_service
+
+    if _vector_store_service is None:
+        with _vector_store_lock:
+            if _vector_store_service is None:
+                _vector_store_service = VectorStoreService()
+
+    return _vector_store_service
+
 
 class VectorStoreService:
     def __init__(self):
@@ -26,10 +44,22 @@ class VectorStoreService:
         self.default_splitter = self._build_spliter(chunk_size=chroma_conf.get("chunk_size"),
                                                     chunk_overlap=chroma_conf.get("chunk_overlap"))
 
+        retrieve_k = chroma_conf.get("retrieve_k_children", 15)
         self.hybrid_engine = DynamicHybridRetriever(
             vector_store=self.vector_store,
-            k=15
+            k=retrieve_k
         )
+
+        # 父子块检索配置
+        self.parent_child_enabled = chroma_conf.get("parent_child_enabled", False)
+        self.parent_docstore = None
+        if self.parent_child_enabled:
+            docstore_path = get_abs_path(chroma_conf.get("parent_docstore", "parent_docstore.json"))
+            self.parent_docstore = ParentDocstore(docstore_path)
+            self.child_splitter = self._build_spliter(
+                chunk_size=chroma_conf.get("child_chunk_size", 120),
+                chunk_overlap=chroma_conf.get("child_chunk_overlap", 30),
+            )
 
         # 语义断点分块配置
         self.semantic_enabled = chroma_conf.get("semantic_chunking_enabled", True)
@@ -191,6 +221,65 @@ class VectorStoreService:
 
         return enriched_chunks, chunk_ids
 
+    def _build_parent_child_chunks(self, parent_docs, doc_id, file_hash, file_path, file_type):
+        """父块写入 docstore，子块写入 Chroma。"""
+        filename = os.path.basename(file_path)
+        child_chunks = []
+        child_ids = []
+        parent_ids = []
+        parent_records = {}
+
+        for parent_index, parent in enumerate(parent_docs):
+            parent_id = f"{doc_id}:parent:{parent_index:03d}"
+            parent_ids.append(parent_id)
+
+            parent_meta = {
+                "doc_id": doc_id,
+                "parent_id": parent_id,
+                "chunk_type": "parent",
+                "parent_index": parent_index,
+                "file_hash": file_hash,
+                "source": file_path,
+                "filename": filename,
+                "file_type": file_type,
+            }
+            if "page" in parent.metadata:
+                parent_meta["page"] = parent.metadata["page"]
+
+            parent_records[parent_id] = {
+                "page_content": parent.page_content,
+                "metadata": parent_meta,
+            }
+
+            children = self.child_splitter.split_documents([parent])
+            if not children:
+                children = [parent]
+
+            for child_index, child in enumerate(children):
+                child_id = f"{parent_id}:child:{child_index:03d}"
+                child_meta = {
+                    "doc_id": doc_id,
+                    "parent_id": parent_id,
+                    "child_id": child_id,
+                    "chunk_id": child_id,
+                    "chunk_type": "child",
+                    "parent_index": parent_index,
+                    "child_index": child_index,
+                    "chunk_index": child_index,
+                    "file_hash": file_hash,
+                    "source": file_path,
+                    "filename": filename,
+                    "file_type": file_type,
+                }
+                if "page" in parent_meta:
+                    child_meta["page"] = parent_meta["page"]
+
+                child_chunks.append(Document(page_content=child.page_content, metadata=child_meta))
+                child_ids.append(child_id)
+
+        self.parent_docstore.save_batch(parent_records)
+        return child_chunks, child_ids, parent_ids
+
     def delete_document(self, filename, delete_file=False):
         """按文件名删除该文档的所有向量及 manifest 记录。
 
@@ -205,6 +294,11 @@ class VectorStoreService:
         if chunk_ids:
             self.vector_store.delete(ids=chunk_ids)
             logger.info(f"已删除 {filename} 的 {len(chunk_ids)} 个向量")
+
+        parent_ids = entry.get("parent_ids", [])
+        if parent_ids and self.parent_docstore:
+            removed = self.parent_docstore.delete_many(parent_ids)
+            logger.info(f"已删除 {filename} 的 {removed} 个父块")
 
         if delete_file:
             data_dir = os.path.abspath(get_abs_path(chroma_conf["data_path"]))
@@ -287,21 +381,41 @@ class VectorStoreService:
                     continue
 
                 # 分块
-                chunk_method = "semantic"
-                split_document = None
-                if self.semantic_enabled:
-                    split_document = self._semantic_split(documents)
-                if split_document is None:
-                    split_document = self._get_splitter(path).split_documents(documents)
-                    chunk_method = "fixed"
-                if not split_document:
-                    logger.error(f"文件 {filename} 分片后内容为空，跳过")
-                    continue
+                if self.parent_child_enabled:
+                    chunk_method = "parent_child_semantic"
+                    parent_docs = None
+                    if self.semantic_enabled:
+                        parent_docs = self._semantic_split(documents)
+                    if parent_docs is None:
+                        parent_docs = self._get_splitter(path).split_documents(documents)
+                        chunk_method = "parent_child_fixed"
+                    if not parent_docs:
+                        logger.error(f"文件 {filename} 分片后内容为空，跳过")
+                        continue
 
-                # 注入 metadata + 生成稳定 ID
-                enriched_chunks, chunk_ids = self._enrich_chunks(
-                    split_document, doc_id, file_hash, path, file_type
-                )
+                    enriched_chunks, chunk_ids, parent_ids = self._build_parent_child_chunks(
+                        parent_docs, doc_id, file_hash, path, file_type
+                    )
+                    parent_count = len(parent_ids)
+                    child_count = len(enriched_chunks)
+                else:
+                    chunk_method = "semantic"
+                    split_document = None
+                    if self.semantic_enabled:
+                        split_document = self._semantic_split(documents)
+                    if split_document is None:
+                        split_document = self._get_splitter(path).split_documents(documents)
+                        chunk_method = "fixed"
+                    if not split_document:
+                        logger.error(f"文件 {filename} 分片后内容为空，跳过")
+                        continue
+
+                    enriched_chunks, chunk_ids = self._enrich_chunks(
+                        split_document, doc_id, file_hash, path, file_type
+                    )
+                    parent_ids = None
+                    parent_count = None
+                    child_count = None
 
                 # 写入 ChromaDB（带稳定 ID → 不会产生重复向量）
                 self.vector_store.add_documents(
@@ -314,17 +428,26 @@ class VectorStoreService:
                     chunk_count=len(enriched_chunks),
                     chunk_ids=chunk_ids,
                     chunk_method=chunk_method,
-                    file_type=file_type
+                    file_type=file_type,
+                    parent_ids=parent_ids,
+                    parent_count=parent_count,
+                    child_count=child_count,
                 )
                 # 计数：NEW 只算 new_count，UPDATED 只算 updated_count
                 if status == "NEW":
                     new_count += 1
                 elif status == "UPDATED":
                     updated_count += 1
-                logger.info(
-                    f"文件 {filename} 入库成功 [{status}] "
-                    f"({chunk_method}, {len(enriched_chunks)} chunks, doc_id={doc_id})"
-                )
+                if self.parent_child_enabled:
+                    logger.info(
+                        f"文件 {filename} 入库成功 [{status}] "
+                        f"({chunk_method}, {parent_count} parents / {child_count} children, doc_id={doc_id})"
+                    )
+                else:
+                    logger.info(
+                        f"文件 {filename} 入库成功 [{status}] "
+                        f"({chunk_method}, {len(enriched_chunks)} chunks, doc_id={doc_id})"
+                    )
 
             except Exception as e:
                 logger.error(f"文件 {filename} 入库失败: {str(e)}", exc_info=True)
@@ -352,10 +475,7 @@ class VectorStoreService:
 
 
 if __name__ == '__main__':
-    vs = VectorStoreService()
+    vs = get_vector_store_service()
     vs.load_document()
-    test_query = "石头"
-    retriever = vs.get_retriever(test_query)
-    res = retriever.invoke(test_query)
-    print(res)
+
 
