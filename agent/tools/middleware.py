@@ -19,7 +19,7 @@ def monitor_tool(request, handler):
         duration_ms = (time.time() - t_start) * 1000
         logger.info(f"{request.tool_call['name']}工具调用成功")
         metrics.record_tool_call(tool_name, True, duration_ms)
-        if request.tool_call['name'] == "fetch_external_data":
+        if request.tool_call['name'] == "fill_context_for_report":
             request.runtime.context["report"] = True
         return result
     except Exception as e:

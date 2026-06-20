@@ -14,7 +14,7 @@ from utils.logger_handler import logger
 class BGERerankerService:
     # 🌟 核心修改 1：把默认参数改成你刚才下载的本地绝对路径
     # 记得前面的 'r' 一定要有，防止 Windows 路径里的反斜杠转义报错
-    def __init__(self, model_name=r'E:/models/Xorbits/bge-reranker-base', top_n=3):
+    def __init__(self, model_name=r'E:/models/Xorbits/bge-reranker-base'):
         logger.info(f"🚀 正在从本地加载重排模型 (准备启动 GPU 加速): {model_name}...")
         try:
             # 🌟 核心修改 2：加入 local_files_only=True，彻底禁止程序去联网！
@@ -23,7 +23,6 @@ class BGERerankerService:
                 device='cpu',
                 local_files_only=True
             )
-            self.top_n = top_n
             logger.info("✅ BGE 重排模型已成功加载到 GPU！起飞！")
         except Exception as e:
             logger.error(f"❌ 模型加载失败: {e}", exc_info=True)
@@ -37,10 +36,16 @@ class BGERerankerService:
         pairs = [[query, doc.page_content] for doc in documents]
         scores = self.reranker.predict(pairs)
 
+        # 不原地改入参：BM25 检索返回的是 retriever 长期持有的共享 Document 对象，
+        # 并发查询下原地写 metadata 会相互覆盖。复制成新 Document（metadata 浅拷贝），
+        # 把分写到副本上，确保 reranker 只读不写入参、杜绝跨查询共享写。
+        scored_docs = []
         for doc, score in zip(documents, scores):
-            doc.metadata["rerank_score"] = float(score)
+            meta = dict(doc.metadata)
+            meta["rerank_score"] = float(score)
+            scored_docs.append(Document(page_content=doc.page_content, metadata=meta))
 
-        ranked_docs = sorted(documents, key=lambda x: x.metadata["rerank_score"], reverse=True)
+        ranked_docs = sorted(scored_docs, key=lambda x: x.metadata["rerank_score"], reverse=True)
         top_score = ranked_docs[0].metadata["rerank_score"]
 
         if top_score < score_threshold:
@@ -48,4 +53,5 @@ class BGERerankerService:
             return []
 
         logger.info(f"🎯 GPU 重排完成！最高得分: {top_score:.4f}")
-        return ranked_docs[:self.top_n]
+        # rerank 只负责打分+排序+卡门；要几个由调用方截断（resolve 取父块 / [:k]）
+        return ranked_docs

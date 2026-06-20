@@ -372,9 +372,9 @@ def get_scene_trend(scene_id: str, months: str = "") -> str:
 
     return "\n".join(result_parts)
 
-@tool(description="无入参，无返回值，调用后触发中间件自动为报告生成的场景动态注入上下文信息，为后续提示词切换提供上下文信息")
+@tool(description="进入报告生成模式：调用后中间件将系统提示切换为 report_prompt，后续工具调用按报告流程执行。仅在用户意图为'报告生成'时调用。")
 def fill_context_for_report():
-    return "fill_context_for_report已调用"
+    return "已进入报告生成模式"
 
 
 @tool(description="联网搜索最新信息。query为搜索关键词，days为可选的时间范围（仅在最近N天内搜索，默认为0表示不限时间）。当用户明确要求'今天''最近X天'的新闻时，必须传入days参数。")

@@ -66,6 +66,10 @@ class VectorStoreService:
         self.semantic_threshold = chroma_conf.get("semantic_threshold", 0.5)
         self.semantic_min_size = chroma_conf.get("semantic_min_chunk_size", 100)
         self.semantic_max_size = chroma_conf.get("semantic_max_chunk_size", 800)
+        # 英文（拉丁文本）用更大的字符阈值：一句英文≈100字符，沿用中文阈值会让单句成块
+        self.semantic_min_size_en = chroma_conf.get("semantic_min_chunk_size_en", 350)
+        self.semantic_max_size_en = chroma_conf.get("semantic_max_chunk_size_en", 1500)
+        self.semantic_cjk_ratio = chroma_conf.get("semantic_cjk_ratio_threshold", 0.2)
 
         # Manifest 注册表（替代原 md5.text）
         self.manifest_path = get_abs_path(chroma_conf["manifest_store"])
@@ -99,11 +103,26 @@ class VectorStoreService:
             return 0.0
         return dot / (norm_a * norm_b)
 
+    @staticmethod
+    def _cjk_ratio(text):
+        """CJK 字符在中英文字符中的占比，用于判定文本主语言。"""
+        cjk = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
+        latin = sum(1 for c in text if c.isascii() and c.isalpha())
+        base = cjk + latin
+        return cjk / base if base else 1.0
+
     def _semantic_split(self, documents):
         """基于相邻句子 embedding 相似度的语义断点分块。"""
+        # 第0步：按主语言选阈值（英文用更大字符阈值，避免单句英文成块）
+        joined = "".join(d.page_content for d in documents)
+        if self._cjk_ratio(joined) < self.semantic_cjk_ratio:
+            min_size, max_size = self.semantic_min_size_en, self.semantic_max_size_en
+        else:
+            min_size, max_size = self.semantic_min_size, self.semantic_max_size
+
         # 第1步：切分为句子级单元
         sentence_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=self.semantic_min_size,
+            chunk_size=min_size,
             chunk_overlap=0,
             separators=["\n\n", "\n", "。", ".", "！", "!", "？", "?", "；", ";", "：", ":"]
         )
@@ -136,7 +155,7 @@ class VectorStoreService:
             merged = "\n".join(segment)
 
             base_meta = sentences[start].metadata if sentences[start].metadata else {}
-            if len(merged) <= self.semantic_max_size:
+            if len(merged) <= max_size:
                 chunks.append(Document(page_content=merged, metadata=base_meta))
             else:
                 # 超长段落在句子边界做子切分
@@ -144,7 +163,7 @@ class VectorStoreService:
                 sub_len = 0
                 for j in range(start, end + 1):
                     seg = sentences[j].page_content
-                    if sub_len + len(seg) > self.semantic_max_size and sub_texts:
+                    if sub_len + len(seg) > max_size and sub_texts:
                         chunks.append(Document(page_content="\n".join(sub_texts), metadata=base_meta))
                         sub_texts = [seg]
                         sub_len = len(seg)
@@ -160,7 +179,7 @@ class VectorStoreService:
         final_chunks = []
         pending = None
         for ch in chunks:
-            if len(ch.page_content) < self.semantic_min_size:
+            if len(ch.page_content) < min_size:
                 if pending:
                     pending = Document(
                         page_content=pending.page_content + "\n" + ch.page_content,

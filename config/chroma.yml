@@ -16,13 +16,16 @@ separators: ["\n\n", "\n", ".", "!", "?", "。", "！", "？", " ", ""]
 # 语义断点分块配置
 semantic_chunking_enabled: true
 semantic_threshold: 0.5          # 余弦相似度阈值，低于此值视为话题切换
-semantic_min_chunk_size: 100     # 最小chunk（字符数），小于此值的会和相邻chunk合并
-semantic_max_chunk_size: 800     # 最大chunk（字符数），超出则回溯到上一个断点切分
+semantic_min_chunk_size: 100     # 中文最小chunk（字符数），小于此值的会和相邻chunk合并
+semantic_max_chunk_size: 800     # 中文最大chunk（字符数），超出则回溯到上一个断点切分
+semantic_min_chunk_size_en: 350  # 英文最小chunk（字符数）：一句英文≈100字符，需更大阈值避免单句成块
+semantic_max_chunk_size_en: 1500 # 英文最大chunk（字符数）
+semantic_cjk_ratio_threshold: 0.2  # CJK字符占比低于此值判为英文，套用英文阈值
 
 # 父子块检索：子块进向量库，父块存 docstore，检索后回表
 parent_child_enabled: true
 child_chunk_size: 160
 child_chunk_overlap: 40
 parent_docstore: parent_docstore.json
-retrieve_k_children: 15          # 混合检索召回子块数
-retrieve_k_parents: 6              # 回表去重后父块上限（再交给 reranker）
+retrieve_k_children: 20          # 混合检索召回子块数（rerank 候选池）
+retrieve_k_parents: 3              # 重排+回表去重后最终喂给 LLM 的父块数

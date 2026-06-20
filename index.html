@@ -3,323 +3,376 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="SAR-Sense - 基于深度学习的合成孔径雷达船舶检测智能平台">
-  <title>SAR-Sense | 智能船舶检测平台</title>
+  <meta name="description" content="SAR-Sense — 编辑级合成孔径雷达船舶检测平台。为专业海事 / 国防分析师设计。">
+  <title>SAR-Sense | An editorial-grade SAR intelligence platform</title>
+
+  <!-- Premium fonts: Inter UI · Space Grotesk display · Playfair editorial · JetBrains Mono data -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="css/style.css">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛰️</text></svg>">
+  <link rel="stylesheet" href="css/luxury.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a07f4f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='2.4' fill='%23a07f4f'/%3E%3Cpath d='M12 4a8 8 0 0 1 8 8'/%3E%3Cpath d='M12 8a4 4 0 0 1 4 4'/%3E%3Cline x1='12' y1='12' x2='19' y2='5'/%3E%3C/svg%3E">
 </head>
-<body>
+<body class="lux-cursor-on">
+  <script src="js/luxury.js"></script>
   <div class="bg-grid"></div>
   <div class="bg-glow bg-glow-1"></div>
   <div class="bg-glow bg-glow-2"></div>
   <div class="bg-glow bg-glow-3"></div>
-  <div class="particles"></div>
 
   <!-- Navigation -->
   <nav class="navbar">
     <div class="container">
       <a href="index.html" class="navbar-brand">
-        <span class="logo-icon">🛰️</span>
+        <span class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/>
+            <path d="M12 4a8 8 0 0 1 8 8"/>
+            <path d="M12 8a4 4 0 0 1 4 4"/>
+            <line x1="12" y1="12" x2="19" y2="5"/>
+          </svg>
+        </span>
         <span>SAR-Sense</span>
       </a>
       <ul class="navbar-nav">
-        <li><a href="index.html">首页</a></li>
-        <li><a href="detection.html">SAR检测</a></li>
+        <li><a href="index.html" class="active">首页</a></li>
+        <li><a href="detection.html">SAR 检测</a></li>
         <li><a href="chat.html">智能问答</a></li>
         <li><a href="knowledge.html">知识库</a></li>
         <li><a href="metrics.html">可观测性</a></li>
       </ul>
       <div class="navbar-actions">
-        <a href="detection.html" class="btn btn-secondary">开始检测</a>
-        <a href="chat.html" class="btn btn-primary">开始使用</a>
+        <a href="detection.html" class="btn btn-secondary btn-sm">开始检测</a>
+        <a href="#cta" class="btn btn-champagne btn-sm">
+          受邀体验
+          <svg class="icon icon-sm" aria-hidden="true"><use href="/assets/icons.svg#arrow-right"/></svg>
+        </a>
       </div>
-      <button class="mobile-menu-btn" aria-label="菜单">☰</button>
+      <button class="mobile-menu-btn" aria-label="菜单">
+        <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#menu"/></svg>
+      </button>
     </div>
   </nav>
 
-  <!-- Hero Section -->
-  <section class="hero section" id="hero">
+  <!-- ============== Editorial Hero ============== -->
+  <section class="lux-hero" id="hero">
     <div class="container">
-      <div class="hero-content">
-        <div class="hero-badge">
-          <span class="badge-dot"></span>
-          <span>YOLO 驱动 · 实时检测</span>
+      <div class="lux-hero-grid">
+        <div class="lux-reveal active">
+          <div class="stagger-child">
+            <div class="lux-eyebrow">
+              <span>An editorial intelligence layer</span>
+            </div>
+          </div>
+
+          <h1 class="lux-display stagger-child">
+            从一束雷达回波，<br>
+            到一份<em>可被信赖</em>的<br>
+            <em>海事判读</em>。
+          </h1>
+
+          <p class="lux-lede stagger-child" style="margin-top: var(--space-xl)">
+            SAR-Sense 是为合成孔径雷达图像而生的智能分析平台 ——
+            把 YOLO 视觉引擎、ReAct 智能体、混合 RAG 检索与全链路可观测性，
+            编织成一段克制而精准的工作流。
+          </p>
+
+          <div class="lux-hero-actions stagger-child">
+            <a href="#cta" class="btn btn-champagne">
+              申请受邀访问
+              <svg class="icon icon-sm" aria-hidden="true"><use href="/assets/icons.svg#arrow-right"/></svg>
+            </a>
+            <a href="detection.html" class="btn-text">
+              直接进入检测台
+              <svg class="icon icon-xs" aria-hidden="true"><use href="/assets/icons.svg#arrow-right"/></svg>
+            </a>
+          </div>
+
+          <div class="lux-hero-meta stagger-child">
+            <div class="lux-hero-meta-item">
+              <div class="label">Detection precision</div>
+              <div class="value">98.5<span class="value-suffix">%</span></div>
+            </div>
+            <div class="lux-hero-meta-item">
+              <div class="label">Median latency</div>
+              <div class="value">87<span class="value-suffix">ms</span></div>
+            </div>
+            <div class="lux-hero-meta-item">
+              <div class="label">Curated tools</div>
+              <div class="value">13<span class="value-suffix">+</span></div>
+            </div>
+          </div>
         </div>
 
-        <h1>
-          <span class="text-gradient">SAR-Sense</span><br>
-          智能船舶检测平台
-        </h1>
+        <div class="lux-hero-stage" data-lux-parallax="-0.06">
+          <div class="lux-stage-card back" aria-hidden="true"></div>
+          <div class="lux-stage-card middle" aria-hidden="true"></div>
+          <div class="lux-stage-card front">
+            <div class="lux-stage-front-header">
+              <span class="pulse">live · sar console</span>
+              <span>—— v 2.4</span>
+            </div>
 
-        <p class="hero-description">
-          基于深度学习的合成孔径雷达船舶检测系统。集成 YOLO 视觉引擎、LangChain 智能体、
-          RAG 知识检索和全链路可观测性，为您提供专业级 SAR 图像分析服务。
+            <div class="lux-stage-readout">
+              <div class="label">Vessels detected</div>
+              <div class="number">1,247</div>
+              <div class="unit">past 24 hours · ↑ 12.5%</div>
+            </div>
+
+            <div class="lux-stage-front-footer">
+              <div class="lux-stage-mini">
+                <span class="k">accuracy</span>
+                <span class="v">98.5%</span>
+              </div>
+              <div class="lux-stage-mini">
+                <span class="k">latency</span>
+                <span class="v">87 ms</span>
+              </div>
+              <div class="lux-stage-mini">
+                <span class="k">corpus</span>
+                <span class="v">3,891 docs</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Marquee strip 在 hero 底部 — luxury 信誉滚动 -->
+    <div class="lux-marquee" aria-hidden="true">
+      <div class="lux-marquee-track">
+        <span>Trusted by maritime intelligence teams</span>
+        <span>YOLO v8 vision engine</span>
+        <span>LangChain ReAct agents</span>
+        <span>ChromaDB hybrid retrieval</span>
+        <span>BGE Reranker</span>
+        <span>Parent-child structured chunking</span>
+        <span>End-to-end observability</span>
+        <!-- 重复一次让滚动无缝 -->
+        <span>Trusted by maritime intelligence teams</span>
+        <span>YOLO v8 vision engine</span>
+        <span>LangChain ReAct agents</span>
+        <span>ChromaDB hybrid retrieval</span>
+        <span>BGE Reranker</span>
+        <span>Parent-child structured chunking</span>
+        <span>End-to-end observability</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== Storytelling — Chapter 01 ============== -->
+  <section class="lux-story" id="chapter-01">
+    <div class="container">
+      <div class="lux-story-grid lux-reveal">
+        <div class="lux-story-text stagger-child">
+          <div class="lux-section-num">— Chapter 01</div>
+          <h2>从粗粒像素到<br><em>毫秒级判定</em></h2>
+          <p>
+            SAR 图像里的船舶，往往只是几个像素的回波。我们用 YOLO v8
+            驱动的视觉引擎，将每一帧拆解、定位、再重组成一份可视化的检测报告 ——
+            过程从上传到出图，平均 87 毫秒。
+          </p>
+          <p>
+            重要的不是更高的数字，而是<strong style="color: var(--text-primary); font-weight: 500;">
+            判读的可重复性</strong>。每一次推理都被序列化，
+            每一个边界框都可以被审计、被回放、被解释。
+          </p>
+          <ul class="lux-story-list">
+            <li>YOLO v8 视觉引擎 · 实时推理 &lt; 100 ms</li>
+            <li>多尺度目标检测 · 适应粗粒和细粒像素</li>
+            <li>边界框 + 置信度 + 元数据，三件套可审计</li>
+          </ul>
+        </div>
+
+        <div class="lux-story-visual viz-radar stagger-child" data-lux-parallax="0.04">
+          <div class="lux-radar">
+            <div class="lux-radar-sweep"></div>
+            <div class="lux-radar-core"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== Storytelling — Chapter 02 ============== -->
+  <section class="lux-story" id="chapter-02">
+    <div class="container">
+      <div class="lux-story-grid reverse lux-reveal">
+        <div class="lux-story-text stagger-child">
+          <div class="lux-section-num">— Chapter 02</div>
+          <h2>当智能体替你<br><em>追问下一步</em></h2>
+          <p>
+            一份检测结果是终点，还是起点？我们更愿意它是后者。
+            SAR-Sense 内置 ReAct 架构的 LangChain 智能体，会把"识别到的船舶"
+            自动延展为"它是谁、从哪里来、风浪是否合宜"等下一步分析。
+          </p>
+          <p>
+            13+ 专业工具被精心策划，每一次调用都被中间件全程监控、分级记录。
+            思维链可视化让你看见模型的每一次试探。
+          </p>
+          <ul class="lux-story-list">
+            <li>ReAct 推理架构 · 流式输出</li>
+            <li>13+ 工具策划集（天气 / 海况 / RAG / Web / 报告生成）</li>
+            <li>思维链可视化 · 每一步可追溯</li>
+          </ul>
+        </div>
+
+        <div class="lux-story-visual viz-thread stagger-child" data-lux-parallax="0.04">
+          <div class="lux-thread-line">
+            <span class="step">i.</span>
+            <span class="text">用户：分析图中船舶并生成报告</span>
+          </div>
+          <div class="lux-thread-line">
+            <span class="step">ii.</span>
+            <span class="text">→ thinking · 拆解任务</span>
+          </div>
+          <div class="lux-thread-line">
+            <span class="step">iii.</span>
+            <span class="text">→ tool · detect_ships(image)</span>
+          </div>
+          <div class="lux-thread-line">
+            <span class="step">iv.</span>
+            <span class="text">→ tool · get_sea_state(coords)</span>
+          </div>
+          <div class="lux-thread-line">
+            <span class="step">v.</span>
+            <span class="text">→ tool · rag_summarize("MBE-Net")</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== Storytelling — Chapter 03 ============== -->
+  <section class="lux-story" id="chapter-03">
+    <div class="container">
+      <div class="lux-story-grid lux-reveal">
+        <div class="lux-story-text stagger-child">
+          <div class="lux-section-num">— Chapter 03</div>
+          <h2>把领域知识<br><em>留在你的舱内</em></h2>
+          <p>
+            最锋利的 AI 仍要被领域知识喂养。我们把 RAG 设计成可被你拥有的形态：
+            ChromaDB 作为底座，混合检索（向量 + BM25）作为入口，
+            父子块结构化分块让每一次召回都不丢失原文上下文。
+          </p>
+          <p>
+            BGE Reranker 在子块层精修排序，再回表聚合成父块 ——
+            兼顾准确性与可读性，回答里的每一句话都能定位到 PDF 的哪一段。
+          </p>
+          <ul class="lux-story-list">
+            <li>ChromaDB 向量库 · 本地化部署</li>
+            <li>混合检索 · 向量 ⊕ BM25 双通道</li>
+            <li>父子块结构 · 子块召回，父块呈现</li>
+            <li>BGE 重排 · 子块层精修，父块继承秩序</li>
+          </ul>
+        </div>
+
+        <div class="lux-story-visual viz-stack stagger-child" data-lux-parallax="0.04">
+          <div class="lux-stack">
+            <div class="lux-stack-page"></div>
+            <div class="lux-stack-page"></div>
+            <div class="lux-stack-page"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== Premium Brand Values ============== -->
+  <section class="lux-values" id="values">
+    <div class="container">
+      <div class="lux-divider" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="3"/></svg>
+      </div>
+
+      <div class="lux-values-header lux-reveal">
+        <div class="lux-eyebrow"><span>Our Tenets</span></div>
+        <h2>克制即<em>奢华</em><br>精确即<em>信任</em></h2>
+        <p style="color: var(--text-tertiary); margin-top: var(--space-md);">
+          六条我们坚持的原则 —— 它们决定了 SAR-Sense 不是另一个普通的 AI 工具。
         </p>
-
-        <div class="hero-actions">
-          <a href="detection.html" class="btn btn-primary">
-            开始检测 →
-          </a>
-          <a href="chat.html" class="btn btn-secondary">
-            智能问答
-          </a>
-        </div>
-
-        <div class="hero-stats">
-          <div class="hero-stat">
-            <div class="hero-stat-value text-gradient">98.5%</div>
-            <div class="hero-stat-label">检测准确率</div>
-          </div>
-          <div class="hero-stat">
-            <div class="hero-stat-value text-gradient"><100ms</div>
-            <div class="hero-stat-label">平均响应时间</div>
-          </div>
-          <div class="hero-stat">
-            <div class="hero-stat-value text-gradient">13+</div>
-            <div class="hero-stat-label">智能工具</div>
-          </div>
-        </div>
       </div>
 
-      <div class="hero-visual">
-        <div class="hero-mockup animate-float">
-          <div class="mockup-header">
-            <div class="mockup-dot"></div>
-            <div class="mockup-dot"></div>
-            <div class="mockup-dot"></div>
-          </div>
-          <div class="mockup-body">
-            <div class="mockup-card">
-              <div class="mockup-card-title">检测数量</div>
-              <div class="mockup-card-value">1,247</div>
-            </div>
-            <div class="mockup-card">
-              <div class="mockup-card-title">准确率</div>
-              <div class="mockup-card-value">98.5%</div>
-            </div>
-            <div class="mockup-chart">
-              <div class="chart-line"></div>
-            </div>
-          </div>
-        </div>
+      <div class="lux-values-grid lux-reveal">
+        <article class="lux-value-card stagger-child">
+          <div class="lux-value-num">i.</div>
+          <h3>Engineered<br>for the eye</h3>
+          <p>每一处玻璃、每一条阴影、每一段斜体编号，都用 Apple Liquid Glass 与 Hermès editorial 的标准对齐。</p>
+        </article>
+        <article class="lux-value-card stagger-child">
+          <div class="lux-value-num">ii.</div>
+          <h3>Local<br>by default</h3>
+          <p>ChromaDB 与 YOLO 权重均本地化部署，数据不出内网。私密性与合规性是默认选项，而非升级套餐。</p>
+        </article>
+        <article class="lux-value-card stagger-child">
+          <div class="lux-value-num">iii.</div>
+          <h3>Auditable<br>at every step</h3>
+          <p>从工具调用到 LLM 推理，每一帧都被 LangChain 中间件结构化记录。可观测性是工程伦理的一部分。</p>
+        </article>
+        <article class="lux-value-card stagger-child">
+          <div class="lux-value-num">iv.</div>
+          <h3>Concurrent<br>by design</h3>
+          <p>RAG 流水线为并发查询设计：reranker 不修改入参，BM25 共享对象通过 copy-on-write 隔离。</p>
+        </article>
+        <article class="lux-value-card stagger-child">
+          <div class="lux-value-num">v.</div>
+          <h3>Tested<br>not assumed</h3>
+          <p>50 题手工策划评测集，5×3 消融实验。Recall@5 / MRR 都有数字而非感觉，迭代有方向不靠猜。</p>
+        </article>
+        <article class="lux-value-card stagger-child">
+          <div class="lux-value-num">vi.</div>
+          <h3>Premium<br>by restraint</h3>
+          <p>没有花哨的 emoji，没有过载的霓虹。我们相信少即是多 —— editorial 排版与香槟金的克制点缀。</p>
+        </article>
       </div>
     </div>
   </section>
 
-  <!-- Features Section -->
-  <section class="features section" id="features">
-    <div class="container">
-      <div class="section-header reveal">
-        <h2>核心功能</h2>
-        <p>四大核心模块，覆盖从数据采集到智能分析的完整工作流</p>
-      </div>
-
-      <div class="features-grid">
-        <div class="feature-card reveal stagger">
-          <div class="feature-icon">🔍</div>
-          <h3>SAR 检测工作台</h3>
-          <p>
-            基于 YOLO 深度学习模型的 SAR 图像船舶检测。支持多种图像格式，
-            毫秒级推理速度，精准定位多尺度船舶目标。
-          </p>
-          <ul class="feature-list">
-            <li>YOLO 视觉引擎</li>
-            <li>实时推理（<100ms）</li>
-            <li>多尺度目标检测</li>
-            <li>可视化结果输出</li>
-          </ul>
-        </div>
-
-        <div class="feature-card reveal stagger">
-          <div class="feature-icon">🤖</div>
-          <h3>智能体问答</h3>
-          <p>
-            ReAct 架构的 LangChain 智能体，支持流式输出、思维链可视化、
-            文件附件和对话持久化，提供深度分析能力。
-          </p>
-          <ul class="feature-list">
-            <li>ReAct 推理架构</li>
-            <li>13+ 专业工具调用</li>
-            <li>思维链可视化</li>
-            <li>流式实时输出</li>
-          </ul>
-        </div>
-
-        <div class="feature-card reveal stagger">
-          <div class="feature-icon">📚</div>
-          <h3>知识库管理</h3>
-          <p>
-            ChromaDB 向量数据库驱动的 RAG 知识检索系统。支持文档上传、
-            智能分块、向量嵌入和混合检索。
-          </p>
-          <ul class="feature-list">
-            <li>ChromaDB 向量库</li>
-            <li>混合检索引擎</li>
-            <li>BGE 重排序</li>
-            <li>文档智能分块</li>
-          </ul>
-        </div>
-
-        <div class="feature-card reveal stagger">
-          <div class="feature-icon">📊</div>
-          <h3>可观测性仪表板</h3>
-          <p>
-            全链路监控系统，实时追踪工具调用、成功率、响应时间等关键指标，
-            支持异常检测和循环调用告警。
-          </p>
-          <ul class="feature-list">
-            <li>实时性能监控</li>
-            <li>工具调用分析</li>
-            <li>异常循环检测</li>
-            <li>可视化报表</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Data Preview Section -->
-  <section class="data-preview section" id="data-preview">
-    <div class="container">
-      <div class="section-header reveal">
-        <h2>实时数据预览</h2>
-        <p>监控检测性能，洞察数据趋势</p>
-      </div>
-
-      <div class="preview-container reveal">
-        <div class="preview-header">
-          <div class="preview-header-left">
-            <h4>检测数据分析</h4>
-          </div>
-          <div class="preview-tabs">
-            <button class="preview-tab active">24小时</button>
-            <button class="preview-tab">7天</button>
-            <button class="preview-tab">30天</button>
-          </div>
-        </div>
-
-        <div class="preview-body">
-          <div class="chart-container">
-            <canvas id="detectionChart"></canvas>
-          </div>
-
-          <div class="metrics-grid">
-            <div class="metric-card">
-              <div class="metric-value">1,247</div>
-              <div class="metric-label">今日检测</div>
-              <div class="metric-change positive">↑ 12.5%</div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-value">98.5%</div>
-              <div class="metric-label">准确率</div>
-              <div class="metric-change positive">↑ 2.3%</div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-value">87ms</div>
-              <div class="metric-label">平均响应</div>
-              <div class="metric-change positive">↓ 15ms</div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-value">3,891</div>
-              <div class="metric-label">知识库文档</div>
-              <div class="metric-change positive">↑ 156</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Security Section -->
-  <section class="security section" id="security">
-    <div class="container">
-      <div class="section-header reveal">
-        <h2>安全特性</h2>
-        <p>企业级安全保障，守护您的数据资产</p>
-      </div>
-
-      <div class="security-grid">
-        <div class="security-card reveal stagger">
-          <div class="security-icon">🔐</div>
-          <h3>数据加密传输</h3>
-          <p>全程 TLS 1.3 加密，确保数据在传输过程中的安全性和完整性</p>
-        </div>
-        <div class="security-card reveal stagger">
-          <div class="security-icon">🏠</div>
-          <h3>本地化部署</h3>
-          <p>支持私有化部署，数据不出内网，满足严格的合规要求</p>
-        </div>
-        <div class="security-card reveal stagger">
-          <div class="security-icon">👥</div>
-          <h3>权限控制</h3>
-          <p>细粒度的 RBAC 权限管理，确保不同角色只能访问授权资源</p>
-        </div>
-        <div class="security-card reveal stagger">
-          <div class="security-icon">📋</div>
-          <h3>审计日志</h3>
-          <p>完整的操作审计追踪，记录所有关键操作，支持合规审查</p>
-        </div>
-        <div class="security-card reveal stagger">
-          <div class="security-icon">🛡️</div>
-          <h3>模型安全</h3>
-          <p>模型文件加密存储，防止模型泄露和恶意篡改</p>
-        </div>
-        <div class="security-card reveal stagger">
-          <div class="security-icon">🔄</div>
-          <h3>备份恢复</h3>
-          <p>自动备份机制，支持数据和配置的快速恢复</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Trust Indicators -->
+  <!-- ============== Trust Indicators (existing, refined) ============== -->
   <section class="trust section" id="trust">
     <div class="container">
       <div class="section-header reveal">
-        <h2>信任指标</h2>
-        <p>用数据说话，用实力证明</p>
+        <h2 style="font-family: var(--font-editorial); font-weight: 500;">
+          被数字<em style="font-style: italic; background: var(--lux-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">证实</em>的承诺
+        </h2>
+        <p>不写不能被检验的话</p>
       </div>
 
       <div class="trust-grid">
         <div class="trust-card reveal stagger">
           <div class="trust-value" data-target="98.5" data-suffix="%">0%</div>
           <div class="trust-label">检测准确率</div>
-          <div class="trust-bar">
-            <div class="trust-bar-fill" data-width="98.5%"></div>
-          </div>
+          <div class="trust-bar"><div class="trust-bar-fill" data-width="98.5%"></div></div>
         </div>
         <div class="trust-card reveal stagger">
-          <div class="trust-value" data-target="87" data-suffix="ms">0ms</div>
+          <div class="trust-value" data-target="87" data-suffix=" ms">0 ms</div>
           <div class="trust-label">平均响应时间</div>
-          <div class="trust-bar">
-            <div class="trust-bar-fill" data-width="87%"></div>
-          </div>
+          <div class="trust-bar"><div class="trust-bar-fill" data-width="87%"></div></div>
         </div>
         <div class="trust-card reveal stagger">
-          <div class="trust-value" data-target="10" data-suffix="+">0+</div>
-          <div class="trust-label">支持场景</div>
-          <div class="trust-bar">
-            <div class="trust-bar-fill" data-width="100%"></div>
-          </div>
+          <div class="trust-value" data-target="13" data-suffix="+">0+</div>
+          <div class="trust-label">智能工具集</div>
+          <div class="trust-bar"><div class="trust-bar-fill" data-width="100%"></div></div>
         </div>
         <div class="trust-card reveal stagger">
           <div class="trust-value" data-target="3891" data-suffix="">0</div>
           <div class="trust-label">知识库文档</div>
-          <div class="trust-bar">
-            <div class="trust-bar-fill" data-width="75%"></div>
-          </div>
+          <div class="trust-bar"><div class="trust-bar-fill" data-width="75%"></div></div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Tech Stack -->
+  <!-- ============== Tech Stack (existing, kept clean) ============== -->
   <section class="tech-stack section" id="tech">
     <div class="container">
       <div class="section-header reveal">
-        <h2>技术栈</h2>
-        <p>采用业界领先的技术架构</p>
+        <h2 style="font-family: var(--font-editorial); font-weight: 500;">
+          建立在<em style="font-style: italic; background: var(--lux-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">最锋利</em>的基础之上
+        </h2>
+        <p>每一个组件都被深思熟虑地选择</p>
       </div>
 
       <div class="tech-grid">
@@ -347,33 +400,57 @@
     </div>
   </section>
 
-  <!-- CTA Section -->
-  <section class="cta section" id="cta">
+  <!-- ============== Exclusive Membership CTA ============== -->
+  <section class="lux-cta" id="cta">
     <div class="container">
-      <div class="cta-content reveal">
-        <h2>准备好开始了吗？</h2>
-        <p>立即体验 SAR-Sense 智能船舶检测平台，开启您的 SAR 图像分析之旅</p>
-        <div class="cta-actions">
-          <a href="detection.html" class="btn btn-primary">免费试用</a>
-          <a href="chat.html" class="btn btn-secondary">联系我们</a>
+      <div class="lux-cta-card lux-reveal">
+        <div class="lux-cta-eyebrow stagger-child">By Invitation Only</div>
+
+        <h2 class="stagger-child">
+          为<em>少数人</em>而生的<br>
+          编辑级海事智能
+        </h2>
+
+        <p class="stagger-child">
+          SAR-Sense 当前以受邀制开放给海事情报、海洋研究与国防分析单位。
+          留下你的工作邮箱，我们会在 48 小时内回复您一席内测席位。
+        </p>
+
+        <div class="lux-cta-actions stagger-child">
+          <a href="chat.html" class="btn btn-champagne">
+            申请受邀
+            <svg class="icon icon-sm" aria-hidden="true"><use href="/assets/icons.svg#arrow-right"/></svg>
+          </a>
+          <a href="detection.html" class="btn btn-secondary">先看一眼</a>
+        </div>
+
+        <div class="lux-cta-fineprint stagger-child">
+          独立部署 · 数据不出内网 · 严选合作伙伴
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Footer -->
+  <!-- ============== Footer ============== -->
   <footer class="footer">
     <div class="container">
       <div class="footer-content">
         <div class="footer-brand">
           <a href="index.html" class="navbar-brand">
-            <span class="logo-icon">🛰️</span>
+            <span class="logo-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/>
+                <path d="M12 4a8 8 0 0 1 8 8"/>
+                <path d="M12 8a4 4 0 0 1 4 4"/>
+                <line x1="12" y1="12" x2="19" y2="5"/>
+              </svg>
+            </span>
             <span>SAR-Sense</span>
           </a>
-          <p>基于深度学习的合成孔径雷达船舶检测智能平台，为您提供专业级 SAR 图像分析服务。</p>
+          <p>An editorial-grade SAR intelligence platform.<br>为合成孔径雷达图像而生的智能分析平台。</p>
         </div>
         <div class="footer-links">
-          <h4>产品</h4>
+          <h4>Product</h4>
           <ul>
             <li><a href="detection.html">SAR 检测</a></li>
             <li><a href="chat.html">智能问答</a></li>
@@ -382,7 +459,7 @@
           </ul>
         </div>
         <div class="footer-links">
-          <h4>资源</h4>
+          <h4>Resources</h4>
           <ul>
             <li><a href="#">开发文档</a></li>
             <li><a href="#">API 参考</a></li>
@@ -391,7 +468,7 @@
           </ul>
         </div>
         <div class="footer-links">
-          <h4>公司</h4>
+          <h4>Atelier</h4>
           <ul>
             <li><a href="#">关于我们</a></li>
             <li><a href="#">联系方式</a></li>
@@ -402,11 +479,11 @@
       </div>
 
       <div class="footer-bottom">
-        <div class="footer-copyright">© 2024 SAR-Sense. All rights reserved.</div>
+        <div class="footer-copyright">© 2026 SAR-Sense Atelier. All rights reserved.</div>
         <div class="footer-social">
           <a href="#" class="social-link" aria-label="GitHub">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <use href="/assets/icons.svg#github"/>
             </svg>
           </a>
         </div>

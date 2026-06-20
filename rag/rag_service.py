@@ -20,13 +20,14 @@ class RagSummarizeService:
         self.prompt_template = PromptTemplate.from_template(self.prompt_text)
         self.model = chat_model
 
-        self.reranker = BGERerankerService(top_n=3)
+        self.reranker = BGERerankerService()
         self.chain = self._init_chain()
+        self.final_k = chroma_conf.get("retrieve_k_parents", 3)
         self.parent_resolver = None
         if self.vector_store.parent_child_enabled and self.vector_store.parent_docstore:
             self.parent_resolver = ParentChildResolver(
                 parent_docstore=self.vector_store.parent_docstore,
-                top_k_parents=chroma_conf.get("retrieve_k_parents", 6),
+                top_k_parents=self.final_k,
             )
 
     def _init_chain(self):
@@ -34,14 +35,19 @@ class RagSummarizeService:
         return chain
 
     def retriever_docs(self, query):
+        # 子块召回 → 先在子块上重排(只打分不截断) → 再回表聚合成父块
+        # rerank 提前到子块层：CrossEncoder 对短文本判分更准，并让"选哪些父块"由相关性决定
         candidate_docs = self.vector_store.get_retriever(query).invoke(query)
 
+        scored_children = self.reranker.rerank(query, candidate_docs)
+        if not scored_children:
+            return []
+
         if self.parent_resolver:
-            candidate_docs = self.parent_resolver.resolve(candidate_docs)
+            # resolve 按 rerank 顺序去重，父块继承子块相关性排序，并截断到 final_k
+            return self.parent_resolver.resolve(scored_children)
 
-        final_docs = self.reranker.rerank(query, candidate_docs)
-
-        return final_docs
+        return scored_children[:self.final_k]
 
 
     def rag_summarize(self, query):

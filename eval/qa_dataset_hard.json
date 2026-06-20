@@ -1,0 +1,218 @@
+[
+  {
+    "id": "qa_001",
+    "question": "SAR 通常工作在哪些频段？",
+    "gold_answer": "X波段、C波段或L波段",
+    "gold_filename": "SAR舰船检测概述.txt",
+    "gold_snippet": "通常为X波段、C波段或L波段",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_021",
+    "question": "MBE-Net 基于哪个 YOLO 框架？",
+    "gold_answer": "YOLO11n",
+    "gold_filename": "MBE-Net算法详解.txt",
+    "gold_snippet": "该算法基于YOLO11n框架",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_022",
+    "question": "MBE-Net 中 EEWB 的全称是什么？",
+    "gold_answer": "Edge-Enhanced Wavelet Backbone（边缘增强小波骨干网络）",
+    "gold_filename": "MBE-Net算法详解.txt",
+    "gold_snippet": "EEWB：Edge-Enhanced Wavelet Backbone",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_024",
+    "question": "MBE-Net 中 ACF-FPN 的全称是什么？",
+    "gold_answer": "Adaptive Contextual Focus Feature Pyramid Network",
+    "gold_filename": "MBE-Net算法详解.txt",
+    "gold_snippet": "ACF-FPN：Adaptive Contextual Focus Feature Pyramid Network",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_026",
+    "question": "MBE-Net 的输入图像尺寸是多少？",
+    "gold_answer": "640×640",
+    "gold_filename": "MBE-Net算法详解.txt",
+    "gold_snippet": "输入尺寸：640×640",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_027",
+    "question": "MBE-Net 训练了多少 epoch？",
+    "gold_answer": "350 epochs",
+    "gold_filename": "MBE-Net算法详解.txt",
+    "gold_snippet": "训练轮数：350 epochs",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_034",
+    "question": "YOLO11 中的 C3k2 模块替代了上一版本的哪个模块？",
+    "gold_answer": "替代 C2f，更高效的特征提取",
+    "gold_filename": "YOLO目标检测模型知识.txt",
+    "gold_snippet": "C3k2模块：替代C2f，更高效的特征提取",
+    "qa_type": "comparison"
+  },
+  {
+    "id": "qa_037",
+    "question": "YOLO 中 EMA（指数移动平均）的作用是什么？",
+    "gold_answer": "对模型参数做指数移动平均，提升泛化能力",
+    "gold_filename": "YOLO目标检测模型知识.txt",
+    "gold_snippet": "对模型参数做指数移动平均，提升泛化能力",
+    "qa_type": "concept"
+  },
+  {
+    "id": "qa_039",
+    "question": "YOLO 的 SPPF 模块有什么作用？",
+    "gold_answer": "空间金字塔池化，增强多尺度感受野",
+    "gold_filename": "YOLO目标检测模型知识.txt",
+    "gold_snippet": "SPPF模块：空间金字塔池化，增强多尺度感受野",
+    "qa_type": "concept"
+  },
+  {
+    "id": "qa_042",
+    "question": "SSDD 数据集由哪个机构发布？",
+    "gold_answer": "中国科学院空天信息创新研究院",
+    "gold_filename": "HRSID与SSDD数据集.txt",
+    "gold_snippet": "由中国科学院空天信息创新研究院发布",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_043",
+    "question": "SSDD 数据集包含多少张 SAR 图像？",
+    "gold_answer": "1160 张",
+    "gold_filename": "HRSID与SSDD数据集.txt",
+    "gold_snippet": "图像数量：1160张SAR图像",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_045",
+    "question": "SSDD 数据集涵盖的图像分辨率范围是多少？",
+    "gold_answer": "1m-15m",
+    "gold_filename": "HRSID与SSDD数据集.txt",
+    "gold_snippet": "包含不同分辨率的SAR图像（1m-15m）",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_d01",
+    "question": "为什么 SAR 在恶劣天气和黑夜里都还能成像？",
+    "gold_answer": "微波穿透云层雨雾，不受光照限制，主动雷达不依赖外部光源",
+    "gold_filename": "SAR图像特性与挑战.txt",
+    "gold_snippet": "不受光照条件限制，可实现全天时成像",
+    "qa_type": "concept"
+  },
+  {
+    "id": "qa_d02",
+    "question": "把图像随机翻转、旋转、缩放算哪一类数据增强？",
+    "gold_answer": "几何增强",
+    "gold_filename": "HRSID与SSDD数据集.txt",
+    "gold_snippet": "几何增强：随机翻转（水平/垂直）、旋转",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_d03",
+    "question": "把多个卷积层在部署时合并成一个，能带来什么好处？",
+    "gold_answer": "减少推理计算开销加速检测，且不损失精度",
+    "gold_filename": "MBE-Net算法详解.txt",
+    "gold_snippet": "减少推理时的计算开销，加速检测速度",
+    "qa_type": "concept"
+  },
+  {
+    "id": "qa_d04",
+    "question": "SAR 是怎么从一个小天线得到等效大天线分辨率的？",
+    "gold_answer": "雷达平台飞行过程中沿航迹方向把多个回波合成等效长孔径天线",
+    "gold_filename": "SAR图像特性与挑战.txt",
+    "gold_snippet": "将沿航迹方向（方位向）的多个回波合成为等效长孔径天线",
+    "qa_type": "concept"
+  },
+  {
+    "id": "qa_d05",
+    "question": "SAR 图像里那种粒状纹理是什么噪声？怎么形成的？",
+    "gold_answer": "相干斑噪声，由分辨单元内多散射体回波相干叠加产生",
+    "gold_filename": "SAR图像特性与挑战.txt",
+    "gold_snippet": "由雷达分辨单元内多个散射体回波的相干叠加产生",
+    "qa_type": "concept"
+  },
+  {
+    "id": "qa_d06",
+    "question": "YOLO 不需要先找候选区域再分类，这样设计有什么好处？",
+    "gold_answer": "端到端训练 + 推理速度快",
+    "gold_filename": "YOLO目标检测模型知识.txt",
+    "gold_snippet": "端到端训练：无需额外的候选区域生成步骤",
+    "qa_type": "concept"
+  },
+  {
+    "id": "qa_d07",
+    "question": "MBE-Net 中哪个模块负责把不同尺度的特征融合到一起？",
+    "gold_answer": "ACF-FPN（自适应上下文聚焦特征金字塔网络）",
+    "gold_filename": "MBE-Net算法详解.txt",
+    "gold_snippet": "ACF-FPN是MBE-Net的特征融合颈部网络",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_d08",
+    "question": "YOLO 用来把边界框坐标变成概率分布的损失函数叫什么？",
+    "gold_answer": "DFL Loss（Distribution Focal Loss）",
+    "gold_filename": "YOLO目标检测模型知识.txt",
+    "gold_snippet": "DFL Loss（Distribution Focal Loss）",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_d09",
+    "question": "用 XML 文件存每张图片标注信息的格式是哪一种？",
+    "gold_answer": "VOC 格式",
+    "gold_filename": "HRSID与SSDD数据集.txt",
+    "gold_snippet": "VOC格式：\n   - XML格式存储每张图像的标注信息",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_d10",
+    "question": "Sentinel-1 卫星主要采用的 SAR 成像模式是哪种？",
+    "gold_answer": "TOPS 模式",
+    "gold_filename": "SAR图像特性与挑战.txt",
+    "gold_snippet": "TOPS模式：Sentinel-1卫星的主要成像模式",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_d11",
+    "question": "DETR 这种用注意力机制做检测的属于哪一类检测器？",
+    "gold_answer": "Transformer 检测器",
+    "gold_filename": "SAR舰船检测概述.txt",
+    "gold_snippet": "Transformer检测器：如DETR及其变体",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_d12",
+    "question": "Lee 滤波是哪一类方法，基于什么统计？",
+    "gold_answer": "基于局部统计的自适应滤波",
+    "gold_filename": "SAR图像特性与挑战.txt",
+    "gold_snippet": "Lee滤波：基于局部统计的自适应滤波",
+    "qa_type": "concept"
+  },
+  {
+    "id": "qa_d13",
+    "question": "SAR 舰船检测在打击非法捕捞方面发挥什么作用？",
+    "gold_answer": "通过监测渔船活动管理渔业资源、识别非法捕捞",
+    "gold_filename": "SAR舰船检测概述.txt",
+    "gold_snippet": "渔业管理：监测非法捕捞活动",
+    "qa_type": "concept"
+  },
+  {
+    "id": "qa_d14",
+    "question": "YOLO11 里哪个模块结合了注意力机制？",
+    "gold_answer": "C2PSA 模块",
+    "gold_filename": "YOLO目标检测模型知识.txt",
+    "gold_snippet": "C2PSA模块：结合注意力机制的特征增强模块",
+    "qa_type": "fact"
+  },
+  {
+    "id": "qa_d15",
+    "question": "哪种 SAR 极化方式信息最丰富，适合精细分类？",
+    "gold_answer": "全极化（HH+HV+VH+VV）",
+    "gold_filename": "SAR图像特性与挑战.txt",
+    "gold_snippet": "全极化（HH+HV+VH+VV）：信息最丰富，适合精细分类",
+    "qa_type": "fact"
+  }
+]

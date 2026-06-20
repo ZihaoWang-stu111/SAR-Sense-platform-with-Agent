@@ -4,10 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>可观测性 | SAR-Sense</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="css/style.css">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛰️</text></svg>">
+  <link rel="stylesheet" href="css/luxury.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a07f4f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='2.4' fill='%23a07f4f'/%3E%3Cpath d='M12 4a8 8 0 0 1 8 8'/%3E%3Cpath d='M12 8a4 4 0 0 1 4 4'/%3E%3Cline x1='12' y1='12' x2='19' y2='5'/%3E%3C/svg%3E">
 </head>
-<body>
+<body class="lux-cursor-on">
+  <script src="js/luxury.js"></script>
   <div class="bg-grid"></div>
   <div class="bg-glow bg-glow-1"></div>
   <div class="bg-glow bg-glow-2"></div>
@@ -17,20 +24,32 @@
   <nav class="navbar">
     <div class="container">
       <a href="index.html" class="navbar-brand">
-        <span class="logo-icon">🛰️</span>
+        <span class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/>
+            <path d="M12 4a8 8 0 0 1 8 8"/>
+            <path d="M12 8a4 4 0 0 1 4 4"/>
+            <line x1="12" y1="12" x2="19" y2="5"/>
+          </svg>
+        </span>
         <span>SAR-Sense</span>
       </a>
       <ul class="navbar-nav">
         <li><a href="index.html">首页</a></li>
-        <li><a href="detection.html">SAR检测</a></li>
+        <li><a href="detection.html">SAR 检测</a></li>
         <li><a href="chat.html">智能问答</a></li>
         <li><a href="knowledge.html">知识库</a></li>
-        <li><a href="metrics.html">可观测性</a></li>
+        <li><a href="metrics.html" class="active">可观测性</a></li>
       </ul>
       <div class="navbar-actions">
-        <a href="chat.html" class="btn btn-primary">开始使用</a>
+        <a href="chat.html" class="btn btn-primary btn-sm">
+          开始使用
+          <svg class="icon icon-sm" aria-hidden="true"><use href="/assets/icons.svg#arrow-right"/></svg>
+        </a>
       </div>
-      <button class="mobile-menu-btn" aria-label="菜单">☰</button>
+      <button class="mobile-menu-btn" aria-label="菜单">
+        <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#menu"/></svg>
+      </button>
     </div>
   </nav>
 
@@ -44,33 +63,45 @@
       <!-- Metrics Cards -->
       <div class="metrics-cards reveal">
         <div class="m-card m-card-blue">
-          <div class="m-card-value" id="metricRounds">0</div>
+          <div class="m-card-value tabular" id="metricRounds">0</div>
           <div class="m-card-label">对话轮次</div>
         </div>
         <div class="m-card m-card-amber">
-          <div class="m-card-value" id="metricToolCalls">0</div>
+          <div class="m-card-value tabular" id="metricToolCalls">0</div>
           <div class="m-card-label">工具调用次数</div>
         </div>
         <div class="m-card m-card-green">
-          <div class="m-card-value" id="metricSuccessRate">0%</div>
+          <div class="m-card-value tabular" id="metricSuccessRate">0%</div>
           <div class="m-card-label">工具调用成功率</div>
         </div>
         <div class="m-card m-card-pink">
-          <div class="m-card-value" id="metricAvgCalls">0</div>
+          <div class="m-card-value tabular" id="metricAvgCalls">0</div>
           <div class="m-card-label">每轮平均调用</div>
         </div>
       </div>
 
       <div class="metrics-actions reveal">
-        <button class="btn btn-secondary" id="resetBtn">🔄 重置指标</button>
+        <button class="btn btn-secondary" id="resetBtn">
+          <svg class="icon icon-sm" aria-hidden="true"><use href="/assets/icons.svg#refresh-cw"/></svg>
+          重置指标
+        </button>
       </div>
 
       <!-- Tabs -->
       <div class="knowledge-container reveal">
         <div class="tabs">
-          <button class="tab-btn active" data-tab="tabDistribution">📈 工具调用分布</button>
-          <button class="tab-btn" data-tab="tabTimeline">📋 调用时间线</button>
-          <button class="tab-btn" data-tab="tabDetails">📊 工具详情</button>
+          <button class="tab-btn active" data-tab="tabDistribution">
+            <svg class="icon icon-sm" aria-hidden="true"><use href="/assets/icons.svg#activity"/></svg>
+            工具调用分布
+          </button>
+          <button class="tab-btn" data-tab="tabTimeline">
+            <svg class="icon icon-sm" aria-hidden="true"><use href="/assets/icons.svg#clipboard-list"/></svg>
+            调用时间线
+          </button>
+          <button class="tab-btn" data-tab="tabDetails">
+            <svg class="icon icon-sm" aria-hidden="true"><use href="/assets/icons.svg#scan-search"/></svg>
+            工具详情
+          </button>
         </div>
 
         <div class="tab-panels">

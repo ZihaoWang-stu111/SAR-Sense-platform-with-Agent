@@ -65,7 +65,7 @@
     }
   },
   "fedfa33ad2f8dce3:parent:000": {
-    "page_content": "IEEE GEOSCIENCE AND REMOTE SENSING LETTERS \n \nMBE-Net: A Multi -Branch Edge -Guided Feature\nEnhancement Algorithm for SAR Ship Detection",
+    "page_content": "IEEE GEOSCIENCE AND REMOTE SENSING LETTERS \n \nMBE-Net: A Multi -Branch Edge -Guided Feature \nEnhancement Algorithm for SAR Ship Detection \n \nJinwei Wang, Member, IEEE, Zihao Wang, Guangcai Sun, Senior Member, IEEE, Bo Zhao, Member, IEEE \n \n \nAbstract—Synthetic Aperture Radar (SAR) imagery plays a\nvital role in maritime surveillance, yet it faces severe challenges \nsuch as speckle noise, cluttered backgrounds, and the small scale \nand low contrast of ship targets. To overcome these issues, we \npropose MBE-Net, a lightweight and high-accuracy  SAR ship \ndetection network featuring multi -branch edge -guided feature\nenhancement. Firstly, the Edge-Enhanced Wavelet Backbone \n(EEWB) is designed to enhance edge information and suppress \ndetail loss by integrating multi-branch edge guidance and wavelet \npooling, thereby improving small -ship perception in complex \nscenes. Secondly, the Lightweight Decoupled Detail -Enhanced\nHead (LD -DEH) decouples classification and regression tasks \nwhile embedding a detail-enhanced convolution module to recover \nhigh-resolution features, significantly boosting localization \nprecision under strong interference. Lastly, the Adaptive \nContextual Focus Feature Pyramid Network (ACF -FPN)",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:000",
@@ -79,7 +79,7 @@
     }
   },
   "fedfa33ad2f8dce3:parent:001": {
-    "page_content": "Jinwei Wang, Member, IEEE, Zihao Wang, Guangcai Sun, Senior Member, IEEE, Bo Zhao, Member, IEEE\nAbstract—Synthetic Aperture Radar (SAR) imagery plays a\nvital role in maritime surveillance, yet it faces severe challenges\nsuch as speckle noise, cluttered backgrounds, and the small scale\nand low contrast of ship targets. To overcome these issues, we\npropose MBE-Net, a lightweight and high-accuracy  SAR ship\ndetection network featuring multi -branch edge -guided feature\nenhancement. Firstly, the Edge-Enhanced Wavelet Backbone\n(EEWB) is designed to enhance edge information and suppress\ndetail loss by integrating multi-branch edge guidance and wavelet\npooling, thereby improving small -ship perception in complex\nscenes. Secondly, the Lightweight Decoupled Detail -Enhanced\nHead (LD -DEH) decouples classification and regression tasks",
+    "page_content": "introduces context -guided fusion to improve multi -scale feature \nalignment and robustness, especially in low-contrast and cluttered \nenvironments. Extensive experiments on the HRSID and SSDD \ndatasets validate that MBE- Net achieves excellent detection \naccuracy with minimal computational cost, making it highly\nsuitable for real-time SAR ship detection. \n \nIndex Terms —SAR ship detection, lightweight detection \nnetwork, wavelet pooling, multi -scale feature fusion, edge \nenhancement. \nI. INTRODUCTION \nYNTHETIC Aperture Radar (SAR) is a powerful remote \nsensing technology that provides high- resolution images\nof the Earth's surface,  particularly useful for ship \ndetection in marine environments. SAR systems can operate in \nall weather conditions and during both day and night, offering \nsignificant advantages over optical imaging methods. However, \ndetecting ship targets in SAR images remains challenging due\nto factors such as small target sizes, complex backgrounds, and \nspeckle noise [1]. \nTraditional ship detection methods, including handcrafted \nfeatures and machine learning models, often suffer from  high \nfalse positive and negative rates, particularly in complex \nbackgrounds. Recently, deep learning -based approaches, such\nas Faster R -CNN, SSD, and YOLO, have shown promise for \nSAR ship detection. Nevertheless, these approaches still suffer \nfrom intense computational demand, small  target detection \nchallenges, and degraded accuracy in dense or cluttered scenes. \nWhile YOLO algorithms balance speed and accuracy, their",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:001",
@@ -93,7 +93,7 @@
     }
   },
   "fedfa33ad2f8dce3:parent:002": {
-    "page_content": "while embedding a detail-enhanced convolution module to recover\nhigh-resolution features, significantly boosting localization\nprecision under strong interference. Lastly, the Adaptive\nContextual Focus Feature Pyramid Network (ACF -FPN)\nintroduces context -guided fusion to improve multi -scale feature\nalignment and robustness, especially in low-contrast and cluttered\nenvironments. Extensive experiments on the HRSID and SSDD",
+    "page_content": "ability to handle complex backgrounds and small targets still \nrequires improvement [2]. \nRecent improvements include SMEP -DETR, proposed by \nChushi Yu et al. [3], which integrates speckle denoising, multi-\nedge enhancement, and a parallel dilated convolution–attention \npyramid network into a transformer framework, greatly\nimproving robustness in complex SAR scenes. Hang Yu et al. \n[4] developed LD-Det, a lightweight YOLOv8 -based detector \nthat uses dual-domain feature fusion, partial convolution, and a \ntriple attention mechanism to balance accuracy and efficiency. \nYongbo Ma et al. [5] proposed 3SD -Net, combining\nbidirectional coordinate attention (BCA), multi -resolution \nfeature fusion (MRF), and a center point distribution module \n(CPDM) to enhance detection, especially for small  ships with \nvarying aspect ratios . Despite these advancements, challenges \nsuch as high computational complexity, insufficient small\ntarget detection capabilities, and difficulties in detecting SAR \nship targets in complex marine backgrounds remain.  \nTo address these challenges, this paper proposes MBE -Net \n(Multi-Branch Edge-Guided Network), a lightweight and high-\naccuracy SAR ship detection algorithm. Its core components",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:002",
@@ -107,7 +107,7 @@
     }
   },
   "fedfa33ad2f8dce3:parent:003": {
-    "page_content": "datasets validate that MBE- Net achieves excellent detection\naccuracy with minimal computational cost, making it highly\nsuitable for real-time SAR ship detection.\nIndex Terms —SAR ship detection, lightweight detection",
+    "page_content": "include: an Edge -Enhanced Wavelet Backbone (EEWB) for \nstrengthening edge representation and preserving high -\nfrequency details; a Lightweight Decoupled  Detail-Enhanced \nHead (LD-DEH) that incorporates a three -stage enhancement \nmodule and supports inference-time weight fusion to efficiently\nrecover spatial resolution; and an Adaptive Contextual Focus \nFeature Pyramid Network  (ACF-FPN) for enhancing multi -\nscale feature fusion, edge preservation, and robustness in \ncluttered environments. Experimental results demonstrate that \nMBE-Net delivers competitive accuracy in detecting small  \nships under complex marine conditions.\nII. PROPOSED METHOD \nThis section provides a detailed overview of MBE -Net, \nincluding the Edge-Enhanced Wavelet Backbone (EEWB), the \nLightweight Decoupled Detail-Enhanced Head (LD-DEH), and \nthe Adaptive Contextual Focus Feature Pyramid Network \n(ACF-FPN). The overall architecture is illustrated in Figure 1.\nS\nThis work was supported in part by the National Natural Science Foundation \nof China (Grant Nos. 62431021 and 62171293) and the Shenzhen Science and \nTechnology Program (Grant No. JCYJ20230808105359045).(Corresponding \nauthor: Jinwei Wang, e-mail: jinwei_w123@126.com) \nJinwei Wang and Zihao Wang are with the School of Physics and Electronic",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:003",
@@ -121,7 +121,7 @@
     }
   },
   "fedfa33ad2f8dce3:parent:004": {
-    "page_content": "network, wavelet pooling, multi -scale feature fusion, edge \nenhancement. \nI. INTRODUCTION\nYNTHETIC Aperture Radar (SAR) is a powerful remote\nsensing technology that provides high- resolution images",
+    "page_content": "Information, Yantai University, Yantai 264005, China (e- mail: \njinwei_w123@126.com; 17616077705@163.com).  \nGuang Cai Sun is with the National Key Laboratory of Radar Signal \nProcessing, Xidian University, Xi’an 710071, China, and also with the \nCollaborative Innovation Center of Information Sensing and Understanding,\nXidian University, Xi’an 710071, China (e-mail: rsandsgc@126.com). \nBo Zhao is with the State Key Laboratory of Radio Frequency \nHeterogeneous Integration, Shenzhen University, Shenzhen 518060,China (e-\nmail: b_zhao@126.com).",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:004",
@@ -135,7 +135,7 @@
     }
   },
   "fedfa33ad2f8dce3:parent:005": {
-    "page_content": "of the Earth's surface,  particularly useful for ship\ndetection in marine environments. SAR systems can operate in",
+    "page_content": "IEEE GEOSCIENCE AND REMOTE SENSING LETTERS \nMB-EGFEM MB-EGFEM +\nMB-EGFEM_Bottleneck\nCGConv CGConv +\nCGConv_Bottleneck\nCBS\n3×3\nCBS\n3×3\n(a)Backbone\nEEWB\nP3\nP4\nP5\nC3k2-\nMB-EGFEM Waveletpool\n}\n×3\nSPPFC2PSA\nC3k2-\nMB-EGFEM\nInput\n640×640×3\n320×320×16\n160×160×32\n80×80×64\n40×40×128\n20×20×256\nConcat\nFocusFeature\nDysample\nLDConv\nConcat\nC3k2-\nCG-Conv\nC3k2-\nCG-Conv\nFocusFeature\nDysample\nConcat\nLDConv\nConcat C3k2-\nCG-Conv\nC3k2-\nCG-Conv LD-DEH-Head\nLD-DEH-Head\nLD-DEH-Head\n(b)Neck\nACF-FPN\n(c)Head\nLD-DEH-Head\nBottleneck\nSplit\nConcat\nC3k\nC3k=False C3k=True\nCBS\nC3k\nCBS = Conv BN SiLU Ship detection\nCBS\nCBSCBS\nCBS CBS CBS\nBottleneck Bottleneck\nBottleneck\nC3k\n(d)C3k2-MB-EGFEM or C3k2-CG-Conv\nConcat Concat\nSplit\nReplace with\nReplace with\n \nFig. 1. Overall architecture of MBE-Net based on YOLO11n, showing (a) the proposed Edge-Enhanced Wavelet Backbone (EEWB), (b) the \nAdaptive Contextual Focus Feature Pyramid Network (ACF -FPN), and (c) the Lightweight Decoupled Detail -Enhanced Head (LD-DEH). (d)\nThe structure of the baseline C3k2 bottleneck and its replacements, where the original bottleneck is replaced by  MB-EGFEM_Bottleneck or \nCGConv_Bottleneck to form C3k2-MB-EGFEM or C3k2-CG-Conv.\nA. Edge-Enhanced Wavelet Backbone (EEWB) \nIn SAR ship detection, blurred contours, weak edges, and",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:005",
@@ -145,11 +145,11 @@
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 1
     }
   },
   "fedfa33ad2f8dce3:parent:006": {
-    "page_content": "all weather conditions and during both day and night, offering\nsignificant advantages over optical imaging methods. However,\ndetecting ship targets in SAR images remains challenging due\nto factors such as small target sizes, complex backgrounds, and \nspeckle noise [1].",
+    "page_content": "detail loss caused by downsampling severely hinder small-ship \ndetection. To address these issues, we design the Edge -\nEnhanced Wavelet Backbone (EEWB) in MBE -Net, which \nintegrates the Multi -Branch Edge -Guided Feature \nEnhancement Module (MB-EGFEM) and WaveletPool [6]. \nMB-EGFEM enhances edges and contours via spatial -\ndomain multi-scale fusion and edge -guided refinement, while \nWaveletPool preserves fine details by frequency- domain \ndecomposition using fixed Haar filters.  The two modules are \ncomplementary: MB -EGFEM emphasizes structural \nboundaries, while the high -frequency details retained by \nWaveletPool reinforce contour extraction, thereby improving\nsmall-ship detection in cluttered SAR backgrounds. \nAdaptiveAvgpool\n3×3\nAdaptiveAvgpool\n9×9\nAdaptiveAvgpool\n12×12\nAdaptiveAvgpool\n6×6\nConv\n1×1\nDWConv\n3×3\nDWConv\n3×3\nDWConv\n3×3\nDWConv\n3×3\nConv\n1×1\nConv\n1×1\nConv\n1×1\nConv\n3×3\nConcat\nConv\n3×3\nMulti-Branch Edge-Guided Feature Enhancement Module\nEdgeEnhancer\nEdgeEnhancer\nEdgeEnhancer\nEdgeEnhancer\nUpsample\nUpsample\nUpsample\nUpsample\n-\nConv\n3×3\n+\nAvgpoool3×3\nEdgeEnhancer\n \nFig. 2. Architecture of the Multi-Branch Edge-Guided Feature \nEnhancement Module. \nThe proposed MB-EGFEM consists of a local feature branch, \nmulti-scale contextual branches, and edge -guided \nenhancement, followed by a final 3×3 fusion convolution.",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:006",
@@ -159,11 +159,11 @@
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 1
     }
   },
   "fedfa33ad2f8dce3:parent:007": {
-    "page_content": "Traditional ship detection methods, including handcrafted\nfeatures and machine learning models, often suffer from  high\nfalse positive and negative rates, particularly in complex\nbackgrounds. Recently, deep learning -based approaches, such\nas Faster R -CNN, SSD, and YOLO, have shown promise for",
+    "page_content": "Given the input feature inF , the local branch preserves fine -\ngrained spatial details: \n local 3 3Conv ( ) inFF ×=  (1) \nThe multi -scale context branch employs four adaptive \naverage pooling scales {3, 6, 9,12}S = . For each scale s , \npooled features are compressed by a 1×1  convolution,\nprocessed with a depthwise 3×3 convolution, and bilinearly \nupsampled to the original size: \n 3 3 11Up(DWConv (Conv (AAPool ( ))))ˆs s inFF ××=  (2) \nEach branch output is refined by EdgeEnhancer , which \nextracts low -frequency components via 3×3  average pooling, \ncomputes the high- frequency residual, and applies a sigmoid -\ngated convolution:\n33Pool ( )ˆ ˆss sEF F ×= −  (3) \n ( ))ˆ vˆ Con (ee\nss sFF E σ= +  (4) \nFinally, the local feature and all enhanced multi-scale features \nare concatenated along the channel dimension and fused with a \n3×3 convolution:  \n ( )( )out 3 3 localConv Concat ,{ } ˆees sSF FF×∈=  (5) \nThis design integrates multi -scale contextual modeling with\nedge-guided enhancement to preserve fine details and improve \nship contour perception in complex SAR backgrounds, as \nillustrated in Fig. 2. \nWaveletPool performs frequency -domain feature \ndownsampling via the Discrete Wavelet Transform (DWT), \ndecomposing features into low -frequency structural",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:007",
@@ -173,11 +173,11 @@
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 1
     }
   },
   "fedfa33ad2f8dce3:parent:008": {
-    "page_content": "SAR ship detection. Nevertheless, these approaches still suffer\nfrom intense computational demand, small  target detection\nchallenges, and degraded accuracy in dense or cluttered scenes.\nWhile YOLO algorithms balance speed and accuracy, their\nability to handle complex backgrounds and small targets still \nrequires improvement [2].",
+    "page_content": "components and high- frequency details. This decomposition \npreserves fine-grained edges while reducing aliasing, making it \nparticularly suitable for detecting small targets in cluttered SAR \nbackgrounds where ships often exhibit weak edges and low \ncontrast. Given an input feature map X, four fixed Haar wavelet\nfilters (LL, LH, HL, and HH) are applied to capture low - and \nhigh-frequency information along different orientations: \n \n0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5\n0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5\n      −− − −= = = =      −−     \nLL LH HL HH  (6) \nThe four directional components are computed via grouped\n2D convolution and downsampled with stride 2: \n Conv2D( , ,stride 2)Y XW= =  (7) \nwhere W  represents the set of wavelet filters expanded \nacross all channels. Grouped convolution ensures that each \nchannel undergoes an independent transformation, reducing",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:008",
@@ -187,11 +187,11 @@
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 1
     }
   },
   "fedfa33ad2f8dce3:parent:009": {
-    "page_content": "Recent improvements include SMEP -DETR, proposed by\nChushi Yu et al. [3], which integrates speckle denoising, multi-\nedge enhancement, and a parallel dilated convolution–attention\npyramid network into a transformer framework, greatly\nimproving robustness in complex SAR scenes. Hang Yu et al.\n[4] developed LD-Det, a lightweight YOLOv8 -based detector\nthat uses dual-domain feature fusion, partial convolution, and a\ntriple attention mechanism to balance accuracy and efficiency.\nYongbo Ma et al. [5] proposed 3SD -Net, combining\nbidirectional coordinate attention (BCA), multi -resolution\nfeature fusion (MRF), and a center point distribution module\n(CPDM) to enhance detection, especially for small  ships with",
+    "page_content": "IEEE GEOSCIENCE AND REMOTE SENSING LETTERS, \ncomputational cost while enabling multi -scale directional \nfeature extraction. \nWithin EEWB, WaveletPool complements MB -EGFEM by \nretaining high-frequency details and providing rich directional \ncues. These preserved details reinforce MB -EGFEM’s spatial\nedge enhancement, enabling the network to capture clearer ship \ncontours and improve small -ship detection accuracy and \nrobustness in complex marine environments. \nB. Lightweight Decoupled Detail-Enhanced Head (LD-DEH) \nSAR ship detection is significantly affected by sea clutter, \nspeckle noise, and fine -structure loss caused by repeated\ndownsampling, resulting in blurred boundaries and cross -scale \nfeature drift. To address these challenges, we propose the \nLightweight Deco upled Detail- Enhanced Head (LD -DEH), a \nfully decoupled architecture that separates classification and \nregression to reduce inter -task interference. At each feature\npyramid scale, features are first mapped to a unified hidden \ndimension via a 1×1 Conv_GN and then processed by a three-\nstage DEConv_GN stack with shared parameters across scales \nto enhance edges, contours, and structural details. The refined \nfeatures are finally fed into independent regression and",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:009",
@@ -201,11 +201,11 @@
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 2
     }
   },
   "fedfa33ad2f8dce3:parent:010": {
-    "page_content": "varying aspect ratios . Despite these advancements, challenges\nsuch as high computational complexity, insufficient small\ntarget detection capabilities, and difficulties in detecting SAR\nship targets in complex marine backgrounds remain.",
+    "page_content": "classification branches, improving detection robustness while \nmaintaining computational efficiency. \nP3\nP4\nP5\nConv_GN\n1×1\nConv_GN\n1×1\nConv_GN\n1×1\nDEConv_GN DEConv_GN DEConv_GN\nConv_Reg\nConv_Reg\nConv_Reg\nConv_Cls\nConv_Cls\nConv_Cls\nScale\nScale\nScale\nLightweight Decoupled Detail-Enhanced Head\nFig. 3. Architecture of the Lightweight Decoupled Detail-Enhanced \nHead. \nLet the input feature at scale i  be iiCH Wi ××∈F  . The shared \ndetail-enhanced convolution is formulated as \n GDEConv N ( ; ), 1, ,i isF Fi N′ φθ= = …  (8) \nwhere sθ  denotes parameters shared across all scales. Each \nDEConv_GN replaces Batch Normalization with Group\nNormalization (16 groups) and aggregates complementary \nkernels—center -difference, horizontal –vertical difference, \nadaptive difference, and a standard \n33×  convolution— prior to \nactivation: \n \nG\n4\nDEConv N std\n1\n( ) GN Conv ( ) Conv ( )k\nk\nF FFϕσ\n=\n = ∑+  \n (9) \nThis multi-kernel design enhances directional gradients and\ncenter–surround contrasts, effectively sharpening weak edges \nand blurred contours that are typical in SAR small-ship targets. \nDuring inference, the multiple difference -based convolution \nbranches are re -parameterized into a single equivalent 3×3 \nconvolution by linearly summing their kernel weights and",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:010",
@@ -215,11 +215,11 @@
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 2
     }
   },
   "fedfa33ad2f8dce3:parent:011": {
-    "page_content": "To address these challenges, this paper proposes MBE -Net\n(Multi-Branch Edge-Guided Network), a lightweight and high-",
+    "page_content": "biases, resulting in a standard convolution operation with no \nadditional computational overhead while preserving the learned \ndetail-enhancement behavior. \nIn the regression branch, a lightweight scale adaptation is \napplied per level: \n \ni iiBR α= ⋅  (10) \nwhere iR  is the raw DFL regression output (decoded later)\nand iα  is a learnable scalar mitigating resolution -dependent \nbias, thereby improving localization consistency for small \ntargets across pyramid levels. \nFig. 3 illustrates its structure. This design improves inference \nefficiency by re-parameterizing multi-branch convolutions into \na single equivalent kernel, reducing computational cost while\npreserving detail -enhancement capability. Benefiting from \ncross-scale parameter sharing and decoupled regression, LD -\nDEH achieves a favorable balance between efficiency and \naccuracy. As shown in Table I, LD-DEH improves FPS by 22.4 \nover the YOLO11 n baseline. The FPS is measured using\nUltralytics validation profiling on a single NVIDIA GeForce \nRTX 2060 GPU with 640×640 input resolution and a batch size \nof 16, based on average per-image inference time. \nTABLE I \nCOMPARATIVE EXPERIMENT ON FPS BETWEEN BASELINE AND \nBASELINE+LD-DEH. \nModels FPS \nBaseline 140.3 \nBaseline+LD-DEH 162.7",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:011",
@@ -229,11 +229,11 @@
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 2
     }
   },
   "fedfa33ad2f8dce3:parent:012": {
-    "page_content": "accuracy SAR ship detection algorithm. Its core components\ninclude: an Edge -Enhanced Wavelet Backbone (EEWB) for\nstrengthening edge representation and preserving high -\nfrequency details; a Lightweight Decoupled  Detail-Enhanced\nHead (LD-DEH) that incorporates a three -stage enhancement",
+    "page_content": "C. Adaptive Contextual Focus Feature Pyramid Network \n(ACF-FPN) \nTraditional Feature Pyramid Networks (FPN) are widely \nused for multi-scale feature fusion in object detection but have \nlimitations in SAR ship detection, especially with cluttered \nbackgrounds, low contrast, and boundary blurring caused by\ndownsampling. The fixed top-down fusion in FPN struggles to \nadaptively highlight informative features or suppress \nbackground interference, limiting its effectiveness for small or \nirregularly shaped targets. \nTo address these challenges, we propose the Adaptive \nContextual Focus Feature Pyramid Network (ACF -FPN), an\nenhanced variant of FDPN tailored for SAR ship detection. \nWhile the core modules of ACF-FPN— FocusFeature, LDConv \n[7], and DySample  [8]—are adapted from existing designs , \ntheir strategic combination and optimization significantly \nimprove performance. FocusFeature strengthens edge and local\ndetail representation, essential for ships with blurred contours, \nwhile LDConv adapts convolutional receptive fields to handle \nirregular shapes. DySample restores high -resolution details, \npreserving small target information, and ContextGuided \nConvolution [9] refines feature fusion by utilizing both local",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:012",
@@ -243,11 +243,11 @@
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 2
     }
   },
   "fedfa33ad2f8dce3:parent:013": {
-    "page_content": "module and supports inference-time weight fusion to efficiently\nrecover spatial resolution; and an Adaptive Contextual Focus\nFeature Pyramid Network  (ACF-FPN) for enhancing multi -",
+    "page_content": "and global contextual information, enhancing target \nlocalization in cluttered backgrounds. \nThese components are integrated into a shared adaptive \nfusion framework that selectively emphasizes relevant features \nwhile maintaining computational efficiency. Combined with \nLD-DEH and EEWB in MBE -Net, ACF-FPN facilitates fine -\ndetail enhancement, improved feature discrimination, and \neffective noise suppression, thereby improving detection \naccuracy in SAR imagery with complex sea clutter. The \nsynergy of adaptive fusion, deformable convolutions, and \ncontext-aware feature fusion enables ACF -FPN to adapt to\nvarying target scales and backgrounds, resulting in robust and \naccurate SAR ship detection.\nIEEE \nGEOSCIENCE AND REMOTE SENSING LETTERS, \nIII. EXPERIMENT\nExperiments are conducted on a Windows 10 workstation \nwith an NVIDIA GeForce RTX 2060 GPU (6 GB) and an AMD \nRyzen 7 4800H CPU, using PyTorch 1.12.0 with CUDA 11.3 \nand Python 3.9. \nA. Dataset and Experimental Settings\nHRSID [10] contains 5,604 SAR images with 16,951 ships,\nand SSDD [11] contains 1,160 images with 2,456 ships. Both \ndatasets are randomly divided at the image level into training, \nvalidation, and test sets with a ratio of 70%, 10%, and 20%, \nrespectively, with no overlap among subsets. \nAll models are trained for 350 epochs using SGD with an",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:013",
@@ -257,11 +257,11 @@
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 2
     }
   },
   "fedfa33ad2f8dce3:parent:014": {
-    "page_content": "scale feature fusion, edge preservation, and robustness in\ncluttered environments. Experimental results demonstrate that\nMBE-Net delivers competitive accuracy in detecting small  \nships under complex marine conditions.\nII. PROPOSED METHOD \nThis section provides a detailed overview of MBE -Net,\nincluding the Edge-Enhanced Wavelet Backbone (EEWB), the\nLightweight Decoupled Detail-Enhanced Head (LD-DEH), and\nthe Adaptive Contextual Focus Feature Pyramid Network\n(ACF-FPN). The overall architecture is illustrated in Figure 1.\nS\nThis work was supported in part by the National Natural Science Foundation\nof China (Grant Nos. 62431021 and 62171293) and the Shenzhen Science and\nTechnology Program (Grant No. JCYJ20230808105359045).(Corresponding\nauthor: Jinwei Wang, e-mail: jinwei_w123@126.com)\nJinwei Wang and Zihao Wang are with the School of Physics and Electronic\nInformation, Yantai University, Yantai 264005, China (e- mail:",
+    "page_content": "initial learning rate of 0.01, momentum of 0.937, and weight \ndecay of 0.0005. Images are resized to 640×640 with a batch \nsize of 16. \nWe report mAP50, Precision, Recall, Params, and GFLOPs. \nParams and GFLOPs are measured at 640×640, and GFLOPs \nscale with input size, yielding 2.5 at 416×416, 5.9 at 640×640,\nand 15.1 at 1024×1024.  The definitions of Precision, Recall, \nand mAP50 are given as follows: \nTP TP,TP FP TP FNPR= =++\n(11) \n \n1()\n50 50 50 01\n1mAP AP , AP ( )\nN\ni\ni\np r drN =\n= =∑ ∫  ( 12) \nB. Ablation Experiments \nTABLE Ⅱ \nRESULTS OF ABLATION EXPERIMENTS ON THE HRSID DATASET\nModels MB-EGFEM WaveletPool ACF-FPN LD-DEH Params(M) FLOPs(G) mAP50% P% R% \nA 2.58 6.3 91.2 90.9 82.5 \nB ✓ 2.53 6 .3 91.7 91.2 82.5 \nC ✓ 2.23 5\n.5 91.3 93.9 80.7 \nD ✓ ✓ 2.18 5\n.5 92.5 89.7 85.3 \nE ✓ 2.51 7\n.3 92.4 91.4 84.3 \nF ✓ 2.\n26 6.0 92.4 92.9 84.0 \nG ✓ ✓ ✓ ✓ 1.76 5\n.9 93.3 92.0 86.8 \nTable II shows that MB- EGFEM and WaveletPool  yield\nlimited gains when used individually, improving mAP50 to \n91.7% and 91.3%, respectively. In contrast, their joint \nintegration (forming the EEWB backbone) brings a clear \nimprovement, achieving 92.5% mAP50 and outperforming \neither module alone. Fig. 4 visualizes intermediate features for \nthe baseline, MB-EGFEM only, WaveletPool only, and EEWB:",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:014",
@@ -271,11 +271,11 @@
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 2
     }
   },
   "fedfa33ad2f8dce3:parent:015": {
-    "page_content": "jinwei_w123@126.com; 17616077705@163.com).\nGuang Cai Sun is with the National Key Laboratory of Radar Signal\nProcessing, Xidian University, Xi’an 710071, China, and also with the\nCollaborative Innovation Center of Information Sensing and Understanding,",
+    "page_content": "MB-EGFEM enhances boundaries but introduces clutter, while \nWaveletPool suppresses clutter at the cost of weakened targets; \nEEWB produces more compact acti vations and clearer target–\nbackground separation, confirming their complementarity . \nFig. 4. All feature maps are visualized at the output of the first\nWaveletPool following MB-EGFEM using L2-en ergy maps. \nACF-FPN and LD-DEH each improve the baseline to 92.4% \nmAP50, achieving 84.3% and 84.0% recall, respectively. With \nall modules enabled, MBE -Net reaches 93.3% mAP50 and \n86.8% recall while reducing complexity to 1.76M parameters\nand 5.9 GFLOPs. These results confirm the synergistic effect of \nthe proposed modules in improving accuracy and efficiency. \nTABLE Ⅲ \nSCALE-AWARE COMPARISON ON HRSID (AP@[0.50:0.95]). \nModels APS% APM% APL% \nBaseline 49.3 81.1 76.2 \nMBE-Net 53.9 82.6 78.6 \nTo further assess the multi -scale detection capability of\nMBE-Net, a COCO-style scale-aware evaluation is conducted. \nAs shown in Table III, MBE-Net achieves a clear improvement \nin APS over the YOLO11n baseline, without degrading \nperformance on medium- and large-scale ships. \nC. Comparison Experiments\nTABLE IV\nTHE COMPARATIVE EXPERIMENT ON THE HRSID DATASET.\nModels Params(M) FLOPs(G) mAP50% P% R%",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:015",
@@ -285,11 +285,11 @@
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 2
     }
   },
   "fedfa33ad2f8dce3:parent:016": {
-    "page_content": "Xidian University, Xi’an 710071, China (e-mail: rsandsgc@126.com).\nBo Zhao is with the State Key Laboratory of Radio Frequency\nHeterogeneous Integration, Shenzhen University, Shenzhen 518060,China (e-\nmail: b_zhao@126.com).",
+    "page_content": "YOLO11n 2.58 6.3 91.2 90.9 82.5 \nYOLO11s 9.41 21.3 93.0 90.7 85.9 \nSMEP-DETR 21.11 60.7 93.2 92.7 86.5 \nESarDet 6.2 23.5 93.2 - - \nLDSS-Net 2.0 8.7 91.7 89.0 91.2 \nMBE-Net 1.76 5.9 93.3 92.0 86.8 \nTo evaluate MBE -Net’s performance, comparative \nexperiments were conducted on the HRSID dataset, as shown\nin Table IV, to assess detection accuracy and robustness in \ncomplex marine environments. MBE-Net achieves the highest \nmAP of 93.3% with the smallest parameter count and lowest \ncomputational cost. YOLO11n is adopted as the baseline \nbackbone on which MBE-Net is built, while YOLO11s, a larger\nvariant within the same model family, is included to assess the \neffect of model scaling. As shown in Table IV , increasing \nmodel capacity through YOLO11s substantially raises \ncomputational complexity but still fails to surpass the \nperformance of MBE -Net, indicating that the performance\ngains originate from architectural design rather than model \nscaling. In additio n, the selected baselines include \nrepresentative Transformer -based detectors such as SMEP -\nDETR [3] as well as efficient and lightweight SAR- specific \nmethods including ESarDet [12] and LDSS-Net [13], enabling",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:016",
@@ -299,11 +299,11 @@
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 2
     }
   },
   "fedfa33ad2f8dce3:parent:017": {
-    "page_content": "IEEE GEOSCIENCE AND REMOTE SENSING LETTERS \nMB-EGFEM MB-EGFEM +\nMB-EGFEM_Bottleneck\nCGConv CGConv +\nCGConv_Bottleneck\nCBS\n3×3\nCBS\n3×3\n(a)Backbone\nEEWB\nP3\nP4\nP5\nC3k2-\nMB-EGFEM Waveletpool\n}\n×3\nSPPFC2PSA\nC3k2-\nMB-EGFEM\nInput\n640×640×3\n320×320×16\n160×160×32\n80×80×64\n40×40×128\n20×20×256\nConcat\nFocusFeature\nDysample\nLDConv\nConcat\nC3k2-\nCG-Conv\nC3k2-\nCG-Conv\nFocusFeature\nDysample\nConcat\nLDConv\nConcat C3k2-\nCG-Conv\nC3k2-\nCG-Conv LD-DEH-Head\nLD-DEH-Head\nLD-DEH-Head\n(b)Neck\nACF-FPN\n(c)Head\nLD-DEH-Head\nBottleneck\nSplit\nConcat\nC3k\nC3k=False C3k=True\nCBS\nC3k\nCBS = Conv BN SiLU Ship detection\nCBS\nCBSCBS\nCBS CBS CBS\nBottleneck Bottleneck\nBottleneck\nC3k\n(d)C3k2-MB-EGFEM or C3k2-CG-Conv\nConcat Concat\nSplit\nReplace with\nReplace with",
+    "page_content": "fair comparison across different architectural paradigms and\nIEEE \nGEOSCIENCE AND REMOTE SENSING LETTERS, \ncomputational budgets. \nFig. 5. Detection Performance Comparison on the HRSID Dataset. \nFigure 5 compares detection results. Column (a) shows \nground truth annotations, while columns (b) and (c) display \noutputs from YOLO11n and our method, respectively.\nYOLO11n struggles with false and missed detections, \nespecially in complex scenarios with background interference \nor small targets. In contrast, our method improves feature \nextraction and robustness, yielding more accurate and stable \ndetections. \nTABLE V \nTHE COMPARATIVE EXPERIMENT ON THE SSDD DATASET. \nModels Params(M) FLOPs(G) mAP50% P% R%\nYOLO11n 2.58 6.3 96.2 93.5 89.3 \nYOLO11s 9.41 21.3 97.0 93.6 92.4 \nFEPS-Net 37.31 - 96.0 - - \nDS-YOLO - 24.7 96.6 95.4 91.1 \nLD-Det 24.4 8.1 96.8 94.8 92.4 \nMBE-Net 1.76 5.9 97.2 95.9 92.8 \nFig. 6. Detection Performance Comparison on the SSDD Dataset. \nTo further validate the performance, a comparative\nexperiment was conducted on the SSDD dataset, as shown in \nTable V. MBE -Net achieved a superior mAP of 97.2% with \nonly 1.76M parameters and 5.9 GFLOPs, outperforming \nYOLO11n. While FEPS -Net [14] and DS -YOLO [15] also \nshowed comparable performance, the lightweight network LD-\nDet [4] achieved a mAP of 96.8% with 24.4M parameters.",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:017",
@@ -313,11 +313,11 @@
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "file_type": "pdf",
-      "page": 1
+      "page": 4
     }
   },
   "fedfa33ad2f8dce3:parent:018": {
-    "page_content": "Fig. 1\n. Overall architecture of MBE-Net based on YOLO11n, showing (a) the proposed Edge-Enhanced Wavelet Backbone (EEWB), (b) the ",
+    "page_content": "MBE-Net maintained a clear advantage in the accuracy -\nefficiency trade-off. Additionally, as illustrated in Fig. 6, MBE-\nNet demonstrated high-quality detection in both near-shore and \noff-shore scenarios, effectively reducing missed detections and \nfalse alarms. \nIV.\n CONCLUSION\nThis paper presents MBE -Net, a lightweight and high-\naccuracy network for SAR ship detection. It addresses \nchallenges like small targets and background clutter by \nintegrating edge-guided and wavelet-based detail preservation, \nspatial refinement, and adaptive multi -scale fusion. \nExperiments on HRSID and SSDD show MBE -Net's superior \naccuracy and efficiency, making it highly promising for real-\ntime applications. Future work will focus on further refinement \nand real-world deployment. \nR\nEFERENCES \n[1] P. Singh, M. Diwakar, A. Shankar, R. Shree, and M. Kumar, “A review on \nSAR image and its despeckling,” Archives of Computational Methods in\nEngineering, vol. 28, no. 7, pp. 4633-4653, 2021.\n[2] J. Li, C. Xu, H. Su, L. Gao, and T. Wang, “Deep learning for SAR ship\ndetection: Past, present and future,” Remote Sensing, vol. 14, no. 11, pp.\n2712, 2022. \n[3] C. Yu and Y. Shin, “SMEP -DETR: Transformer-based ship detection for\nSAR imagery with multi- edge enhancement and parallel dilated",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:018",
@@ -327,11 +327,11 @@
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "file_type": "pdf",
-      "page": 1
+      "page": 4
     }
   },
   "fedfa33ad2f8dce3:parent:019": {
-    "page_content": "\nAdaptive Contextual Focus Feature Pyramid Network (ACF -FPN), and (c) the Lightweight Decoupled Detail -Enhanced Head (LD-DEH)",
+    "page_content": "convolutions,” Remote Sensing, vol. 17, no. 6, pp. 953, 2025. \n[4] H. Yu, B. Liu, L. Wang, and T. Li, “LD -Det: Lightweight ship target\ndetection method in SAR images via dual domain feature fusion,” Remote\nSensing, vol. 17, no. 9, pp. 1562, 2025. \n[5] Y. Ma, D. Guan, Y. Deng, W. Yuan, and M. Wei, “3SD- Net: SAR small\nship detection neural network,” IEEE Transactions on Geoscience and\nRemote Sensing , vol. 62, pp. 1 -13, 2024, Art no. 5221613, doi:\n10.1109/TGRS.2024.3454308. \n[6] T. Williams and R. Li, “Wavelet pooling for convolutional neural networks,”\nin Proc. Int. Conf. Learn. Represent. (ICLR), Vancouver, BC, Canada, \n2018.\n[7] X. Zhang, Y. Song, T. Song, D. Yang, Y. Ye, J. Zhou, and L. Zhang,\n“LDConv: Linear deformable convolution for improving convolutional\nneural networks,” Image Vis. Comput., vol. 149, pp. 105190, 2024. \n[8] W. Liu, H. Lu, H. Fu, and Z. Cao, “Learning to upsample by learning to\nsample,” in Proceedings of the IEEE/CVF international conference on\ncomputer vision, pp. 6027-6037, 2023. \n[9] T. Wu, S. Tang, R. Zhang, J. Cao, and Y. Zhang, “CGNet: A light -weight \ncontext guided network for semantic segmentation,” IEEE Trans. Image\nProcess., vol. 30, pp. 1169–1179, 2021. \n[10] S. Wei, X. Zeng, Q. Qu, M. Wang, H. Su, and J. Shi, “HRSID: A high -",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:019",
@@ -341,842 +341,16 @@
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "file_type": "pdf",
-      "page": 1
+      "page": 4
     }
   },
   "fedfa33ad2f8dce3:parent:020": {
-    "page_content": ". (d)\n\nThe structure of the baseline C3k2 bottleneck and its replacements, where the original bottleneck is replaced by  MB-EGFEM_Bottleneck or \nCGConv_Bottleneck to form C3k2-MB-EGFEM or C3k2-CG-Conv.\nA. Edge-Enhanced Wavelet Backbone (EEWB)",
+    "page_content": "resolution SAR images dataset for ship detection and instance\nsegmentation,” IEEE Access, vol. 8, pp. 120234–120254, 2020. \n[11] T. Zhang, X. Zhang, J. Li, et al., “SAR ship detection dataset (SSDD):\nOfficial release and comprehensive data analysis,” Remote Sensing, vol. 13,\nno. 18, pp. 3690, 2021.\n[12] Y. Zhang, C. Chen, R. Hu, and Y. Yu, “ESarDet: an efficient SAR ship\ndetection method based on context information and large effective\nreceptive field,” Remote Sensing, vol. 15, no. 12, pp. 3018, 2023. \n[13] C. Zhang, C. Zhao, Y. Yuan, S. Chang, H. Chang, X. Fu, and J. Dong,\n“LDSS-Net: A lightweight network for dense SAR ship detection,” in\nIGARSS 2024- 2024 IEEE International Geoscience and Remote Sensing\nSymposium, pp. 9636-9639, 2024. \n[14] L. Bai, C. Yao, Z. Ye, D. Xue, X. Lin, and M. Hui, “Feature enhancement\npyramid and shallow feature reconstruction network for SAR ship\ndetection,” IEEE J. Sel. Topics Appl. Earth Observations Remote Sens., vol. \n16, pp. 1042–1056, 2023.\n[15] R. Hu, H. Lin, Z. Lu, and J. Xia, “Despeckling representation for data-\nefficient SAR ship detection,” IEEE Geosci. Remote Sens. Lett., vol. 22, pp. \n1-5, 2025, Art no. 4002005.",
     "metadata": {
       "doc_id": "fedfa33ad2f8dce3",
       "parent_id": "fedfa33ad2f8dce3:parent:020",
       "chunk_type": "parent",
       "parent_index": 20,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "fedfa33ad2f8dce3:parent:021": {
-    "page_content": "In SAR ship detection, blurred contours, weak edges, and\ndetail loss caused by downsampling severely hinder small-ship",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:021",
-      "chunk_type": "parent",
-      "parent_index": 21,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "fedfa33ad2f8dce3:parent:022": {
-    "page_content": "detection. To address these issues, we design the Edge -\nEnhanced Wavelet Backbone (EEWB) in MBE -Net, which\nintegrates the Multi -Branch Edge -Guided Feature\nEnhancement Module (MB-EGFEM) and WaveletPool [6].\nMB-EGFEM enhances edges and contours via spatial -\ndomain multi-scale fusion and edge -guided refinement, while\nWaveletPool preserves fine details by frequency- domain\ndecomposition using fixed Haar filters.  The two modules are",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:022",
-      "chunk_type": "parent",
-      "parent_index": 22,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "fedfa33ad2f8dce3:parent:023": {
-    "page_content": "complementary: MB -EGFEM emphasizes structural\nboundaries, while the high -frequency details retained by\nWaveletPool reinforce contour extraction, thereby improving\nsmall-ship detection in cluttered SAR backgrounds. \nAdaptiveAvgpool\n3×3\nAdaptiveAvgpool\n9×9\nAdaptiveAvgpool\n12×12\nAdaptiveAvgpool\n6×6\nConv\n1×1\nDWConv\n3×3\nDWConv\n3×3\nDWConv\n3×3\nDWConv\n3×3\nConv\n1×1\nConv\n1×1\nConv\n1×1\nConv\n3×3\nConcat\nConv\n3×3\nMulti-Branch Edge-Guided Feature Enhancement Module\nEdgeEnhancer\nEdgeEnhancer\nEdgeEnhancer\nEdgeEnhancer\nUpsample\nUpsample\nUpsample\nUpsample\n-\nConv\n3×3\n+\nAvgpoool3×3\nEdgeEnhancer\n \nFig. 2. Architecture of the Multi-Branch Edge-Guided Feature\nEnhancement Module. \nThe proposed MB-EGFEM consists of a local feature branch,\nmulti-scale contextual branches, and edge -guided",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:023",
-      "chunk_type": "parent",
-      "parent_index": 23,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "fedfa33ad2f8dce3:parent:024": {
-    "page_content": "enhancement, followed by a final 3×3 fusion convolution.\nGiven the input feature inF , the local branch preserves fine -\ngrained spatial details:\nlocal 3 3Conv ( ) inFF ×=  (1) \nThe multi -scale context branch employs four adaptive",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:024",
-      "chunk_type": "parent",
-      "parent_index": 24,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "fedfa33ad2f8dce3:parent:025": {
-    "page_content": "average pooling scales {3, 6, 9,12}S = . For each scale s ,\npooled features are compressed by a 1×1  convolution,\nprocessed with a depthwise 3×3 convolution, and bilinearly \nupsampled to the original size:\n3 3 11Up(DWConv (Conv (AAPool ( ))))ˆs s inFF ××=  (2)",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:025",
-      "chunk_type": "parent",
-      "parent_index": 25,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "fedfa33ad2f8dce3:parent:026": {
-    "page_content": "Each branch output is refined by EdgeEnhancer , which\nextracts low -frequency components via 3×3  average pooling,\ncomputes the high- frequency residual, and applies a sigmoid -\ngated convolution:\n33Pool ( )ˆ ˆss sEF F ×= −  (3) \n ( ))ˆ vˆ Con (ee\nss sFF E σ= +  (4)",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:026",
-      "chunk_type": "parent",
-      "parent_index": 26,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "fedfa33ad2f8dce3:parent:027": {
-    "page_content": "Finally, the local feature and all enhanced multi-scale features\nare concatenated along the channel dimension and fused with a \n3×3 convolution:\n( )( )out 3 3 localConv Concat ,{ } ˆees sSF FF×∈=  (5)",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:027",
-      "chunk_type": "parent",
-      "parent_index": 27,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "fedfa33ad2f8dce3:parent:028": {
-    "page_content": "This design integrates multi -scale contextual modeling with\nedge-guided enhancement to preserve fine details and improve",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:028",
-      "chunk_type": "parent",
-      "parent_index": 28,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "fedfa33ad2f8dce3:parent:029": {
-    "page_content": "ship contour perception in complex SAR backgrounds, as \nillustrated in Fig. 2.\nWaveletPool performs frequency -domain feature\ndownsampling via the Discrete Wavelet Transform (DWT),\ndecomposing features into low -frequency structural\ncomponents and high- frequency details. This decomposition",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:029",
-      "chunk_type": "parent",
-      "parent_index": 29,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "fedfa33ad2f8dce3:parent:030": {
-    "page_content": "preserves fine-grained edges while reducing aliasing, making it\nparticularly suitable for detecting small targets in cluttered SAR",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:030",
-      "chunk_type": "parent",
-      "parent_index": 30,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "fedfa33ad2f8dce3:parent:031": {
-    "page_content": "backgrounds where ships often exhibit weak edges and low\ncontrast. Given an input feature map X, four fixed Haar wavelet\nfilters (LL, LH, HL, and HH) are applied to capture low - and\nhigh-frequency information along different orientations: \n \n0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5\n0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5\n      −− − −= = = =      −−     ",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:031",
-      "chunk_type": "parent",
-      "parent_index": 31,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "fedfa33ad2f8dce3:parent:032": {
-    "page_content": "LL LH HL HH  (6) \nThe four directional components are computed via grouped\n2D convolution and downsampled with stride 2: \n Conv2D( , ,stride 2)Y XW= =  (7)\nwhere W  represents the set of wavelet filters expanded\nacross all channels. Grouped convolution ensures that each\nchannel undergoes an independent transformation, reducing",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:032",
-      "chunk_type": "parent",
-      "parent_index": 32,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "fedfa33ad2f8dce3:parent:033": {
-    "page_content": "IEEE GEOSCIENCE AND REMOTE SENSING LETTERS,\ncomputational cost while enabling multi -scale directional \nfeature extraction.\nWithin EEWB, WaveletPool complements MB -EGFEM by\nretaining high-frequency details and providing rich directional\ncues. These preserved details reinforce MB -EGFEM’s spatial\nedge enhancement, enabling the network to capture clearer ship\ncontours and improve small -ship detection accuracy and\nrobustness in complex marine environments. \nB. Lightweight Decoupled Detail-Enhanced Head (LD-DEH)",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:033",
-      "chunk_type": "parent",
-      "parent_index": 33,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:034": {
-    "page_content": "SAR ship detection is significantly affected by sea clutter,\nspeckle noise, and fine -structure loss caused by repeated\ndownsampling, resulting in blurred boundaries and cross -scale\nfeature drift. To address these challenges, we propose the",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:034",
-      "chunk_type": "parent",
-      "parent_index": 34,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:035": {
-    "page_content": "Lightweight Deco upled Detail- Enhanced Head (LD -DEH), a\nfully decoupled architecture that separates classification and\nregression to reduce inter -task interference. At each feature\npyramid scale, features are first mapped to a unified hidden\ndimension via a 1×1 Conv_GN and then processed by a three-\nstage DEConv_GN stack with shared parameters across scales",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:035",
-      "chunk_type": "parent",
-      "parent_index": 35,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:036": {
-    "page_content": "to enhance edges, contours, and structural details. The refined\nfeatures are finally fed into independent regression and\nclassification branches, improving detection robustness while\nmaintaining computational efficiency. \nP3\nP4\nP5\nConv_GN\n1×1\nConv_GN\n1×1\nConv_GN\n1×1\nDEConv_GN DEConv_GN DEConv_GN\nConv_Reg\nConv_Reg\nConv_Reg\nConv_Cls\nConv_Cls\nConv_Cls\nScale\nScale\nScale\nLightweight Decoupled Detail-Enhanced Head\nFig. 3. Architecture of the Lightweight Decoupled Detail-Enhanced \nHead.",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:036",
-      "chunk_type": "parent",
-      "parent_index": 36,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:037": {
-    "page_content": "Let the input feature at scale i  be iiCH Wi ××∈F  . The shared\ndetail-enhanced convolution is formulated as \n GDEConv N ( ; ), 1, ,i isF Fi N′ φθ= = …  (8)",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:037",
-      "chunk_type": "parent",
-      "parent_index": 37,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:038": {
-    "page_content": "where sθ  denotes parameters shared across all scales. Each\nDEConv_GN replaces Batch Normalization with Group\nNormalization (16 groups) and aggregates complementary\nkernels—center -difference, horizontal –vertical difference, \nadaptive difference, and a standard",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:038",
-      "chunk_type": "parent",
-      "parent_index": 38,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:039": {
-    "page_content": "33×  convolution— prior to \nactivation: \n \nG\n4\nDEConv N std\n1\n( ) GN Conv ( ) Conv ( )k\nk\nF FFϕσ\n=\n = ∑+  \n (9) \nThis multi-kernel design enhances directional gradients and\ncenter–surround contrasts, effectively sharpening weak edges\nand blurred contours that are typical in SAR small-ship targets.",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:039",
-      "chunk_type": "parent",
-      "parent_index": 39,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:040": {
-    "page_content": "During inference, the multiple difference -based convolution\nbranches are re -parameterized into a single equivalent 3×3\nconvolution by linearly summing their kernel weights and\nbiases, resulting in a standard convolution operation with no",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:040",
-      "chunk_type": "parent",
-      "parent_index": 40,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:041": {
-    "page_content": "additional computational overhead while preserving the learned \ndetail-enhancement behavior.\nIn the regression branch, a lightweight scale adaptation is \napplied per level:\ni iiBR α= ⋅  (10) \nwhere iR  is the raw DFL regression output (decoded later)\nand iα  is a learnable scalar mitigating resolution -dependent\nbias, thereby improving localization consistency for small \ntargets across pyramid levels.\nFig. 3 illustrates its structure. This design improves inference\nefficiency by re-parameterizing multi-branch convolutions into\na single equivalent kernel, reducing computational cost while\npreserving detail -enhancement capability. Benefiting from\ncross-scale parameter sharing and decoupled regression, LD -",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:041",
-      "chunk_type": "parent",
-      "parent_index": 41,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:042": {
-    "page_content": "DEH achieves a favorable balance between efficiency and\naccuracy. As shown in Table I, LD-DEH improves FPS by 22.4\nover the YOLO11 n baseline. The FPS is measured using\nUltralytics validation profiling on a single NVIDIA GeForce\nRTX 2060 GPU with 640×640 input resolution and a batch size",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:042",
-      "chunk_type": "parent",
-      "parent_index": 42,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:043": {
-    "page_content": "of 16, based on average per-image inference time. \nTABLE I\nCOMPARATIVE EXPERIMENT ON FPS BETWEEN BASELINE AND \nBASELINE+LD-DEH. \nModels FPS \nBaseline 140.3\nBaseline+LD-DEH 162.7 \nC. Adaptive Contextual Focus Feature Pyramid Network \n(ACF-FPN)\nTraditional Feature Pyramid Networks (FPN) are widely\nused for multi-scale feature fusion in object detection but have\nlimitations in SAR ship detection, especially with cluttered",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:043",
-      "chunk_type": "parent",
-      "parent_index": 43,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:044": {
-    "page_content": "backgrounds, low contrast, and boundary blurring caused by\ndownsampling. The fixed top-down fusion in FPN struggles to\nadaptively highlight informative features or suppress\nbackground interference, limiting its effectiveness for small or \nirregularly shaped targets.",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:044",
-      "chunk_type": "parent",
-      "parent_index": 44,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:045": {
-    "page_content": "To address these challenges, we propose the Adaptive\nContextual Focus Feature Pyramid Network (ACF -FPN), an\nenhanced variant of FDPN tailored for SAR ship detection.\nWhile the core modules of ACF-FPN— FocusFeature, LDConv\n[7], and DySample  [8]—are adapted from existing designs ,\ntheir strategic combination and optimization significantly\nimprove performance. FocusFeature strengthens edge and local",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:045",
-      "chunk_type": "parent",
-      "parent_index": 45,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:046": {
-    "page_content": "detail representation, essential for ships with blurred contours,\nwhile LDConv adapts convolutional receptive fields to handle\nirregular shapes. DySample restores high -resolution details,\npreserving small target information, and ContextGuided\nConvolution [9] refines feature fusion by utilizing both local\nand global contextual information, enhancing target \nlocalization in cluttered backgrounds.",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:046",
-      "chunk_type": "parent",
-      "parent_index": 46,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:047": {
-    "page_content": "These components are integrated into a shared adaptive\nfusion framework that selectively emphasizes relevant features\nwhile maintaining computational efficiency. Combined with\nLD-DEH and EEWB in MBE -Net, ACF-FPN facilitates fine -\ndetail enhancement, improved feature discrimination, and\neffective noise suppression, thereby improving detection\naccuracy in SAR imagery with complex sea clutter. The",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:047",
-      "chunk_type": "parent",
-      "parent_index": 47,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:048": {
-    "page_content": "synergy of adaptive fusion, deformable convolutions, and\ncontext-aware feature fusion enables ACF -FPN to adapt to",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:048",
-      "chunk_type": "parent",
-      "parent_index": 48,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:049": {
-    "page_content": "varying target scales and backgrounds, resulting in robust and \naccurate SAR ship detection.\nIEEE \nGEOSCIENCE AND REMOTE SENSING LETTERS, \nIII. EXPERIMENT\nExperiments are conducted on a Windows 10 workstation",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:049",
-      "chunk_type": "parent",
-      "parent_index": 49,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "fedfa33ad2f8dce3:parent:050": {
-    "page_content": "with an NVIDIA GeForce RTX 2060 GPU (6 GB) and an AMD\nRyzen 7 4800H CPU, using PyTorch 1.12.0 with CUDA 11.3 \nand Python 3.9.",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:050",
-      "chunk_type": "parent",
-      "parent_index": 50,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "fedfa33ad2f8dce3:parent:051": {
-    "page_content": "A. Dataset and Experimental Settings\nHRSID [10] contains 5,604 SAR images with 16,951 ships,\nand SSDD [11] contains 1,160 images with 2,456 ships. Both\ndatasets are randomly divided at the image level into training,\nvalidation, and test sets with a ratio of 70%, 10%, and 20%,",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:051",
-      "chunk_type": "parent",
-      "parent_index": 51,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "fedfa33ad2f8dce3:parent:052": {
-    "page_content": "respectively, with no overlap among subsets.\nAll models are trained for 350 epochs using SGD with an\ninitial learning rate of 0.01, momentum of 0.937, and weight\ndecay of 0.0005. Images are resized to 640×640 with a batch \nsize of 16.",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:052",
-      "chunk_type": "parent",
-      "parent_index": 52,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "fedfa33ad2f8dce3:parent:053": {
-    "page_content": "We report mAP50, Precision, Recall, Params, and GFLOPs.\nParams and GFLOPs are measured at 640×640, and GFLOPs\nscale with input size, yielding 2.5 at 416×416, 5.9 at 640×640,\nand 15.1 at 1024×1024.  The definitions of Precision, Recall, \nand mAP50 are given as follows:\nTP TP,TP FP TP FNPR= =++\n(11) \n \n1()\n50 50 50 01\n1mAP AP , AP ( )\nN\ni\ni\np r drN =\n= =∑ ∫  ( 12)",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:053",
-      "chunk_type": "parent",
-      "parent_index": 53,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "fedfa33ad2f8dce3:parent:054": {
-    "page_content": "B. Ablation Experiments \nTABLE Ⅱ \nRESULTS OF ABLATION EXPERIMENTS ON THE HRSID DATASET\nModels MB-EGFEM WaveletPool ACF-FPN LD-DEH Params(M) FLOPs(G) mAP50% P% R%\nA 2.58 6.3 91.2 90.9 82.5 \nB ✓ 2.53 6 .3 91.7 91.2 82.5 \nC ✓ 2.23 5\n.5 91.3 93.9 80.7 \nD ✓ ✓ 2.18 5\n.5 92.5 89.7 85.3 \nE ✓ 2.51 7\n.3 92.4 91.4 84.3 \nF ✓ 2.\n26 6.0 92.4 92.9 84.0 \nG ✓ ✓ ✓ ✓ 1.76 5\n.9 93.3 92.0 86.8 \nTable II shows that MB- EGFEM and WaveletPool  yield",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:054",
-      "chunk_type": "parent",
-      "parent_index": 54,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "fedfa33ad2f8dce3:parent:055": {
-    "page_content": "limited gains when used individually, improving mAP50 to\n91.7% and 91.3%, respectively. In contrast, their joint\nintegration (forming the EEWB backbone) brings a clear\nimprovement, achieving 92.5% mAP50 and outperforming",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:055",
-      "chunk_type": "parent",
-      "parent_index": 55,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "fedfa33ad2f8dce3:parent:056": {
-    "page_content": "either module alone. Fig. 4 visualizes intermediate features for\nthe baseline, MB-EGFEM only, WaveletPool only, and EEWB:\nMB-EGFEM enhances boundaries but introduces clutter, while\nWaveletPool suppresses clutter at the cost of weakened targets;\nEEWB produces more compact acti vations and clearer target–\nbackground separation, confirming their complementarity .\nFig. 4. All feature maps are visualized at the output of the first",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:056",
-      "chunk_type": "parent",
-      "parent_index": 56,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "fedfa33ad2f8dce3:parent:057": {
-    "page_content": "WaveletPool following MB-EGFEM using L2-en ergy maps.\nACF-FPN and LD-DEH each improve the baseline to 92.4%\nmAP50, achieving 84.3% and 84.0% recall, respectively. With\nall modules enabled, MBE -Net reaches 93.3% mAP50 and\n86.8% recall while reducing complexity to 1.76M parameters",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:057",
-      "chunk_type": "parent",
-      "parent_index": 57,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "fedfa33ad2f8dce3:parent:058": {
-    "page_content": "and 5.9 GFLOPs. These results confirm the synergistic effect of\nthe proposed modules in improving accuracy and efficiency. \nTABLE Ⅲ\nSCALE-AWARE COMPARISON ON HRSID (AP@[0.50:0.95]). \nModels APS% APM% APL% \nBaseline 49.3 81.1 76.2",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:058",
-      "chunk_type": "parent",
-      "parent_index": 58,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "fedfa33ad2f8dce3:parent:059": {
-    "page_content": "MBE-Net 53.9 82.6 78.6 \nTo further assess the multi -scale detection capability of\nMBE-Net, a COCO-style scale-aware evaluation is conducted.\nAs shown in Table III, MBE-Net achieves a clear improvement\nin APS over the YOLO11n baseline, without degrading \nperformance on medium- and large-scale ships.",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:059",
-      "chunk_type": "parent",
-      "parent_index": 59,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "fedfa33ad2f8dce3:parent:060": {
-    "page_content": "C. Comparison Experiments\nTABLE IV\nTHE COMPARATIVE EXPERIMENT ON THE HRSID DATASET.\nModels Params(M) FLOPs(G) mAP50% P% R% \nYOLO11n 2.58 6.3 91.2 90.9 82.5\nYOLO11s 9.41 21.3 93.0 90.7 85.9 \nSMEP-DETR 21.11 60.7 93.2 92.7 86.5 \nESarDet 6.2 23.5 93.2 - -\nLDSS-Net 2.0 8.7 91.7 89.0 91.2 \nMBE-Net 1.76 5.9 93.3 92.0 86.8\nTo evaluate MBE -Net’s performance, comparative",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:060",
-      "chunk_type": "parent",
-      "parent_index": 60,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "fedfa33ad2f8dce3:parent:061": {
-    "page_content": "experiments were conducted on the HRSID dataset, as shown\nin Table IV, to assess detection accuracy and robustness in\ncomplex marine environments. MBE-Net achieves the highest\nmAP of 93.3% with the smallest parameter count and lowest\ncomputational cost. YOLO11n is adopted as the baseline\nbackbone on which MBE-Net is built, while YOLO11s, a larger",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:061",
-      "chunk_type": "parent",
-      "parent_index": 61,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "fedfa33ad2f8dce3:parent:062": {
-    "page_content": "variant within the same model family, is included to assess the\neffect of model scaling. As shown in Table IV , increasing\nmodel capacity through YOLO11s substantially raises",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:062",
-      "chunk_type": "parent",
-      "parent_index": 62,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "fedfa33ad2f8dce3:parent:063": {
-    "page_content": "computational complexity but still fails to surpass the\nperformance of MBE -Net, indicating that the performance",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:063",
-      "chunk_type": "parent",
-      "parent_index": 63,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "fedfa33ad2f8dce3:parent:064": {
-    "page_content": "gains originate from architectural design rather than model\nscaling. In additio n, the selected baselines include\nrepresentative Transformer -based detectors such as SMEP -\nDETR [3] as well as efficient and lightweight SAR- specific\nmethods including ESarDet [12] and LDSS-Net [13], enabling",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:064",
-      "chunk_type": "parent",
-      "parent_index": 64,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "fedfa33ad2f8dce3:parent:065": {
-    "page_content": "fair comparison across different architectural paradigms and\nIEEE \nGEOSCIENCE AND REMOTE SENSING LETTERS, \ncomputational budgets.\nFig. 5. Detection Performance Comparison on the HRSID Dataset.\nFigure 5 compares detection results. Column (a) shows\nground truth annotations, while columns (b) and (c) display",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:065",
-      "chunk_type": "parent",
-      "parent_index": 65,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "fedfa33ad2f8dce3:parent:066": {
-    "page_content": "outputs from YOLO11n and our method, respectively.\nYOLO11n struggles with false and missed detections,",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:066",
-      "chunk_type": "parent",
-      "parent_index": 66,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "fedfa33ad2f8dce3:parent:067": {
-    "page_content": "especially in complex scenarios with background interference\nor small targets. In contrast, our method improves feature\nextraction and robustness, yielding more accurate and stable \ndetections. \nTABLE V",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:067",
-      "chunk_type": "parent",
-      "parent_index": 67,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "fedfa33ad2f8dce3:parent:068": {
-    "page_content": "THE COMPARATIVE EXPERIMENT ON THE SSDD DATASET. \nModels Params(M) FLOPs(G) mAP50% P% R%\nYOLO11n 2.58 6.3 96.2 93.5 89.3 \nYOLO11s 9.41 21.3 97.0 93.6 92.4 \nFEPS-Net 37.31 - 96.0 - -\nDS-YOLO - 24.7 96.6 95.4 91.1 \nLD-Det 24.4 8.1 96.8 94.8 92.4 \nMBE-Net 1.76 5.9 97.2 95.9 92.8\nFig. 6. Detection Performance Comparison on the SSDD Dataset.\nTo further validate the performance, a comparative\nexperiment was conducted on the SSDD dataset, as shown in",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:068",
-      "chunk_type": "parent",
-      "parent_index": 68,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "fedfa33ad2f8dce3:parent:069": {
-    "page_content": "Table V. MBE -Net achieved a superior mAP of 97.2% with\nonly 1.76M parameters and 5.9 GFLOPs, outperforming\nYOLO11n. While FEPS -Net [14] and DS -YOLO [15] also\nshowed comparable performance, the lightweight network LD-\nDet [4] achieved a mAP of 96.8% with 24.4M parameters.\nMBE-Net maintained a clear advantage in the accuracy -\nefficiency trade-off. Additionally, as illustrated in Fig. 6, MBE-",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:069",
-      "chunk_type": "parent",
-      "parent_index": 69,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "fedfa33ad2f8dce3:parent:070": {
-    "page_content": "Net demonstrated high-quality detection in both near-shore and\noff-shore scenarios, effectively reducing missed detections and \nfalse alarms. \nIV.\n CONCLUSION\nThis paper presents MBE -Net, a lightweight and high-\naccuracy network for SAR ship detection. It addresses",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:070",
-      "chunk_type": "parent",
-      "parent_index": 70,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "fedfa33ad2f8dce3:parent:071": {
-    "page_content": "challenges like small targets and background clutter by\nintegrating edge-guided and wavelet-based detail preservation,\nspatial refinement, and adaptive multi -scale fusion.",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:071",
-      "chunk_type": "parent",
-      "parent_index": 71,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "fedfa33ad2f8dce3:parent:072": {
-    "page_content": "Experiments on HRSID and SSDD show MBE -Net's superior\naccuracy and efficiency, making it highly promising for real-\ntime applications. Future work will focus on further refinement \nand real-world deployment. \nR",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:072",
-      "chunk_type": "parent",
-      "parent_index": 72,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "fedfa33ad2f8dce3:parent:073": {
-    "page_content": "EFERENCES \n[1] P. Singh, M. Diwakar, A. Shankar, R. Shree, and M. Kumar, “A review on\nSAR image and its despeckling,” Archives of Computational Methods in\nEngineering, vol. 28, no. 7, pp. 4633-4653, 2021.\n[2] J. Li, C. Xu, H. Su, L. Gao, and T. Wang, “Deep learning for SAR ship\ndetection: Past, present and future,” Remote Sensing, vol. 14, no. 11, pp.\n2712, 2022.\n[3] C. Yu and Y. Shin, “SMEP -DETR: Transformer-based ship detection for\nSAR imagery with multi- edge enhancement and parallel dilated",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:073",
-      "chunk_type": "parent",
-      "parent_index": 73,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "fedfa33ad2f8dce3:parent:074": {
-    "page_content": "convolutions,” Remote Sensing, vol. 17, no. 6, pp. 953, 2025.\n[4] H. Yu, B. Liu, L. Wang, and T. Li, “LD -Det: Lightweight ship target",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:074",
-      "chunk_type": "parent",
-      "parent_index": 74,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "fedfa33ad2f8dce3:parent:075": {
-    "page_content": "detection method in SAR images via dual domain feature fusion,” Remote\nSensing, vol. 17, no. 9, pp. 1562, 2025.\n[5] Y. Ma, D. Guan, Y. Deng, W. Yuan, and M. Wei, “3SD- Net: SAR small\nship detection neural network,” IEEE Transactions on Geoscience and\nRemote Sensing , vol. 62, pp. 1 -13, 2024, Art no. 5221613, doi:\n10.1109/TGRS.2024.3454308.\n[6] T. Williams and R. Li, “Wavelet pooling for convolutional neural networks,”\nin Proc. Int. Conf. Learn. Represent. (ICLR), Vancouver, BC, Canada, \n2018.\n[7] X. Zhang, Y. Song, T. Song, D. Yang, Y. Ye, J. Zhou, and L. Zhang,\n“LDConv: Linear deformable convolution for improving convolutional\nneural networks,” Image Vis. Comput., vol. 149, pp. 105190, 2024.\n[8] W. Liu, H. Lu, H. Fu, and Z. Cao, “Learning to upsample by learning to",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:075",
-      "chunk_type": "parent",
-      "parent_index": 75,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "fedfa33ad2f8dce3:parent:076": {
-    "page_content": "sample,” in Proceedings of the IEEE/CVF international conference on\ncomputer vision, pp. 6027-6037, 2023.\n[9] T. Wu, S. Tang, R. Zhang, J. Cao, and Y. Zhang, “CGNet: A light -weight\ncontext guided network for semantic segmentation,” IEEE Trans. Image\nProcess., vol. 30, pp. 1169–1179, 2021.\n[10] S. Wei, X. Zeng, Q. Qu, M. Wang, H. Su, and J. Shi, “HRSID: A high -",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:076",
-      "chunk_type": "parent",
-      "parent_index": 76,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "fedfa33ad2f8dce3:parent:077": {
-    "page_content": "resolution SAR images dataset for ship detection and instance\nsegmentation,” IEEE Access, vol. 8, pp. 120234–120254, 2020.\n[11] T. Zhang, X. Zhang, J. Li, et al., “SAR ship detection dataset (SSDD):\nOfficial release and comprehensive data analysis,” Remote Sensing, vol. 13,\nno. 18, pp. 3690, 2021. \n[12] Y. Zhang, C. Chen, R. Hu, and Y. Yu, “ESarDet: an efficient SAR ship",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:077",
-      "chunk_type": "parent",
-      "parent_index": 77,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "fedfa33ad2f8dce3:parent:078": {
-    "page_content": "detection method based on context information and large effective\nreceptive field,” Remote Sensing, vol. 15, no. 12, pp. 3018, 2023.\n[13] C. Zhang, C. Zhao, Y. Yuan, S. Chang, H. Chang, X. Fu, and J. Dong,\n“LDSS-Net: A lightweight network for dense SAR ship detection,” in\nIGARSS 2024- 2024 IEEE International Geoscience and Remote Sensing\nSymposium, pp. 9636-9639, 2024.",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:078",
-      "chunk_type": "parent",
-      "parent_index": 78,
-      "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
-      "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "fedfa33ad2f8dce3:parent:079": {
-    "page_content": "[14] L. Bai, C. Yao, Z. Ye, D. Xue, X. Lin, and M. Hui, “Feature enhancement\npyramid and shallow feature reconstruction network for SAR ship\ndetection,” IEEE J. Sel. Topics Appl. Earth Observations Remote Sens., vol.\n16, pp. 1042–1056, 2023.\n[15] R. Hu, H. Lin, Z. Lu, and J. Xia, “Despeckling representation for data-\nefficient SAR ship detection,” IEEE Geosci. Remote Sens. Lett., vol. 22, pp.\n1-5, 2025, Art no. 4002005.",
-    "metadata": {
-      "doc_id": "fedfa33ad2f8dce3",
-      "parent_id": "fedfa33ad2f8dce3:parent:079",
-      "chunk_type": "parent",
-      "parent_index": 79,
       "file_hash": "fedfa33ad2f8dce342eb0903008dd2afdfe00e40d80caf073970375f95fcf014",
       "source": "E:\\agent开发trea\\data\\MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
       "filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
@@ -1263,7 +437,7 @@
     }
   },
   "f42e7257357d7127:parent:000": {
-    "page_content": "CWW-Det: A Context-aware Wavelet-enhanced Detector for SAR \nShip Detection\nIET International Radar Conference 2025\nAbstract",
+    "page_content": "CWW-Det: A Context-aware Wavelet-enhanced Detector for SAR \nShip Detection\nIET International Radar Conference 2025\nAbstract\nSynthetic Aperture Radar (SAR) imagery enables all-weather maritime monitoring, but ship detection remains challenging due to low contrast,\ncomplex backgrounds, multi-scale variations, and partial occlusions. To address these issues, this paper proposes a Context-aware Wavelet-\nenhanced Detector (CWW-Det), a lightweight SAR ship detection network. The network consists of three main components: the ContextWave-\nBackbone (CWB), which integrates a Joint Context Refinement Block (JCRB) for global context modeling and wavelet pooling for frequency-\npreserving multi-scale feature extraction; the Flexible Feature Pyramid Network (Flexi-FPN), which enhances feature fusion through refined\nupsampling and improved convolutions; and the Adaptive Lightweight Shared Feature Head (ALSF-Head), which reduces computational cost \nwhile improving prediction accuracy via shared convolutions and scale-independent normalization. Experiments on the public HRSID dataset\nand the SAR-Ship-Dataset demonstrate that CWW-Det achieves superior detection accuracy and robustness while maintaining low complexity, \nproviding an efficient and generalisable solution for SAR ship detection. \nZihao Wang1, Jinwei Wang1, Zhenguang Gou1, Xinyu Wang1\n , Yuzhao Tang1, Yongjin Zhao1",
     "metadata": {
       "doc_id": "f42e7257357d7127",
       "parent_id": "f42e7257357d7127:parent:000",
@@ -1277,96 +451,12 @@
     }
   },
   "f42e7257357d7127:parent:001": {
-    "page_content": "\nSynthetic Aperture Radar (SAR) imagery enables all-weather maritime monitoring, but ship detection remains challenging due to low contrast, \ncomplex backgrounds, multi-scale variations, and partial occlusions\n. To address these issues, this paper proposes a Context-aware Wavelet-\nenhanced Detector (CWW-Det), a lightweight SAR ship detection network\n. The network consists of three main components: the ContextWave-\n\nBackbone (CWB), which integrates a Joint Context Refinement Block (JCRB) for global context modeling and wavelet pooling for frequency-\npreserving multi-scale feature extraction\n; the Flexible Feature Pyramid Network (Flexi-FPN), which enhances feature fusion through refined\nupsampling and improved convolutions",
+    "page_content": "1. College of Physicsand Electronic InformationYantai University\nCWW-Det is a lightweight SAR ship detection network designed to \nhandle low contrast, complex backgrounds, and multi-scale targets \nin SAR imagery. Its core components include:\n1.ContextWave-Backbone (CWB): Combines a Joint Context\nRefinement Block (JCRB) for global context modeling with \nWavelet Pooling to preserve multi-frequency structural and edge \ndetails.  \n2. Uses Soft Nearest Interpolation (SNI) for refined upsampling and \nGSConv-V2 to enhance receptive fields and feature discrimination \nunder cluttered backgrounds.\n3. Adaptive Lightweight Shared Feature Head (ALSF-Head): \nApplies shared convolutions to reduce parameters and introduces \nScale-Independent Batch Normalization (SBN) to adapt to different \nfeature scales and noise characteristics.\n4. Output: Fuses multi-scale features and predicts ship locations\nefficiently with improved accuracy and reduced computational cost.\nIntroduction\nJCRB\nGSConv\n-\nV2\nALSF\n-\nHead \nResult\nResults of SAR Ship Detection in Comparative Experiments.In \nthe figure: (a) Original SAR image, (b) Baseline detector results, \n(c) Proposed CWW-Det results.\nLeft: HRSID dataset; Right: SAR-Ship-Dataset.\nTABLE Ⅱ\nTHE COMPARATIVE EXPERIMENT ON THE HRSID DATASET.",
     "metadata": {
       "doc_id": "f42e7257357d7127",
       "parent_id": "f42e7257357d7127:parent:001",
       "chunk_type": "parent",
       "parent_index": 1,
-      "file_hash": "f42e7257357d71276334901a64be89b42b0b56b6264fbe6afc503e3d3a451ed4",
-      "source": "E:\\agent开发trea\\data\\posterWZH.pdf",
-      "filename": "posterWZH.pdf",
-      "file_type": "pdf",
-      "page": 0
-    }
-  },
-  "f42e7257357d7127:parent:002": {
-    "page_content": "; and the Adaptive Lightweight Shared Feature Head (ALSF-Head), which reduces computational cost\nwhile improving prediction accuracy via shared convolutions and scale-independent normalization\n. Experiments on the public HRSID dataset",
-    "metadata": {
-      "doc_id": "f42e7257357d7127",
-      "parent_id": "f42e7257357d7127:parent:002",
-      "chunk_type": "parent",
-      "parent_index": 2,
-      "file_hash": "f42e7257357d71276334901a64be89b42b0b56b6264fbe6afc503e3d3a451ed4",
-      "source": "E:\\agent开发trea\\data\\posterWZH.pdf",
-      "filename": "posterWZH.pdf",
-      "file_type": "pdf",
-      "page": 0
-    }
-  },
-  "f42e7257357d7127:parent:003": {
-    "page_content": "\nand the SAR-Ship-Dataset demonstrate that CWW-Det achieves superior detection accuracy and robustness while maintaining low complexity, \nproviding an efficient and generalisable solution for SAR ship detection.",
-    "metadata": {
-      "doc_id": "f42e7257357d7127",
-      "parent_id": "f42e7257357d7127:parent:003",
-      "chunk_type": "parent",
-      "parent_index": 3,
-      "file_hash": "f42e7257357d71276334901a64be89b42b0b56b6264fbe6afc503e3d3a451ed4",
-      "source": "E:\\agent开发trea\\data\\posterWZH.pdf",
-      "filename": "posterWZH.pdf",
-      "file_type": "pdf",
-      "page": 0
-    }
-  },
-  "f42e7257357d7127:parent:004": {
-    "page_content": "Zihao Wang1, Jinwei Wang1, Zhenguang Gou1, Xinyu Wang1\n , Yuzhao Tang1, Yongjin Zhao1\n1. College of Physicsand Electronic InformationYantai University",
-    "metadata": {
-      "doc_id": "f42e7257357d7127",
-      "parent_id": "f42e7257357d7127:parent:004",
-      "chunk_type": "parent",
-      "parent_index": 4,
-      "file_hash": "f42e7257357d71276334901a64be89b42b0b56b6264fbe6afc503e3d3a451ed4",
-      "source": "E:\\agent开发trea\\data\\posterWZH.pdf",
-      "filename": "posterWZH.pdf",
-      "file_type": "pdf",
-      "page": 0
-    }
-  },
-  "f42e7257357d7127:parent:005": {
-    "page_content": "CWW-Det is a lightweight SAR ship detection network designed to\nhandle low contrast, complex backgrounds, and multi-scale targets\nin SAR imagery. Its core components include:\n1.ContextWave-Backbone (CWB): Combines a Joint Context\nRefinement Block (JCRB) for global context modeling with",
-    "metadata": {
-      "doc_id": "f42e7257357d7127",
-      "parent_id": "f42e7257357d7127:parent:005",
-      "chunk_type": "parent",
-      "parent_index": 5,
-      "file_hash": "f42e7257357d71276334901a64be89b42b0b56b6264fbe6afc503e3d3a451ed4",
-      "source": "E:\\agent开发trea\\data\\posterWZH.pdf",
-      "filename": "posterWZH.pdf",
-      "file_type": "pdf",
-      "page": 0
-    }
-  },
-  "f42e7257357d7127:parent:006": {
-    "page_content": "Wavelet Pooling to preserve multi-frequency structural and edge \ndetails.\n2. Uses Soft Nearest Interpolation (SNI) for refined upsampling and\nGSConv-V2 to enhance receptive fields and feature discrimination \nunder cluttered backgrounds.\n3. Adaptive Lightweight Shared Feature Head (ALSF-Head):\nApplies shared convolutions to reduce parameters and introduces\nScale-Independent Batch Normalization (SBN) to adapt to different\nfeature scales and noise characteristics.\n4. Output: Fuses multi-scale features and predicts ship locations\nefficiently with improved accuracy and reduced computational cost.\nIntroduction\nJCRB\nGSConv\n-\nV2",
-    "metadata": {
-      "doc_id": "f42e7257357d7127",
-      "parent_id": "f42e7257357d7127:parent:006",
-      "chunk_type": "parent",
-      "parent_index": 6,
-      "file_hash": "f42e7257357d71276334901a64be89b42b0b56b6264fbe6afc503e3d3a451ed4",
-      "source": "E:\\agent开发trea\\data\\posterWZH.pdf",
-      "filename": "posterWZH.pdf",
-      "file_type": "pdf",
-      "page": 0
-    }
-  },
-  "f42e7257357d7127:parent:007": {
-    "page_content": "ALSF\n-\nHead \nResult\nResults of SAR Ship Detection in Comparative Experiments.In\nthe figure: (a) Original SAR image, (b) Baseline detector results, \n(c) Proposed CWW-Det results.\nLeft: HRSID dataset; Right: SAR-Ship-Dataset.\nTABLE Ⅱ\nTHE COMPARATIVE EXPERIMENT ON THE HRSID DATASET.",
-    "metadata": {
-      "doc_id": "f42e7257357d7127",
-      "parent_id": "f42e7257357d7127:parent:007",
-      "chunk_type": "parent",
-      "parent_index": 7,
       "file_hash": "f42e7257357d71276334901a64be89b42b0b56b6264fbe6afc503e3d3a451ed4",
       "source": "E:\\agent开发trea\\data\\posterWZH.pdf",
       "filename": "posterWZH.pdf",
@@ -1466,7 +556,7 @@
     }
   },
   "985419bb186328d7:parent:000": {
-    "page_content": "XXX-X-XXXX-XXXX-X/XX/$XX.00 ©20XX IEEE \nSFQ-Det: A Structure–Frequency Coupled and\nQuality-Aware Detector for SAR Ship Detection \nZihao Wang  \nCollege of Physics and Electronic\nInformation \nYantai University \nYantai, China \n17616077705@163.com \nJinwei Wang\nCollege of Physics and Electronic \nInformation \nYantai University \nYantai, China\njinwei_w123@126.com \nXinxin Wang \nCollege of Physics and Electronic \nInformation\nYantai University \nYantai, China \ncaomuxinxin@163.com \nZhuoran Cai\nCollege of Physics and Electronic \nInformation \nYantai University \nYantai, China\ncaizhuoran@ytu.edu.cn\n \nAbstract—Synthetic aperture radar (SAR) imagery enables",
+    "page_content": "XXX-X-XXXX-XXXX-X/XX/$XX.00 ©20XX IEEE \nSFQ-Det: A Structure–Frequency Coupled and \nQuality-Aware Detector for SAR Ship Detection \nZihao Wang  \nCollege of Physics and Electronic \nInformation \nYantai University \nYantai, China \n17616077705@163.com \nJinwei Wang \nCollege of Physics and Electronic \nInformation \nYantai University \nYantai, China\njinwei_w123@126.com \nXinxin Wang \nCollege of Physics and Electronic \nInformation \nYantai University \nYantai, China \ncaomuxinxin@163.com \nZhuoran Cai  \nCollege of Physics and Electronic \nInformation \nYantai University \nYantai, China \ncaizhuoran@ytu.edu.cn\n \nAbstract—Synthetic aperture radar (SAR) imagery enables\nall-weather maritime observation, but ship detection remains \nchallenging due to speckle noise, complex sea clutter, and small \nelongated targets. This paper proposes SFQ -Det, a structure–\nfrequency coupled and quality-aware SAR ship detector. SFQ-Det \nenhances directional ship structures via speckle-aware structural\nmodulation, improves multi -scale robustness through frequency -\ndecoupled wavelet pooling, and introduces a lightweight quality-\naware detection  head to align classification confidence with \nlocalization accuracy. By jointly modeling spatial structure and \nfrequency characteristics, SFQ -Det effectively mitigates speckle",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:000",
@@ -1480,7 +570,7 @@
     }
   },
   "985419bb186328d7:parent:001": {
-    "page_content": "all-weather maritime observation, but ship detection remains\nchallenging due to speckle noise, complex sea clutter, and small",
+    "page_content": "interference and improves detection reliability under complex \nmaritime condition s. Experiments on the SSDD dataset \ndemonstrate that SFQ -Det outperforms the YOLO11n baseline \nwhile reducing parameters and computation by approximately 36% \nand 38%, respectively.  \nKeywords—Synthetic aperture radar, ship detection, structure –\nfrequency coupling. \nI. INTRODUCTION  \nSynthetic aperture radar (SAR) imaging enables all-day and \nall-weather maritime observation and is widely used in \nsurveillance and reconnaissance. As a key task in marine remote \nsensing, SAR ship detection has attracted increasing attention, \nbut remains challenging due to severe speckle noise, complex\nsea clutter, and the small, elongated structure of ship targets [1]. \nWith the development of deep learning, convolutional neural \nnetwork (CNN)-based detectors, especially one- stage models, \nhave been introduced into SAR ship detection for their \nefficiency. However, most existing detectors are designed for\noptical imagery and fail to accommodate the statistical \ncharacteristics of SAR data [2][3][4]. Convolution operations \ntend to confuse speckle noise with structural details, \nconventional downsampling ignores frequency- domain \ndifferences, and classification confidence is usually decoupled",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:001",
@@ -1494,7 +584,7 @@
     }
   },
   "985419bb186328d7:parent:002": {
-    "page_content": "elongated targets. This paper proposes SFQ -Det, a structure–\nfrequency coupled and quality-aware SAR ship detector. SFQ-Det\nenhances directional ship structures via speckle-aware structural\nmodulation, improves multi -scale robustness through frequency -\ndecoupled wavelet pooling, and introduces a lightweight quality-",
+    "page_content": "from localization accuracy, leading to unreliable detection \nresults in SAR scenarios [5]. \nAlthough deep learning –based object detectors, such as \nYOLO [6], Faster R-CNN [7], and SSD [8], have demonstrated \nstrong performance on standard benchmarks, they still \nencounter substantial difficulties in complex SAR image\nscenarios. In particular, their detection accuracy often degrades \nunder severe speckle noise and cluttered backgrounds, where \ndiscriminative target features are easily overwhelmed by noise-\ninduced responses. \nSeveral studies have attempted to address these issues from \ndifferent perspectives. Cui et al.  [9] proposed MSF -SAR by\nenhancing contextual modeling and multi -scale feature fusion \nfor small-ship detection. Hu et al.   [10] introduced SDWPNet, \nwhich incorporates wavelet -based downsampling to preserve \ncritical details under lightweight constraints. Fan et al.  [11] \nproposed a hybrid logarithmic sparse representation model to\nimprove robustness in small -sample scenarios. Despite these \nadvances, how to jointly handle speckle -dominated \nbackgrounds and multi- scale variations under strict \ncomputational constraints remains an open problem. \nTo this end, this paper proposes SFQ -Det, a structure –\nfrequency coupled and quality -aware SAR ship detector. A",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:002",
@@ -1508,7 +598,7 @@
     }
   },
   "985419bb186328d7:parent:003": {
-    "page_content": "aware detection  head to align classification confidence with\nlocalization accuracy. By jointly modeling spatial structure and",
+    "page_content": "speckle-aware guided structure modulation mechanism \nenhances directional ship structures while suppressing pseudo \nhigh-frequency responses. A spe ckle-aware wavelet \ndecomposition pooling operator enables frequency decoupling \nand adaptive suppression during scale transformation. In \naddition, a shared lightweight quality -aware detection head\nexplicitly integrates localization quality into classificati on \nconfidence. Experiments on the SSDD [12] dataset  demonstrate \nthat SFQ -Det outperforms the YOLO11n baseline with \nsignificantly reduced model complexity. \n \nII. P\nROPOSED METHOD \nA. Overall Architecture of SFQ-Det \nThis section provides an overview of SFQ-Det, including the\nspeckle-aware guided structure modulation module, the speckle-\naware wavelet decomposition pooling operator, and the shared \nlightweight quality -aware detection head. The overall \narchitecture is illustrated in Fig. 1. SFQ -Det is built upon the \none-stage YOLO11 framework with targeted architectural\nmodifications, where each component is carefully designed to \nenhance structural representation, frequency robustness, and \nprediction reliability in complex SAR scenes. \nThis work is supported by the National Natural Science Foundation of \nChina (Grant No. 62571472).",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:003",
@@ -1522,7 +612,7 @@
     }
   },
   "985419bb186328d7:parent:004": {
-    "page_content": "frequency characteristics, SFQ -Det effectively mitigates speckle\ninterference and improves detection reliability under complex",
+    "page_content": "Backbone\nC3k2-\nSGSM SA-WDP\n}\n×3\nC3k2-\nSGSM\nSPPFC2PSA\nConcat\nUpsample\nC3k2-\nSGSM\nConcat\nC3k2-\nSGSM\nConv\nConcat\nC3k2-\nSGSM\nConcat\nC3k2-\nSGSM\nNeck\nSLQD-Head\nSLQD-Head\nUpsample\nConv\nSLQD-Head\nP3\nP4\nP5\n80×80×64\n40×40×128\n20×20×256\nCBS\n3×3\nCBS\n3×3\nInput\n640×640×3\n320×320×64\n160×160×128\nCBS\nConv\nBN\nSiLU\nHead\nFig. 1. Overall architecture of the proposed SFQ- Det. The network is built upon the YOLO11n baseline, with SGSM and SA-WDP integrated into the backbone \nand a shared lightweight quality-aware detection head (SLQD) for improved SAR ship detection.\nB. Speckle-aware Guided Structure Modulation\nDue to the coherent imaging mechanism, SAR images suffer \nfrom strong speckle noise and unstable local statistics, leading \nto noise -dominated high- frequency responses that make \nconventional convolution operators prone to confusing true \nstructural information with speckle-induced pseudo responses.\nTo address this issue, we propose a Speckle -aware Guided \nStructure Modulation (SGSM) module (Fig. 2), which enhances \nstructural representations by jointly modeling local consistency, \ndirectional patterns, and global  responses through lightweight \nstructural modeling and statistical modulation. \nInput Conv\n1×1\nLSA\nDSC\nConcat\nlocF\nsurF\njoiF",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:004",
@@ -1536,7 +626,7 @@
     }
   },
   "985419bb186328d7:parent:005": {
-    "page_content": "maritime condition s. Experiments on the SSDD dataset\ndemonstrate that SFQ -Det outperforms the YOLO11n baseline\nwhile reducing parameters and computation by approximately 36% \nand 38%, respectively.\nKeywords—Synthetic aperture radar, ship detection, structure –\nfrequency coupling.\nI. INTRODUCTION  \nSynthetic aperture radar (SAR) imaging enables all-day and\nall-weather maritime observation and is widely used in\nsurveillance and reconnaissance. As a key task in marine remote\nsensing, SAR ship detection has attracted increasing attention,",
+    "page_content": "SGM\n γ×\n \nFig. 2. Architecture of the speckle-aware guided structure modulation (SGSM) \nmodule. \nGiven an input feature map  CHW××∈X  ,SGSM first \napplies a 1 × 1convolution for channel compression, producing \n2\nC HW××\n′∈X  ,which is then fed into two parallel structural \nmodeling branches. \nIn the local branch, Local Shift Aggregation (LSA)\naggregates the center position and its four neighbors: \n( )loc 1,0 1,0 0, 1 0, 1\n1 () () () ()5 SSSS+− +−′ ′′′++ + ′= +F X XXXX (1) \nwhich stabilizes local structural responses by averaging \nrandom speckle fluctuations. \nThe directional branch adopts Directional Structure Contrast \n(DSC) to enhance direction-consistent ship and wake patterns:\n( )sur ,0 ,0 0, 0,\n1 () () () () .2\ndd ddSSSS+− +− ′′= −+− ′′F XXXX  (2) \nTo suppress speckle -dominated abnormal responses, a \nSpeckle Energy Gate (SEG) is applied based on the global \nenergy of directional features: \n \nspk sur\n,,\n1 | ( , , )| ,\nchw\ng chwCHWσα β= −∑ +\nF  (3) \nyielding the gated directional feature:\nsur spk sur .g= ⋅FF  (4) \nThe local and directional features are fused and further \nrefined by a lightweight Statistical Global Modulation (SGM) \nmodule, producing the final output via a scaled residual \nconnection: \n \nout ,γ= +⋅YX F  (5) \nwhere γ  is initialized to zero and gradually learned during \ntraining.",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:005",
@@ -1550,7 +640,7 @@
     }
   },
   "985419bb186328d7:parent:006": {
-    "page_content": "but remains challenging due to severe speckle noise, complex\nsea clutter, and the small, elongated structure of ship targets [1].",
+    "page_content": "Through these designs, SGSM effectively enhances \ndirection-consistent ship structures while suppressing speckle -\ninduced pseudo responses, providing robust structural features \nfor subsequent frequency-domain modeling and detection. \nC. Speckle-aware Wavelet Decomposition Pooling \n0.5 0.5\n0.5 0.5\n-0.5 -0.5\n0.5 0.5\n-0.5 0.5\n-0.5 0.5\n0.5 -0.5\n-0.5 0.5\nInput\nPad to Even\nLL\nLH\nHL\nHH\nSoft Compress\nSpeckle \nEnergy Gate\nConcat\nHaar kernel\nSoft Compress stabilizes the LL subband \nby applying non-linear compression.\nSpeckle Energy Gate suppresses \nhigh-frequency noise using \nenergy-based gating.\nSA-WDP\n \nFig. 3. Architecture of the speckle-aware wavelet decomposition pooling (SA-\nWDP) module.\nIn SAR ship detection, conventional strided downsampling \nmixes frequency components, amplifying speckle-induced high-\nfrequency noise and degrading small -target discrimination. To \naddress this issue, we propose a Speckle -Aware Wavelet \nDecomposition Pooling (SA -WDP) module (Fig. 3) that\nperforms frequency -aware downsampling via wavelet -based \ndecoupling and speckle-adaptive suppression [13]. \nGiven an input feature map  BCHW×× ×∈X  , SA-WDP \napplies Haar wavelet decomposition to obtain one low-\nfrequency subband and three high-frequency subbands: \n { , , , } ( ), =LL LH HL HH X   (6)",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:006",
@@ -1564,7 +654,7 @@
     }
   },
   "985419bb186328d7:parent:007": {
-    "page_content": "With the development of deep learning, convolutional neural\nnetwork (CNN)-based detectors, especially one- stage models,\nhave been introduced into SAR ship detection for their\nefficiency. However, most existing detectors are designed for",
+    "page_content": "where LL captures coarse structural information, while LH, \nHL, and HH encode directional high-frequency details. \nTo stabilize low -frequency responses with large dynamic \nranges, a lightweight soft compression is applied: \n  ,1| | ε= ++\nLLLL LL\n (7) \nwhere ε is a small constant for numerical stability.\nFor high-frequency subbands dominated by speckle noise, a \nSpeckle Energy Gate (SEG) is introduced to adaptively suppress \nnoise: \n \n( ), ,k kk k k k kg ae b gσ= −+ = ⋅ FF  (8) \nAfter low-frequency compression and high-frequency gating, \nSA-WDP concatenates the processed subbands along the \nchannel dimension to produce the final output feature:\n    4 22Concat[ , , , ] .\nHWBC× ××\n= ∈Y LL LH HL HH   (9) \nwhere ke denotes the global energy of subband\n{, , }k ∈ LH HL HH . \nThrough these designs, SA-WDP enables frequency-aware \ndownsampling with speckle- adaptive suppression, providing \nrobust multi-scale features for subsequent detection. Together\nwith SGSM, it complements spatial structural modeling with \nfrequency-domain robustness under complex SAR sea clutter. \nD. Shared Lightweight Quality-aware Detection Head \nP3\nP4\nP5\nConv_GN\n3×3\nConv_GN\n3×3\nConv_GN\n3×3\nShared Conv \nBlock(DW 3×3 \n+ PW 1×1)\nConv_Reg\nConv_Reg\nConv_Reg\nConv_Cls\nConv_Cls\nConv_Cls\nScale\nScale\nScale",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:007",
@@ -1578,7 +668,7 @@
     }
   },
   "985419bb186328d7:parent:008": {
-    "page_content": "optical imagery and fail to accommodate the statistical\ncharacteristics of SAR data [2][3][4]. Convolution operations\ntend to confuse speckle noise with structural details,\nconventional downsampling ignores frequency- domain",
+    "page_content": "Shared Lightweight Quality-aware Detection Head\nQCE\nQCE\nQCE Pred_Scores\nPred_Scores\nPred_Scores\n \nFig. 4. Architecture of the shared lightweight quality -aware detection head \n(SLQD). \nIn SAR ship detection, speckle noise and sea clutter often \nlead to misaligned classification confidence and localization\naccuracy, especially in lightweight detectors. To address this \nissue, we propose a Shared Lightweight Quality- aware \nDetection Head (SLQD) that enhances prediction reliability via \ncross-scale parameter sharing and localization -quality-guided \nclassification while preserving detection efficiency [14].",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:008",
@@ -1592,7 +682,7 @@
     }
   },
   "985419bb186328d7:parent:009": {
-    "page_content": "differences, and classification confidence is usually decoupled\nfrom localization accuracy, leading to unreliable detection \nresults in SAR scenarios [5].\nAlthough deep learning –based object detectors, such as\nYOLO [6], Faster R-CNN [7], and SSD [8], have demonstrated\nstrong performance on standard benchmarks, they still",
+    "page_content": "Given the multi -scale feature set from the backbone,  \n345{, ,}PPP= ,each feature is first processed by an \nindependent 3 × 3Conv-GN module for channel alignment: \n 33\nGNConv ( ), {3,4,5}.ii Pi×= ∈F  ( 10) \nThe aligned features are then fed into a shared depthwise \nseparable convolution module: \n ( )11 3 3\nPW DWConv Conv ( ) ,ii ××=FF  ( 11)\nenabling consistent modeling across scales while reducing \nparameters and computation. \nFor prediction, the shared features are sent to both regression \nand classification branches. The regression branch predicts \nbounding box distributions with a scale-adaptive factor: \n \nregConv ( ),ii is= ⋅BF   (12)\nTo explicitly align classification confidence with \nlocalization quality, a Quality -aware Classification Estimator \n(QCE) is introduced. A localization quality descriptor is \nextracted from regression outputs: \n \n( ),ii φ=QB  (13) \nand used to calibrate classification confidence: \n .ˆ ( ( ))ii i σψ=CC Q   (14)\nThis design suppresses overconfident predictions caused by \nlow-quality localization. \nFinally, SLQD concatenates iB and ˆ\niC to form multi- scale \ndetection outputs. Through these designs, SLQD achieves \nlightweight cross -scale parameter sharing and explicit \nclassification–localization consistency, significantly improving",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:009",
@@ -1602,11 +692,11 @@
       "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
       "filename": "SFQ-Det.pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 2
     }
   },
   "985419bb186328d7:parent:010": {
-    "page_content": "encounter substantial difficulties in complex SAR image\nscenarios. In particular, their detection accuracy often degrades\nunder severe speckle noise and cluttered backgrounds, where\ndiscriminative target features are easily overwhelmed by noise-\ninduced responses.\nSeveral studies have attempted to address these issues from\ndifferent perspectives. Cui et al.  [9] proposed MSF -SAR by\nenhancing contextual modeling and multi -scale feature fusion",
+    "page_content": "detection stability in complex SAR scenarios. \nIII. EXPERIMENTS \nA. Experimental Settings \nExperiments were conducted on a Windows 10 platform \nwith an NVIDIA RTX 2060 GPU (6 GB) and an AMD Ryzen 7 \n4800H CPU (2.90 GHz), using PyTorch 2.5.1 (CUDA 12.6) and \nPython 3.9. Evaluations were performed on the SSDD dataset\n(1,160 SAR images with 2,456 ship annotations), which was \nrandomly split into training, validation, and test sets at a ratio of \n70%/10%/20%, and performance was evaluated using \nmAP@0.5, Recall, GFLOPs, and the number of parameters. \nAll images were resized to 640×640. The model was trained",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:010",
@@ -1616,11 +706,11 @@
       "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
       "filename": "SFQ-Det.pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 2
     }
   },
   "985419bb186328d7:parent:011": {
-    "page_content": "for small-ship detection. Hu et al.   [10] introduced SDWPNet,\nwhich incorporates wavelet -based downsampling to preserve\ncritical details under lightweight constraints. Fan et al.  [11]",
+    "page_content": "for 350 epochs with a batch size of 16 using the SGD optimizer,\nwith an initial learning rate of 0.01, momentum of 0.937, and \nweight decay of 0.0005. \nB. Ablation Experiments \nTABLE I \nRESULTS OF ABLATION EXPERIMENTS ON THE SSDD DATASET \nModels SGSM SA-WDP SLQD-Head Params(M) FLOPs(G) mAP@0.5 R% \nA    2.58 6.3 96.1 89.3 \nB ✓   2.18 5.5 97.3 92.4 \nC  ✓  2.23 5.5 97.5 91.3 \nD   ✓ 2.43 5.7 97.3 92.6\nE ✓ ✓ ✓ 1.66 3.9 98.2 95.6 \nAblation experiments were conducted on the SSDD dataset \nto evaluate the contribution of each module, as summarized in \nTable I. Model A denotes the baseline, Models B–D individually \nincorporate SGSM, SA-WDP, and SLQD-Head, and Model E \nrepresents the full model integrating all modules.\nAs shown in Table I , each module yields consistent \nperformance gains when applied independently, validating the \neffectiveness of structure -aware modeling, frequency -domain \ndecoupling, and quality- aware detection. Notably, the \nimprovements brought by different modules are complementary\nrather than redundant, indicating that each module addresses \ndistinct challenges in SAR ship detection. The full model \nachieves the best performance, attaining 98.2% mAP@0.5 and \n95.6% Recall with only 1.66 M parameters and 3.9 GFLOPs, \ndemonstrating a strong accuracy–efficiency trade-off. \nC. Comparison Experiments \nTABLE II",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:011",
@@ -1630,11 +720,11 @@
       "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
       "filename": "SFQ-Det.pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 3
     }
   },
   "985419bb186328d7:parent:012": {
-    "page_content": "proposed a hybrid logarithmic sparse representation model to\nimprove robustness in small -sample scenarios. Despite these\nadvances, how to jointly handle speckle -dominated",
+    "page_content": "THE COMPARATIVE EXPERIMENT ON THE SSDD \nDATASET. \nModels Params(M) FLOPs(G) mAP@0.5 R% \nYOLOv5m 20.85 48.2 94.5 84.9 \nYOLOv8 3.01 8.2 95.7 92.0 \nYOLO11n 2.58 6.3 96.8 93.5 \nCSFF-MGDH - - 96.7 - \nImproved YOLOv7 - - 96.5 90.3 \nLD-YOLO 4.5 12.0 98.2 95.0 \nSFQ-Det 1.66 3.9 98.2 95.6 \nTo evaluate the overall performance of SFQ -Det,\ncomparative experiments were conducted on the SSDD dataset, \nas shown in Table II. YOLOv5m provides strong representation \ncapability but incurs high computational cost, while lightweight \nvariants such as YOLOv8 and YOLO11n reduce model \ncomplexity yet remain challenged by complex sea clutter.\nFor SAR -specific baselines, CSFF -MGDH [15] enhances \nthe YOLOX framework by introducing deformable convolution \nand cross -stage feature fusion to better model complex \nbackgrounds and multi-scale targets. Improved YOLOv7  [16] \nemploys dual -channel pooling attention and spatial weight\nbalancing to strengthen multi -scale feature alignment. LD -\nYOLO [17], built upon YOLOv8n, integrates dynamic \nconvolution, large-kernel attention, and a dedicated detection \nhead to improve small -target detection. In contrast, SFQ -Det \nachieves 98.2% mAP@0.5 and 95.6% Recall with only 1.66 M",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:012",
@@ -1644,11 +734,11 @@
       "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
       "filename": "SFQ-Det.pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 3
     }
   },
   "985419bb186328d7:parent:013": {
-    "page_content": "backgrounds and multi- scale variations under strict\ncomputational constraints remains an open problem.",
+    "page_content": "parameters and 3.9 GFLOPs, matching the accuracy of LD -\nYOLO while significantly reducing model complexity, \nindicating a more favorable accuracy–efficiency trade-off. \n(a) (b) (c)  \nFig. 5. Visual comparison of SAR ship detection on the SSDD dataset. \nFig. 5 presents qualitative detection results on the SSDD\ndataset, where (a) shows the ground truth, (b) the baseline \nYOLO11n, and (c) the proposed SFQ- Det. As illustrated, \nYOLO11n tends to miss small and elongated ships or produce \ninaccurate localization under complex sea clutter. In contrast, \nSFQ-Det yields detection results that are more consistent with\nthe ground truth, exhibiting improved localization accuracy and \ntarget separation, particularly in dense multi-ship scenes. These \nresults demonstrate the robustness and effectiveness of SFQ-Det \nin complex SAR environments. \nIV. C\nONCLUSION \nThis paper presents SFQ-Det, a lightweight and robust SAR\nship detection framework. By integrating structure –frequency \ncoupled modeling and quality- aware detection, SFQ -Det \neffectively addresses challenges such as complex sea clutter, \nsmall targets, and elongated ship structures. Experiments on the \nSSDD dataset demonstrate that SFQ -Det achieves high",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:013",
@@ -1658,11 +748,11 @@
       "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
       "filename": "SFQ-Det.pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 3
     }
   },
   "985419bb186328d7:parent:014": {
-    "page_content": "To this end, this paper proposes SFQ -Det, a structure –\nfrequency coupled and quality -aware SAR ship detector. A\nspeckle-aware guided structure modulation mechanism\nenhances directional ship structures while suppressing pseudo",
+    "page_content": "detection accuracy with significantly reduced computational \ncost, offering a favorable accuracy–efficiency trade-off. These \nresults indicate that SFQ -Det is wel l suited for practical \ndeployment in resource -constrained SAR ship detection \nscenarios. Future work will focus on further improving real-time\nperformance and generalization in more complex maritime \nenvironments.\nREFERENCES \n[1] J. Li, C. Xu, H. Su, L. Gao, and T. Wang, “Deep learning for SAR ship \ndetection: past, present and future,” Remote Sensing, vol. 14, no. 11, Art. \nno. 2712, 2022. \n[2] M. Yasir et al. , “Ship detection based on deep learning using SAR \nimagery: a systematic literature review,” Soft Computing, vol. 27, no. 1, \n2023.\n[3] J. Li, J. Chen, P. Cheng, Z. Yu, L. Yu, and C. Chi, “A survey on deep -\nlearning-based real-time SAR ship detection,” IEEE J. Sel. Topics Appl. \nEarth Observ. Remote Sens., vol. 16, pp. 3218–3247, 2023. \n[4] C. Zhang et al. , “Development and application of ship detection and\nclassification datasets: a review,” IEEE Geosci. Remote Sens. Mag., 2024. \n[5] X. Wu, X. He, S. Tian, B. Wang, and W. Lin, “Review of ship target \ndetection based on SAR images,” in Proc. 7th Int. Conf. Transportation \nInformation and Safety (ICTIS), Xi’an, China, 2023, pp. 2106–2112, doi: \n10.1109/ICTIS60134.2023.10243867.",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:014",
@@ -1672,11 +762,11 @@
       "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
       "filename": "SFQ-Det.pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 3
     }
   },
   "985419bb186328d7:parent:015": {
-    "page_content": "high-frequency responses. A spe ckle-aware wavelet\ndecomposition pooling operator enables frequency decoupling",
+    "page_content": "[6] J. Redmon, S. Divvala, R. Girshick, and A. Farhadi, “You only look once: \nunified, real-time object detection,” in Proc. IEEE Conf. Computer Vision \nand Pattern Recognition (CVPR), 2016, pp. 779–788. \n[7] S. Ren, K. He, R. Girshick, and J. Sun, “Faster R-CNN: towards real-time\nobject detection with region proposal networks,” IEEE Trans. Pattern \nAnal. Mach. Intell., vol. 39, no. 6, pp. 1137–1149, 2017. \n[8] W. Liu et al., “SSD: single shot multibox detector,” in Proc. Eur. Conf. \nComputer Vision (ECCV), Cham, Switzerland: Springer, 2016, pp. 21–37.\n[9] H. Cui et al. , “MSF- SAR: a multiscale fusion method for small ship \ndetection in SAR images,” IEEE J. Sel. Topics Appl. Earth Observ. \nRemote Sens., vol. 19, pp. 2200–2212, 2025. \n[10] X. Hu, H. Chen, Y. Chang, X. Yang, and W. Zeng, “SDWPNet: a \ndownsampling-driven network for SAR ship detection with refined\nfeatures and optimized loss,” IEEE Geosci. Remote Sens. Lett. , vol. 23, \npp. 1–5, 2025. \n[11]  Y. Fan, “Small-sample SAR ship target detection method based on mixed \nlog-sum sparse model,” in Proc. 6th Int. Conf. Computer Communication \nand Network Security (CCNS) , Nanjing, China, 2025, pp. 163– 171, doi: \n10.1109/CCNS66849.2025.11338110.",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:015",
@@ -1686,11 +776,11 @@
       "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
       "filename": "SFQ-Det.pdf",
       "file_type": "pdf",
-      "page": 0
+      "page": 3
     }
   },
   "985419bb186328d7:parent:016": {
-    "page_content": "and adaptive suppression during scale transformation. In\naddition, a shared lightweight quality -aware detection head\nexplicitly integrates localization quality into classificati on",
+    "page_content": "[12] T. Zhang et al., “SAR ship detection dataset (SSDD): official release \nand comprehensive data analysis,” Remote Sensing, vol. 13, no. 18, Art. \nno. 3690, 2021.  \n[13] T. Williams and R. Li, “Wavelet pooling for convolutional neural \nnetworks,” in Proc. Int. Conf. Learning Representations (ICLR), 2018.\n[14] X. Li, W. Wang, X. Hu, J. Li, J. Tang, and J. Yang, “Generalized focal \nloss v2: learning reliable localization quality estimation for dense object \ndetection,” in Proc. IEEE/CVF Conf. Computer Vision and Pattern \nRecognition (CVPR), 2021, pp. 11632–11641. \n[15] Y. Qiao, X. Yin, X. Zhou, S. Lan, W. Wang, and H. Chen, “CSFF-\nMGDH: cross-stage feature fusion and decoupled head with mutual \nguidance for SAR ship detection,” IEEE Trans. Radar Syst., vol. 4, pp. \n76–85, 2026, doi: 10.1109/TRS.2025.3632813. \n[16] J. Li and J. Liu, “Improved ship target detection in SAR images based \non YOLOv7,” in Proc. 6th Int. Conf. Computer Vision, Image and Deep\nLearning (CVIDL), Ningbo, China, 2025, pp. 18–21, doi: \n10.1109/CVIDL65390.2025.11085819. \n[17] J. Niu et al., “LD-YOLO: a lightweight dynamic convolution-based \nYOLOv8n framework for robust ship detection in SAR imagery,” IEEE \nGeosci. Remote Sens. Lett., vol. 23, pp. 1–5, 2026, Art. no. 4000305, \ndoi: 10.1109/LGRS.2025.3630098.",
     "metadata": {
       "doc_id": "985419bb186328d7",
       "parent_id": "985419bb186328d7:parent:016",
@@ -1700,679 +790,7 @@
       "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
       "filename": "SFQ-Det.pdf",
       "file_type": "pdf",
-      "page": 0
-    }
-  },
-  "985419bb186328d7:parent:017": {
-    "page_content": "confidence. Experiments on the SSDD [12] dataset  demonstrate\nthat SFQ -Det outperforms the YOLO11n baseline with \nsignificantly reduced model complexity.\nII. P\nROPOSED METHOD \nA. Overall Architecture of SFQ-Det\nThis section provides an overview of SFQ-Det, including the",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:017",
-      "chunk_type": "parent",
-      "parent_index": 17,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 0
-    }
-  },
-  "985419bb186328d7:parent:018": {
-    "page_content": "speckle-aware guided structure modulation module, the speckle-\naware wavelet decomposition pooling operator, and the shared\nlightweight quality -aware detection head. The overall",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:018",
-      "chunk_type": "parent",
-      "parent_index": 18,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 0
-    }
-  },
-  "985419bb186328d7:parent:019": {
-    "page_content": "architecture is illustrated in Fig. 1. SFQ -Det is built upon the\none-stage YOLO11 framework with targeted architectural\nmodifications, where each component is carefully designed to\nenhance structural representation, frequency robustness, and\nprediction reliability in complex SAR scenes.",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:019",
-      "chunk_type": "parent",
-      "parent_index": 19,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 0
-    }
-  },
-  "985419bb186328d7:parent:020": {
-    "page_content": "This work is supported by the National Natural Science Foundation of \nChina (Grant No. 62571472).\nBackbone\nC3k2-\nSGSM SA-WDP\n}\n×3\nC3k2-\nSGSM\nSPPFC2PSA\nConcat\nUpsample\nC3k2-\nSGSM\nConcat\nC3k2-\nSGSM\nConv\nConcat\nC3k2-\nSGSM\nConcat\nC3k2-\nSGSM\nNeck\nSLQD-Head\nSLQD-Head\nUpsample\nConv\nSLQD-Head\nP3\nP4\nP5\n80×80×64\n40×40×128\n20×20×256\nCBS\n3×3\nCBS\n3×3\nInput\n640×640×3\n320×320×64\n160×160×128\nCBS\nConv\nBN",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:020",
-      "chunk_type": "parent",
-      "parent_index": 20,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 0
-    }
-  },
-  "985419bb186328d7:parent:021": {
-    "page_content": "SiLU\nHead\nFig. 1. Overall architecture of the proposed SFQ- Det\n. The network is built upon the YOLO11n baseline, with SGSM and SA-WDP integrated into the backbone \nand a shared lightweight quality-aware detection head (SLQD) for improved SAR ship detection.\nB. Speckle-aware Guided Structure Modulation",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:021",
-      "chunk_type": "parent",
-      "parent_index": 21,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "985419bb186328d7:parent:022": {
-    "page_content": "Due to the coherent imaging mechanism, SAR images suffer\nfrom strong speckle noise and unstable local statistics, leading\nto noise -dominated high- frequency responses that make",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:022",
-      "chunk_type": "parent",
-      "parent_index": 22,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "985419bb186328d7:parent:023": {
-    "page_content": "conventional convolution operators prone to confusing true\nstructural information with speckle-induced pseudo responses.\nTo address this issue, we propose a Speckle -aware Guided\nStructure Modulation (SGSM) module (Fig. 2), which enhances\nstructural representations by jointly modeling local consistency,\ndirectional patterns, and global  responses through lightweight",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:023",
-      "chunk_type": "parent",
-      "parent_index": 23,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "985419bb186328d7:parent:024": {
-    "page_content": "structural modeling and statistical modulation. \nInput Conv\n1×1\nLSA\nDSC\nConcat\nlocF\nsurF\njoiF\n \nSGM\nγ×\n \nFig. 2. Architecture of the speckle-aware guided structure modulation (SGSM) \nmodule.\nGiven an input feature map  CHW××∈X  ,SGSM first\napplies a 1 × 1convolution for channel compression, producing \n2\nC HW××\n′∈X  ,which is then fed into two parallel structural \nmodeling branches.\nIn the local branch, Local Shift Aggregation (LSA)\naggregates the center position and its four neighbors: \n( )loc 1,0 1,0 0, 1 0, 1",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:024",
-      "chunk_type": "parent",
-      "parent_index": 24,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "985419bb186328d7:parent:025": {
-    "page_content": "1 () () () ()5 SSSS+− +−′ ′′′++ + ′= +F X XXXX (1)\nwhich stabilizes local structural responses by averaging \nrandom speckle fluctuations.\nThe directional branch adopts Directional Structure Contrast\n(DSC) to enhance direction-consistent ship and wake patterns: \n ( )sur ,0 ,0 0, 0,\n1 () () () () .2\ndd ddSSSS+− +− ′′= −+− ′′F XXXX  (2) \nTo suppress speckle -dominated abnormal responses, a\nSpeckle Energy Gate (SEG) is applied based on the global \nenergy of directional features:",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:025",
-      "chunk_type": "parent",
-      "parent_index": 25,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "985419bb186328d7:parent:026": {
-    "page_content": "spk sur\n,,\n1 | ( , , )| ,\nchw\ng chwCHWσα β= −∑ +\nF  (3)\nyielding the gated directional feature: \n sur spk sur .g= ⋅FF  (4)\nThe local and directional features are fused and further\nrefined by a lightweight Statistical Global Modulation (SGM)\nmodule, producing the final output via a scaled residual \nconnection: \n \nout ,γ= +⋅YX F  (5)\nwhere γ  is initialized to zero and gradually learned during \ntraining.",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:026",
-      "chunk_type": "parent",
-      "parent_index": 26,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "985419bb186328d7:parent:027": {
-    "page_content": "Through these designs, SGSM effectively enhances\ndirection-consistent ship structures while suppressing speckle -\ninduced pseudo responses, providing robust structural features\nfor subsequent frequency-domain modeling and detection.\nC. Speckle-aware Wavelet Decomposition Pooling \n0.5 0.5\n0.5 0.5\n-0.5 -0.5\n0.5 0.5\n-0.5 0.5\n-0.5 0.5\n0.5 -0.5\n-0.5 0.5\nInput\nPad to Even\nLL\nLH\nHL\nHH\nSoft Compress\nSpeckle \nEnergy Gate\nConcat\nHaar kernel\nSoft Compress stabilizes the LL subband \nby applying non-linear compression.",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:027",
-      "chunk_type": "parent",
-      "parent_index": 27,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "985419bb186328d7:parent:028": {
-    "page_content": "Speckle Energy Gate suppresses \nhigh-frequency noise using \nenergy-based gating.\nSA-WDP\nFig. 3. Architecture of the speckle-aware wavelet decomposition pooling (SA-\nWDP) module.\nIn SAR ship detection, conventional strided downsampling",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:028",
-      "chunk_type": "parent",
-      "parent_index": 28,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 1
-    }
-  },
-  "985419bb186328d7:parent:029": {
-    "page_content": "mixes frequency components, amplifying speckle-induced high-\nfrequency noise and degrading small -target discrimination. To\naddress this issue, we propose a Speckle -Aware Wavelet\nDecomposition Pooling (SA -WDP) module (Fig. 3) that\nperforms frequency -aware downsampling via wavelet -based\ndecoupling and speckle-adaptive suppression [13].",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:029",
-      "chunk_type": "parent",
-      "parent_index": 29,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "985419bb186328d7:parent:030": {
-    "page_content": "Given an input feature map  BCHW×× ×∈X  , SA-WDP\napplies Haar wavelet decomposition to obtain one low-\nfrequency subband and three high-frequency subbands: \n { , , , } ( ), =LL LH HL HH X   (6)\nwhere LL captures coarse structural information, while LH,\nHL, and HH encode directional high-frequency details.\nTo stabilize low -frequency responses with large dynamic\nranges, a lightweight soft compression is applied: \n  ,1| | ε= ++\nLLLL LL\n (7)\nwhere ε is a small constant for numerical stability.",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:030",
-      "chunk_type": "parent",
-      "parent_index": 30,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "985419bb186328d7:parent:031": {
-    "page_content": "For high-frequency subbands dominated by speckle noise, a\nSpeckle Energy Gate (SEG) is introduced to adaptively suppress \nnoise:",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:031",
-      "chunk_type": "parent",
-      "parent_index": 31,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "985419bb186328d7:parent:032": {
-    "page_content": "( ), ,k kk k k k kg ae b gσ= −+ = ⋅ FF  (8)\nAfter low-frequency compression and high-frequency gating,\nSA-WDP concatenates the processed subbands along the\nchannel dimension to produce the final output feature: \n     4 22Concat[ , , , ] .\nHWBC× ××\n= ∈Y LL LH HL HH   (9) \nwhere ke denotes the global energy of subband\n{, , }k ∈ LH HL HH .",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:032",
-      "chunk_type": "parent",
-      "parent_index": 32,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "985419bb186328d7:parent:033": {
-    "page_content": "Through these designs, SA-WDP enables frequency-aware\ndownsampling with speckle- adaptive suppression, providing\nrobust multi-scale features for subsequent detection. Together\nwith SGSM, it complements spatial structural modeling with\nfrequency-domain robustness under complex SAR sea clutter.",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:033",
-      "chunk_type": "parent",
-      "parent_index": 33,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "985419bb186328d7:parent:034": {
-    "page_content": "D. Shared Lightweight Quality-aware Detection Head \nP3\nP4\nP5\nConv_GN\n3×3\nConv_GN\n3×3\nConv_GN\n3×3\nShared Conv \nBlock(DW 3×3 \n+ PW 1×1)\nConv_Reg\nConv_Reg\nConv_Reg\nConv_Cls\nConv_Cls\nConv_Cls\nScale\nScale\nScale\nShared Lightweight Quality-aware Detection Head\nQCE\nQCE\nQCE Pred_Scores\nPred_Scores\nPred_Scores\n \nFig. 4. Architecture of the shared lightweight quality -aware detection head",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:034",
-      "chunk_type": "parent",
-      "parent_index": 34,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "985419bb186328d7:parent:035": {
-    "page_content": "(SLQD). \nIn SAR ship detection, speckle noise and sea clutter often\nlead to misaligned classification confidence and localization\naccuracy, especially in lightweight detectors. To address this\nissue, we propose a Shared Lightweight Quality- aware\nDetection Head (SLQD) that enhances prediction reliability via\ncross-scale parameter sharing and localization -quality-guided",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:035",
-      "chunk_type": "parent",
-      "parent_index": 35,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "985419bb186328d7:parent:036": {
-    "page_content": "classification while preserving detection efficiency [14].\nGiven the multi -scale feature set from the backbone,\n345{, ,}PPP= ,each feature is first processed by an",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:036",
-      "chunk_type": "parent",
-      "parent_index": 36,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "985419bb186328d7:parent:037": {
-    "page_content": "independent 3 × 3Conv-GN module for channel alignment: \n 33\nGNConv ( ), {3,4,5}.ii Pi×= ∈F  ( 10)\nThe aligned features are then fed into a shared depthwise \nseparable convolution module:\n( )11 3 3\nPW DWConv Conv ( ) ,ii ××=FF  ( 11)",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:037",
-      "chunk_type": "parent",
-      "parent_index": 37,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "985419bb186328d7:parent:038": {
-    "page_content": "enabling consistent modeling across scales while reducing \nparameters and computation.\nFor prediction, the shared features are sent to both regression\nand classification branches. The regression branch predicts\nbounding box distributions with a scale-adaptive factor: \n \nregConv ( ),ii is= ⋅BF   (12)",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:038",
-      "chunk_type": "parent",
-      "parent_index": 38,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "985419bb186328d7:parent:039": {
-    "page_content": "To explicitly align classification confidence with\nlocalization quality, a Quality -aware Classification Estimator\n(QCE) is introduced. A localization quality descriptor is \nextracted from regression outputs:\n( ),ii φ=QB  (13) \nand used to calibrate classification confidence:\n.ˆ ( ( ))ii i σψ=CC Q   (14) \nThis design suppresses overconfident predictions caused by\nlow-quality localization. \nFinally, SLQD concatenates iB and ˆ\niC to form multi- scale\ndetection outputs. Through these designs, SLQD achieves",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:039",
-      "chunk_type": "parent",
-      "parent_index": 39,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "985419bb186328d7:parent:040": {
-    "page_content": "lightweight cross -scale parameter sharing and explicit\nclassification–localization consistency, significantly improving\ndetection stability in complex SAR scenarios. \nIII. EXPERIMENTS \nA. Experimental Settings\nExperiments were conducted on a Windows 10 platform\nwith an NVIDIA RTX 2060 GPU (6 GB) and an AMD Ryzen 7\n4800H CPU (2.90 GHz), using PyTorch 2.5.1 (CUDA 12.6) and",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:040",
-      "chunk_type": "parent",
-      "parent_index": 40,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "985419bb186328d7:parent:041": {
-    "page_content": "Python 3.9. Evaluations were performed on the SSDD dataset\n(1,160 SAR images with 2,456 ship annotations), which was",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:041",
-      "chunk_type": "parent",
-      "parent_index": 41,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "985419bb186328d7:parent:042": {
-    "page_content": "randomly split into training, validation, and test sets at a ratio of\n70%/10%/20%, and performance was evaluated using\nmAP@0.5, Recall, GFLOPs, and the number of parameters.",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:042",
-      "chunk_type": "parent",
-      "parent_index": 42,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "985419bb186328d7:parent:043": {
-    "page_content": "All images were resized to 640×640. The model was trained\nfor 350 epochs with a batch size of 16 using the SGD optimizer,",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:043",
-      "chunk_type": "parent",
-      "parent_index": 43,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 2
-    }
-  },
-  "985419bb186328d7:parent:044": {
-    "page_content": "with an initial learning rate of 0.01, momentum of 0.937, and \nweight decay of 0.0005.\nB. Ablation Experiments \nTABLE I \nRESULTS OF ABLATION EXPERIMENTS ON THE SSDD DATASET\nModels SGSM SA-WDP SLQD-Head Params(M) FLOPs(G) mAP@0.5 R% \nA    2.58 6.3 96.1 89.3\nB ✓   2.18 5.5 97.3 92.4 \nC  ✓  2.23 5.5 97.5 91.3 \nD   ✓ 2.43 5.7 97.3 92.6\nE ✓ ✓ ✓ 1.66 3.9 98.2 95.6 \nAblation experiments were conducted on the SSDD dataset",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:044",
-      "chunk_type": "parent",
-      "parent_index": 44,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
       "page": 3
-    }
-  },
-  "985419bb186328d7:parent:045": {
-    "page_content": "to evaluate the contribution of each module, as summarized in\nTable I. Model A denotes the baseline, Models B–D individually",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:045",
-      "chunk_type": "parent",
-      "parent_index": 45,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "985419bb186328d7:parent:046": {
-    "page_content": "incorporate SGSM, SA-WDP, and SLQD-Head, and Model E\nrepresents the full model integrating all modules.\nAs shown in Table I , each module yields consistent\nperformance gains when applied independently, validating the\neffectiveness of structure -aware modeling, frequency -domain\ndecoupling, and quality- aware detection. Notably, the\nimprovements brought by different modules are complementary\nrather than redundant, indicating that each module addresses",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:046",
-      "chunk_type": "parent",
-      "parent_index": 46,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "985419bb186328d7:parent:047": {
-    "page_content": "distinct challenges in SAR ship detection. The full model\nachieves the best performance, attaining 98.2% mAP@0.5 and\n95.6% Recall with only 1.66 M parameters and 3.9 GFLOPs,",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:047",
-      "chunk_type": "parent",
-      "parent_index": 47,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "985419bb186328d7:parent:048": {
-    "page_content": "demonstrating a strong accuracy–efficiency trade-off. \nC. Comparison Experiments \nTABLE II\nTHE COMPARATIVE EXPERIMENT ON THE SSDD \nDATASET. \nModels Params(M) FLOPs(G) mAP@0.5 R%",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:048",
-      "chunk_type": "parent",
-      "parent_index": 48,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "985419bb186328d7:parent:049": {
-    "page_content": "YOLOv5m 20.85 48.2 94.5 84.9 \nYOLOv8 3.01 8.2 95.7 92.0 \nYOLO11n 2.58 6.3 96.8 93.5\nCSFF-MGDH - - 96.7 - \nImproved YOLOv7 - - 96.5 90.3 \nLD-YOLO 4.5 12.0 98.2 95.0\nSFQ-Det 1.66 3.9 98.2 95.6 \nTo evaluate the overall performance of SFQ -Det,",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:049",
-      "chunk_type": "parent",
-      "parent_index": 49,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "985419bb186328d7:parent:050": {
-    "page_content": "comparative experiments were conducted on the SSDD dataset,\nas shown in Table II. YOLOv5m provides strong representation\ncapability but incurs high computational cost, while lightweight",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:050",
-      "chunk_type": "parent",
-      "parent_index": 50,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "985419bb186328d7:parent:051": {
-    "page_content": "variants such as YOLOv8 and YOLO11n reduce model\ncomplexity yet remain challenged by complex sea clutter.\nFor SAR -specific baselines, CSFF -MGDH [15] enhances\nthe YOLOX framework by introducing deformable convolution\nand cross -stage feature fusion to better model complex\nbackgrounds and multi-scale targets. Improved YOLOv7  [16]\nemploys dual -channel pooling attention and spatial weight\nbalancing to strengthen multi -scale feature alignment. LD -\nYOLO [17], built upon YOLOv8n, integrates dynamic\nconvolution, large-kernel attention, and a dedicated detection\nhead to improve small -target detection. In contrast, SFQ -Det",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:051",
-      "chunk_type": "parent",
-      "parent_index": 51,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "985419bb186328d7:parent:052": {
-    "page_content": "achieves 98.2% mAP@0.5 and 95.6% Recall with only 1.66 M\nparameters and 3.9 GFLOPs, matching the accuracy of LD -\nYOLO while significantly reducing model complexity,\nindicating a more favorable accuracy–efficiency trade-off. \n(a) (b) (c)",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:052",
-      "chunk_type": "parent",
-      "parent_index": 52,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "985419bb186328d7:parent:053": {
-    "page_content": "Fig. 5. Visual comparison of SAR ship detection on the SSDD dataset.\nFig. 5 presents qualitative detection results on the SSDD",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:053",
-      "chunk_type": "parent",
-      "parent_index": 53,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "985419bb186328d7:parent:054": {
-    "page_content": "dataset, where (a) shows the ground truth, (b) the baseline\nYOLO11n, and (c) the proposed SFQ- Det. As illustrated,\nYOLO11n tends to miss small and elongated ships or produce\ninaccurate localization under complex sea clutter. In contrast,",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:054",
-      "chunk_type": "parent",
-      "parent_index": 54,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "985419bb186328d7:parent:055": {
-    "page_content": "SFQ-Det yields detection results that are more consistent with\nthe ground truth, exhibiting improved localization accuracy and\ntarget separation, particularly in dense multi-ship scenes. These\nresults demonstrate the robustness and effectiveness of SFQ-Det \nin complex SAR environments.\nIV. C\nONCLUSION \nThis paper presents SFQ-Det, a lightweight and robust SAR\nship detection framework. By integrating structure –frequency\ncoupled modeling and quality- aware detection, SFQ -Det",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:055",
-      "chunk_type": "parent",
-      "parent_index": 55,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "985419bb186328d7:parent:056": {
-    "page_content": "effectively addresses challenges such as complex sea clutter,\nsmall targets, and elongated ship structures. Experiments on the",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:056",
-      "chunk_type": "parent",
-      "parent_index": 56,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "985419bb186328d7:parent:057": {
-    "page_content": "SSDD dataset demonstrate that SFQ -Det achieves high\ndetection accuracy with significantly reduced computational\ncost, offering a favorable accuracy–efficiency trade-off. These\nresults indicate that SFQ -Det is wel l suited for practical",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:057",
-      "chunk_type": "parent",
-      "parent_index": 57,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "985419bb186328d7:parent:058": {
-    "page_content": "deployment in resource -constrained SAR ship detection\nscenarios. Future work will focus on further improving real-time\nperformance and generalization in more complex maritime \nenvironments.\nREFERENCES \n[1] J. Li, C. Xu, H. Su, L. Gao, and T. Wang, “Deep learning for SAR ship\ndetection: past, present and future,” Remote Sensing, vol. 14, no. 11, Art. \nno. 2712, 2022.\n[2] M. Yasir et al. , “Ship detection based on deep learning using SAR\nimagery: a systematic literature review,” Soft Computing, vol. 27, no. 1, \n2023.\n[3] J. Li, J. Chen, P. Cheng, Z. Yu, L. Yu, and C. Chi, “A survey on deep -\nlearning-based real-time SAR ship detection,” IEEE J. Sel. Topics Appl.\nEarth Observ. Remote Sens., vol. 16, pp. 3218–3247, 2023.\n[4] C. Zhang et al. , “Development and application of ship detection and",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:058",
-      "chunk_type": "parent",
-      "parent_index": 58,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "985419bb186328d7:parent:059": {
-    "page_content": "classification datasets: a review,” IEEE Geosci. Remote Sens. Mag., 2024.\n[5] X. Wu, X. He, S. Tian, B. Wang, and W. Lin, “Review of ship target\ndetection based on SAR images,” in Proc. 7th Int. Conf. Transportation\nInformation and Safety (ICTIS), Xi’an, China, 2023, pp. 2106–2112, doi:\n10.1109/ICTIS60134.2023.10243867.",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:059",
-      "chunk_type": "parent",
-      "parent_index": 59,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 3
-    }
-  },
-  "985419bb186328d7:parent:060": {
-    "page_content": "[6] J. Redmon, S. Divvala, R. Girshick, and A. Farhadi, “You only look once:\nunified, real-time object detection,” in Proc. IEEE Conf. Computer Vision\nand Pattern Recognition (CVPR), 2016, pp. 779–788.\n[7] S. Ren, K. He, R. Girshick, and J. Sun, “Faster R-CNN: towards real-time\nobject detection with region proposal networks,” IEEE Trans. Pattern",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:060",
-      "chunk_type": "parent",
-      "parent_index": 60,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "985419bb186328d7:parent:061": {
-    "page_content": "Anal. Mach. Intell., vol. 39, no. 6, pp. 1137–1149, 2017.\n[8] W. Liu et al., “SSD: single shot multibox detector,” in Proc. Eur. Conf.\nComputer Vision (ECCV), Cham, Switzerland: Springer, 2016, pp. 21–37.\n[9] H. Cui et al. , “MSF- SAR: a multiscale fusion method for small ship\ndetection in SAR images,” IEEE J. Sel. Topics Appl. Earth Observ.\nRemote Sens., vol. 19, pp. 2200–2212, 2025.\n[10] X. Hu, H. Chen, Y. Chang, X. Yang, and W. Zeng, “SDWPNet: a\ndownsampling-driven network for SAR ship detection with refined\nfeatures and optimized loss,” IEEE Geosci. Remote Sens. Lett. , vol. 23, \npp. 1–5, 2025.\n[11]  Y. Fan, “Small-sample SAR ship target detection method based on mixed\nlog-sum sparse model,” in Proc. 6th Int. Conf. Computer Communication",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:061",
-      "chunk_type": "parent",
-      "parent_index": 61,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "985419bb186328d7:parent:062": {
-    "page_content": "and Network Security (CCNS) , Nanjing, China, 2025, pp. 163– 171, doi:\n10.1109/CCNS66849.2025.11338110.\n[12] T. Zhang et al., “SAR ship detection dataset (SSDD): official release\nand comprehensive data analysis,” Remote Sensing, vol. 13, no. 18, Art. \nno. 3690, 2021.\n[13] T. Williams and R. Li, “Wavelet pooling for convolutional neural\nnetworks,” in Proc. Int. Conf. Learning Representations (ICLR), 2018.\n[14] X. Li, W. Wang, X. Hu, J. Li, J. Tang, and J. Yang, “Generalized focal",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:062",
-      "chunk_type": "parent",
-      "parent_index": 62,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "985419bb186328d7:parent:063": {
-    "page_content": "loss v2: learning reliable localization quality estimation for dense object\ndetection,” in Proc. IEEE/CVF Conf. Computer Vision and Pattern\nRecognition (CVPR), 2021, pp. 11632–11641.\n[15] Y. Qiao, X. Yin, X. Zhou, S. Lan, W. Wang, and H. Chen, “CSFF-\nMGDH: cross-stage feature fusion and decoupled head with mutual",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:063",
-      "chunk_type": "parent",
-      "parent_index": 63,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 4
-    }
-  },
-  "985419bb186328d7:parent:064": {
-    "page_content": "guidance for SAR ship detection,” IEEE Trans. Radar Syst., vol. 4, pp.\n76–85, 2026, doi: 10.1109/TRS.2025.3632813.\n[16] J. Li and J. Liu, “Improved ship target detection in SAR images based\non YOLOv7,” in Proc. 6th Int. Conf. Computer Vision, Image and Deep\nLearning (CVIDL), Ningbo, China, 2025, pp. 18–21, doi: \n10.1109/CVIDL65390.2025.11085819.\n[17] J. Niu et al., “LD-YOLO: a lightweight dynamic convolution-based\nYOLOv8n framework for robust ship detection in SAR imagery,” IEEE\nGeosci. Remote Sens. Lett., vol. 23, pp. 1–5, 2026, Art. no. 4000305,\ndoi: 10.1109/LGRS.2025.3630098.",
-    "metadata": {
-      "doc_id": "985419bb186328d7",
-      "parent_id": "985419bb186328d7:parent:064",
-      "chunk_type": "parent",
-      "parent_index": 64,
-      "file_hash": "985419bb186328d74a6fbcd684e66275315ea0b6c0ecd3eda08ec948cadb7808",
-      "source": "E:\\agent开发trea\\data\\SFQ-Det.pdf",
-      "filename": "SFQ-Det.pdf",
-      "file_type": "pdf",
-      "page": 4
     }
   },
   "7dacec898efac02d:parent:000": {

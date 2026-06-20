@@ -16,7 +16,7 @@ class ParentChildResolver:
             return []
 
         if not any(doc.metadata.get("parent_id") for doc in child_docs):
-            return child_docs
+            return child_docs[:self.top_k_parents]
 
         seen_parent_ids: set[str] = set()
         results: list[Document] = []
@@ -41,6 +41,8 @@ class ParentChildResolver:
             parent_meta = dict(record.get("metadata") or {})
             parent_meta["match_child_id"] = child.metadata.get("child_id", child.metadata.get("chunk_id"))
             parent_meta["chunk_id"] = parent_id
+            # 子块已按 rerank 分降序，首次命中的子块即该父块最高分，带到父块 meta 供展示/排序
+            parent_meta["rerank_score"] = child.metadata.get("rerank_score")
 
             results.append(Document(
                 page_content=record["page_content"],
