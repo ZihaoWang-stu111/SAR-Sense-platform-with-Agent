@@ -2,17 +2,18 @@ import json
 import logging
 import traceback
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 
 from api.dependencies import get_agent, get_conv_manager, get_metrics
+from api.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["chat"])
 
 
 @router.post("/chat/stream")
-async def chat_stream(request: Request):
+async def chat_stream(request: Request, user: dict = Depends(get_current_user)):
     """Streaming chat endpoint using SSE"""
     try:
         logger.info("Streaming chat request received")
@@ -35,8 +36,8 @@ async def chat_stream(request: Request):
 
         conv_mgr = get_conv_manager()
         if conversation_id:
-            conv_mgr.append_message(conversation_id, "user", display_message)
-            messages = conv_mgr.build_chat_pack(conversation_id)
+            conv_mgr.append_message(conversation_id, "user", display_message, user_id=user["id"])
+            messages = conv_mgr.build_chat_pack(conversation_id, user_id=user["id"])
             if messages and messages[-1].get("role") == "user":
                 messages[-1] = {"role": "user", "content": message}
         else:

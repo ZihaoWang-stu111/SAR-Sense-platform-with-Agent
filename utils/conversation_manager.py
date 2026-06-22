@@ -1,83 +1,121 @@
-import os
 import json
 from datetime import datetime
 from utils.logger_handler import logger
+from utils.db import get_conn, init_db
 
 
 class ConversationManager:
-    def __init__(self, storage_dir: str = None):
-        if storage_dir is None:
-            from utils.path_tool import get_abs_path
-            storage_dir = get_abs_path("conversations")
-        self.storage_dir = storage_dir
-        os.makedirs(self.storage_dir, exist_ok=True)
+    """对话管理（SQLite-backed）。
 
-    def create_conversation(self, first_message: str = "") -> str:
-        conv_id = datetime.now().strftime("conv_%Y%m%d_%H%M%S")
-        title = first_message[:20] + "..." if len(first_message) > 20 else first_message
-        if not title:
-            title = "新对话"
-        conv_data = {
-            "id": conv_id,
-            "title": title,
-            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "messages": []
-        }
-        self._write(conv_id, conv_data)
+    旧实现：每对话一个 JSON 文件全量重写。新实现：走 SQLite（runtime/sar_sense.db）。
+    方法签名与返回结构保持不变，下游（API 路由、react_agent）无需改动。
+    build_chat_pack 的滑动窗口 + 增量摘要压缩逻辑保持原行为。
+    """
+
+    def __init__(self, storage_dir: str = None):
+        # storage_dir 保留参数兼容旧调用，不再用于读写
+        self.storage_dir = storage_dir
+        init_db()  # 幂等建表
+
+    def create_conversation(self, first_message: str = "", *, user_id: str) -> str:
+        # 带微秒，避免同秒创建主键冲突（原秒级 conv_YYYYMMDD_HHMMSS）
+        conv_id = datetime.now().strftime("conv_%Y%m%d_%H%M%S_%f")
+        title = (first_message[:20] + "...") if len(first_message) > 20 else (first_message or "新对话")
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with get_conn() as conn:
+            conn.execute(
+                """INSERT INTO conversations (id, user_id, title, created_at, updated_at, summary, summary_up_to)
+                   VALUES (?, ?, ?, ?, ?, '', 0)""",
+                (conv_id, user_id, title, now, now),
+            )
         return conv_id
 
-    def list_conversations(self) -> list[dict]:
-        convs = []
-        for fname in os.listdir(self.storage_dir):
-            if not fname.endswith(".json"):
-                continue
-            try:
-                with open(os.path.join(self.storage_dir, fname), "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                convs.append({
-                    "id": data["id"],
-                    "title": data["title"],
-                    "updated_at": data["updated_at"]
-                })
-            except Exception:
-                continue
-        convs.sort(key=lambda x: x["updated_at"], reverse=True)
-        return convs
+    def list_conversations(self, *, user_id: str) -> list[dict]:
+        with get_conn() as conn:
+            rows = conn.execute(
+                "SELECT id, title, updated_at FROM conversations WHERE user_id=? ORDER BY updated_at DESC",
+                (user_id,),
+            ).fetchall()
+            return [{"id": r["id"], "title": r["title"], "updated_at": r["updated_at"]} for r in rows]
 
-    def load_conversation(self, conv_id: str) -> dict:
-        path = os.path.join(self.storage_dir, f"{conv_id}.json")
-        if not os.path.exists(path):
-            return {"id": conv_id, "title": "新对话", "messages": []}
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+    def load_conversation(self, conv_id: str, *, user_id: str) -> dict:
+        with get_conn() as conn:
+            conv = conn.execute(
+                "SELECT * FROM conversations WHERE id=? AND user_id=?", (conv_id, user_id)
+            ).fetchone()
+            if conv is None:
+                # 不存在或越权都返回空默认，不区分（避免通过返回探测他人 conv_id）
+                return {"id": conv_id, "title": "新对话", "messages": []}
+            msgs = conn.execute(
+                "SELECT role, content, thought_steps FROM conversation_messages "
+                "WHERE conversation_id=? ORDER BY message_index",
+                (conv_id,),
+            ).fetchall()
+            messages = []
+            for m in msgs:
+                msg = {"role": m["role"], "content": m["content"]}
+                if m["thought_steps"]:
+                    try:
+                        msg["thought_steps"] = json.loads(m["thought_steps"])
+                    except (json.JSONDecodeError, TypeError):
+                        msg["thought_steps"] = []
+                messages.append(msg)
+            data = {
+                "id": conv["id"],
+                "title": conv["title"],
+                "created_at": conv["created_at"],
+                "updated_at": conv["updated_at"],
+                "messages": messages,
+            }
+            if conv["summary"] is not None:
+                data["summary"] = conv["summary"]
+            if conv["summary_up_to"] is not None:
+                data["summary_up_to"] = conv["summary_up_to"]
+            return data
 
-    def append_message(self, conv_id: str, role: str, content: str, thought_steps: list = None):
-        conv_data = self.load_conversation(conv_id)
-        msg = {"role": role, "content": content}
-        if thought_steps:
-            msg["thought_steps"] = thought_steps
-        conv_data["messages"].append(msg)
-        conv_data["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        if role == "user" and len(conv_data["messages"]) == 1:
-            conv_data["title"] = content[:20] + "..." if len(content) > 20 else content
-        self._write(conv_id, conv_data)
+    def append_message(self, conv_id: str, role: str, content: str, thought_steps: list = None, *, user_id: str):
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        thought_json = json.dumps(thought_steps, ensure_ascii=False) if thought_steps else None
+        with get_conn() as conn:
+            row = conn.execute(
+                "SELECT id FROM conversations WHERE id=? AND user_id=?", (conv_id, user_id)
+            ).fetchone()
+            if row is None:
+                # 越权对话不写入，不报错
+                return
+            max_idx = conn.execute(
+                "SELECT COALESCE(MAX(message_index), -1) AS m FROM conversation_messages WHERE conversation_id=?",
+                (conv_id,),
+            ).fetchone()["m"]
+            next_idx = max_idx + 1
+            conn.execute(
+                """INSERT INTO conversation_messages
+                   (conversation_id, message_index, role, content, thought_steps, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (conv_id, next_idx, role, content, thought_json, now),
+            )
+            # 首条 user 消息隐式重写 title
+            if role == "user" and next_idx == 0:
+                title = (content[:20] + "...") if len(content) > 20 else content
+                conn.execute(
+                    "UPDATE conversations SET updated_at=?, title=? WHERE id=?",
+                    (now, title, conv_id),
+                )
+            else:
+                conn.execute(
+                    "UPDATE conversations SET updated_at=? WHERE id=?",
+                    (now, conv_id),
+                )
 
-    def delete_conversation(self, conv_id: str):
-        path = os.path.join(self.storage_dir, f"{conv_id}.json")
-        if os.path.exists(path):
-            os.remove(path)
-
-    def _write(self, conv_id: str, data: dict):
-        path = os.path.join(self.storage_dir, f"{conv_id}.json")
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+    def delete_conversation(self, conv_id: str, *, user_id: str):
+        with get_conn() as conn:
+            conn.execute("DELETE FROM conversations WHERE id=? AND user_id=?", (conv_id, user_id))
 
     # ==================== 对话记忆压缩 ====================
 
-    def build_chat_pack(self, conv_id: str, window_size: int = 10) -> list:
+    def build_chat_pack(self, conv_id: str, window_size: int = 10, *, user_id: str) -> list:
         """构建传给 Agent 的消息包，摘要拼到第一条消息 content 前面，返回 dict 列表"""
-        conv_data = self.load_conversation(conv_id)
+        conv_data = self.load_conversation(conv_id, user_id=user_id)
         all_messages = conv_data.get("messages", [])
 
         if len(all_messages) <= window_size:
@@ -103,9 +141,7 @@ class ConversationManager:
                 summary = self._compress_summary_incremental(summary, new_messages)
             else:
                 summary = self._compress_messages(new_messages)
-            conv_data["summary"] = summary
-            conv_data["summary_up_to"] = len(older)
-            self._write(conv_id, conv_data)
+            self._update_summary(conv_id, summary, len(older))
             logger.info(f"[记忆压缩] 对话 {conv_id} 摘要已更新")
 
         if summary:
@@ -116,6 +152,14 @@ class ConversationManager:
             return [summary_msg] + recent
 
         return recent
+
+    def _update_summary(self, conv_id: str, summary: str, summary_up_to: int):
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with get_conn() as conn:
+            conn.execute(
+                "UPDATE conversations SET summary=?, summary_up_to=?, updated_at=? WHERE id=?",
+                (summary, summary_up_to, now, conv_id),
+            )
 
     @staticmethod
     def _clean_message(msg: dict) -> dict:

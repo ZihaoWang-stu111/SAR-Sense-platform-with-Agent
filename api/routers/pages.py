@@ -32,3 +32,8 @@ async def knowledge_page():
 @router.get("/metrics.html")
 async def metrics_page():
     return FileResponse("metrics.html")
+
+
+@router.get("/login.html")
+async def login_page():
+    return FileResponse("login.html")

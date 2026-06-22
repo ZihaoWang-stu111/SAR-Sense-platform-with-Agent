@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from api.dependencies import get_agent, get_conv_manager, get_metrics
+from api.auth import router as auth_router
 from api.routers import (
     pages,
     detection,
@@ -63,6 +64,7 @@ def create_app() -> FastAPI:
         threading.Thread(target=preload, daemon=True).start()
 
     app.include_router(pages.router)
+    app.include_router(auth_router)
     app.include_router(detection.router, prefix="/api")
     app.include_router(chat.router, prefix="/api")
     app.include_router(conversations.router, prefix="/api/conversations")

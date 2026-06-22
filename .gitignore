@@ -20,6 +20,7 @@ chroma_db/
 conversations/
 logs/
 server.log
+runtime/
 
 # MCP 学习项目
 mcp-learning/

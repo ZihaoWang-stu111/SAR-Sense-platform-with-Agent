@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 | SAR-Sense</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/luxury.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a07f4f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='2.4' fill='%23a07f4f'/%3E%3Cpath d='M12 4a8 8 0 0 1 8 8'/%3E%3Cpath d='M12 8a4 4 0 0 1 4 4'/%3E%3Cline x1='12' y1='12' x2='19' y2='5'/%3E%3C/svg%3E">
+  <style>
+    /* ============ 登录页布局 ============ */
+    .auth-page {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 1024px) {
+      .auth-page { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ============ 左侧视觉区 ============ */
+    .auth-visual {
+      position: relative;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 48px;
+      color: #fff;
+      background: linear-gradient(135deg, #0c4a6e 0%, #075985 50%, #0369a1 100%);
+      overflow: hidden;
+    }
+    @media (min-width: 1024px) { .auth-visual { display: flex; } }
+
+    .auth-brand {
+      position: relative; z-index: 20;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 1.1rem; font-weight: 600; font-family: 'Space Grotesk', sans-serif;
+    }
+    .auth-brand .brand-badge {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: rgba(255,255,255,0.1); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .auth-brand .brand-badge svg { width: 16px; height: 16px; }
+
+    .auth-stage {
+      position: relative; z-index: 20;
+      display: flex; align-items: flex-end; justify-content: center;
+      height: 500px;
+    }
+    .auth-characters {
+      position: relative;
+      width: 550px; height: 400px;
+    }
+
+    /* 通用角色容器 */
+    .char {
+      position: absolute; bottom: 0;
+      transition: transform 0.7s ease, height 0.7s ease;
+      transform-origin: bottom center;
+    }
+    .char .eyes {
+      position: absolute;
+      display: flex;
+      transition: all 0.7s ease;
+    }
+    .eyeball {
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: #fff; overflow: hidden;
+      transition: height 0.15s ease;
+    }
+    .pupil {
+      border-radius: 50%;
+      background: #2D2D2D;
+      transition: transform 0.1s ease-out;
+    }
+
+    /* 紫色高个 — 后层 */
+    .char-purple {
+      left: 70px; width: 180px; height: 400px;
+      background: #6C3FF5; border-radius: 10px 10px 0 0;
+      z-index: 1;
+    }
+    .char-purple .eyes { gap: 32px; left: 45px; top: 40px; }
+    .char-purple .eyeball { width: 18px; height: 18px; }
+    .char-purple .pupil { width: 7px; height: 7px; }
+
+    /* 黑色中个 — 中层 */
+    .char-black {
+      left: 240px; width: 120px; height: 310px;
+      background: #2D2D2D; border-radius: 8px 8px 0 0;
+      z-index: 2;
+    }
+    .char-black .eyes { gap: 24px; left: 26px; top: 32px; }
+    .char-black .eyeball { width: 16px; height: 16px; }
+    .char-black .pupil { width: 6px; height: 6px; }
+
+    /* 橙色半圆 — 前左 */
+    .char-orange {
+      left: 0; width: 240px; height: 200px;
+      background: #FF9B6B; border-radius: 120px 120px 0 0;
+      z-index: 3;
+    }
+    .char-orange .eyes { gap: 32px; left: 82px; top: 90px; }
+    .char-orange .eyes .pupil { width: 12px; height: 12px; }
+
+    /* 黄色高个 — 前右 */
+    .char-yellow {
+      left: 310px; width: 140px; height: 230px;
+      background: #E8D754; border-radius: 70px 70px 0 0;
+      z-index: 4;
+    }
+    .char-yellow .eyes { gap: 24px; left: 52px; top: 40px; }
+    .char-yellow .eyes .pupil { width: 12px; height: 12px; }
+    .char-yellow .mouth {
+      position: absolute; width: 80px; height: 4px;
+      background: #2D2D2D; border-radius: 4px;
+      left: 40px; top: 88px;
+      transition: all 0.2s ease-out;
+    }
+
+    /* 眨眼时眼球压扁 */
+    .char.blinking .eyeball { height: 2px; }
+    .char.blinking .eyeball .pupil { opacity: 0; }
+
+    /* ============ 注册模式：角色欢迎状态 ============ */
+    /* 注册时左侧角色整体上抬 + 轻微跳动，营造"欢迎"感 */
+    .auth-characters.register-mode .char {
+      animation: charWelcome 1.8s ease-in-out infinite;
+    }
+    .auth-characters.register-mode .char-purple  { animation-delay: 0s; }
+    .auth-characters.register-mode .char-black   { animation-delay: 0.15s; }
+    .auth-characters.register-mode .char-orange  { animation-delay: 0.3s; }
+    .auth-characters.register-mode .char-yellow  { animation-delay: 0.45s; }
+    @keyframes charWelcome {
+      0%, 100% { translate: 0 0; }
+      50%      { translate: 0 -8px; }
+    }
+    /* 注册时黄色角色加挥手（嘴变弯）——用 mouth 形状变化模拟笑脸 */
+    .auth-characters.register-mode .char-yellow .mouth {
+      width: 40px; height: 18px;
+      border-bottom: 4px solid #2D2D2D;
+      border-radius: 0 0 40px 40px;
+      background: transparent;
+      top: 82px; left: 50px;
+    }
+    /* 注册时整体色相微调，更活泼 */
+    .auth-characters.register-mode .char-purple { background: #7b50ff; }
+    .auth-characters.register-mode .char-orange { background: #ffaa7a; }
+
+    /* ============ 左侧装饰 ============ */
+    .auth-visual .bg-grid-deco {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    .auth-visual .blur-blob-1 {
+      position: absolute; top: 25%; right: 25%;
+      width: 256px; height: 256px;
+      background: rgba(255,255,255,0.1); border-radius: 50%; filter: blur(64px);
+    }
+    .auth-visual .blur-blob-2 {
+      position: absolute; bottom: 25%; left: 25%;
+      width: 384px; height: 384px;
+      background: rgba(255,255,255,0.05); border-radius: 50%; filter: blur(64px);
+    }
+    .auth-footer-links {
+      position: relative; z-index: 20;
+      display: flex; gap: 32px;
+      font-size: 0.875rem; color: rgba(255,255,255,0.6);
+    }
+    .auth-footer-links a { color: rgba(255,255,255,0.6); text-decoration: none; transition: color 0.2s; }
+    .auth-footer-links a:hover { color: #fff; }
+
+    /* ============ 右侧表单区（shadcn 原版配色）============ */
+    :root {
+      --auth-primary: #6C3FF5;            /* primary，与左侧紫色角色呼应 */
+      --auth-primary-hover: #5a2fe0;
+      --auth-primary-fg: #ffffff;
+      --auth-bg: #ffffff;                 /* background */
+      --auth-card: #ffffff;
+      --auth-fg: #0f172a;                 /* foreground */
+      --auth-muted: #64748b;              /* muted-foreground */
+      --auth-border: #e2e8f0;             /* border */
+      --auth-input-border: #e2e8f0;
+      --auth-accent: #f1f5f9;
+      --auth-ring: rgba(108,63,245,0.35);
+      --auth-radius: 0.5rem;
+    }
+
+    .auth-form-side {
+      display: flex; align-items: center; justify-content: center;
+      padding: 32px;
+      background: var(--auth-bg);
+    }
+    .auth-card {
+      width: 100%; max-width: 420px;
+    }
+    .auth-mobile-brand {
+      display: none;
+      align-items: center; justify-content: center; gap: 8px;
+      font-size: 1.1rem; font-weight: 600; margin-bottom: 48px;
+      font-family: 'Space Grotesk', sans-serif; color: var(--auth-fg);
+    }
+    .auth-mobile-brand .brand-badge {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: rgba(108,63,245,0.1);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .auth-mobile-brand .brand-badge svg { width: 16px; height: 16px; color: var(--auth-primary); }
+    @media (max-width: 1023px) { .auth-mobile-brand { display: flex; } }
+
+    .auth-header { text-align: center; margin-bottom: 40px; }
+    .auth-header h1 {
+      font-size: 1.875rem; font-weight: 700; letter-spacing: -0.025em;
+      margin: 0 0 8px; color: var(--auth-fg);
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .auth-header p { color: var(--auth-muted); font-size: 0.875rem; margin: 0; }
+
+    .auth-form { display: flex; flex-direction: column; gap: 20px; }
+    .auth-field { display: flex; flex-direction: column; gap: 8px; }
+    .auth-field label {
+      font-size: 0.875rem; font-weight: 500; color: var(--auth-fg);
+      line-height: 1;
+    }
+    .auth-input-wrap { position: relative; }
+    .auth-input {
+      width: 100%; height: 48px; padding: 0 16px;
+      border: 1px solid var(--auth-input-border); border-radius: var(--auth-radius);
+      font-size: 0.95rem; font-family: inherit;
+      background: var(--auth-bg); color: var(--auth-fg); box-sizing: border-box;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .auth-input::placeholder { color: #94a3b8; }
+    .auth-input:focus {
+      outline: none; border-color: var(--auth-primary);
+      box-shadow: 0 0 0 2px var(--auth-ring);
+    }
+    .auth-input.pwd { padding-right: 44px; }
+    .pwd-toggle {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; padding: 4px;
+      color: var(--auth-muted); display: flex; align-items: center;
+      transition: color 0.15s;
+    }
+    .pwd-toggle:hover { color: var(--auth-fg); }
+    .pwd-toggle svg { width: 20px; height: 20px; }
+
+    .auth-row {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 0.875rem;
+    }
+    .auth-remember {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--auth-muted); cursor: pointer; font-weight: 400;
+    }
+    .auth-checkbox {
+      width: 16px; height: 16px; border-radius: 4px;
+      border: 1px solid var(--auth-primary);
+      appearance: none; -webkit-appearance: none;
+      background: var(--auth-bg); cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .auth-checkbox:checked {
+      background: var(--auth-primary); border-color: var(--auth-primary);
+    }
+    .auth-checkbox:checked::after {
+      content: ""; width: 10px; height: 10px;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") center/contain no-repeat;
+    }
+    .auth-toggle-link {
+      color: var(--auth-primary); font-weight: 500; cursor: pointer;
+      text-decoration: none; transition: opacity 0.15s;
+    }
+    .auth-toggle-link:hover { opacity: 0.8; text-decoration: underline; }
+
+    .auth-error {
+      padding: 12px; font-size: 0.85rem; color: #f87171;
+      background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.25);
+      border-radius: var(--auth-radius);
+      display: none;  /* 无错误时不显示，避免空红框 */
+    }
+    .auth-error:not(:empty) { display: block; }
+    .auth-submit {
+      width: 100%; height: 48px; border: none; border-radius: var(--auth-radius);
+      background: var(--auth-primary); color: var(--auth-primary-fg);
+      font-size: 1rem; font-weight: 500;
+      font-family: inherit; cursor: pointer; transition: background 0.15s;
+    }
+    .auth-submit:hover:not(:disabled) { background: var(--auth-primary-hover); }
+    .auth-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .auth-hint {
+      margin-top: 24px; padding: 12px 14px;
+      background: var(--auth-accent); border-radius: var(--auth-radius);
+      font-size: 0.78rem; color: var(--auth-muted); line-height: 1.6; text-align: center;
+    }
+    .auth-hint b { color: var(--auth-primary); }
+
+    .auth-bottom-toggle {
+      text-align: center; margin-top: 24px;
+      font-size: 0.875rem; color: var(--auth-muted);
+    }
+  </style>
+</head>
+<body class="lux-cursor-on" data-public>
+  <script src="js/luxury.js"></script>
+
+  <div class="auth-page">
+    <!-- ============ 左侧视觉区 ============ -->
+    <div class="auth-visual">
+      <div class="bg-grid-deco"></div>
+      <div class="blur-blob-1"></div>
+      <div class="blur-blob-2"></div>
+
+      <div class="auth-brand">
+        <div class="brand-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/>
+            <path d="M12 4a8 8 0 0 1 8 8"/>
+            <path d="M12 8a4 4 0 0 1 4 4"/>
+            <line x1="12" y1="12" x2="19" y2="5"/>
+          </svg>
+        </div>
+        <span>SAR-Sense</span>
+      </div>
+
+      <div class="auth-stage">
+        <div class="auth-characters" id="characters">
+          <!-- 紫色高个 -->
+          <div class="char char-purple" id="char-purple">
+            <div class="eyes">
+              <div class="eyeball"><div class="pupil" data-pupil></div></div>
+              <div class="eyeball"><div class="pupil" data-pupil></div></div>
+            </div>
+          </div>
+          <!-- 黑色中个 -->
+          <div class="char char-black" id="char-black">
+            <div class="eyes">
+              <div class="eyeball"><div class="pupil" data-pupil></div></div>
+              <div class="eyeball"><div class="pupil" data-pupil></div></div>
+            </div>
+          </div>
+          <!-- 橙色半圆 -->
+          <div class="char char-orange" id="char-orange">
+            <div class="eyes">
+              <div class="pupil" data-pupil></div>
+              <div class="pupil" data-pupil></div>
+            </div>
+          </div>
+          <!-- 黄色高个 -->
+          <div class="char char-yellow" id="char-yellow">
+            <div class="eyes">
+              <div class="pupil" data-pupil></div>
+              <div class="pupil" data-pupil></div>
+            </div>
+            <div class="mouth"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="auth-footer-links">
+        <a href="#">隐私政策</a>
+        <a href="#">服务条款</a>
+        <a href="#">联系我们</a>
+      </div>
+    </div>
+
+    <!-- ============ 右侧表单区 ============ -->
+    <div class="auth-form-side">
+      <div class="auth-card">
+        <div class="auth-mobile-brand">
+          <div class="brand-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/>
+              <path d="M12 4a8 8 0 0 1 8 8"/>
+              <path d="M12 8a4 4 0 0 1 4 4"/>
+              <line x1="12" y1="12" x2="19" y2="5"/>
+            </svg>
+          </div>
+          <span>SAR-Sense</span>
+        </div>
+
+        <div class="auth-header">
+          <h1 id="authTitle">欢迎回来</h1>
+          <p id="authSub">登录以使用智能问答与知识库</p>
+        </div>
+
+        <form class="auth-form" onsubmit="return false">
+          <div class="auth-field">
+            <label for="username">用户名</label>
+            <div class="auth-input-wrap">
+              <input type="text" id="username" class="auth-input" autocomplete="username" placeholder="请输入用户名">
+            </div>
+          </div>
+
+          <div class="auth-field">
+            <label for="password">密码</label>
+            <div class="auth-input-wrap">
+              <input type="password" id="password" class="auth-input pwd" autocomplete="current-password" placeholder="请输入密码">
+              <button type="button" class="pwd-toggle" id="pwdToggle" aria-label="显示/隐藏密码">
+                <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="auth-field" id="confirmField" style="display:none">
+            <label for="confirmPassword">确认密码</label>
+            <div class="auth-input-wrap">
+              <input type="password" id="confirmPassword" class="auth-input pwd" autocomplete="new-password" placeholder="请再次输入密码">
+              <button type="button" class="pwd-toggle" id="confirmPwdToggle" aria-label="显示/隐藏密码">
+                <svg id="confirmEyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="auth-row" id="rememberRow">
+            <label class="auth-remember">
+              <input type="checkbox" id="remember" class="auth-checkbox"> 30 天内记住我
+            </label>
+            <a class="auth-toggle-link" id="modeSwitchLink" onclick="toggleMode()">没有账号？去注册</a>
+          </div>
+
+          <div class="auth-error" id="authError"></div>
+
+          <button type="submit" class="auth-submit" id="submitBtn" onclick="submitAuth()">登录</button>
+        </form>
+
+        <div class="auth-hint" id="authHint">
+          体验账号：用户名 <b>admin</b> / 密码 <b>admin123</b>（含历史对话）
+        </div>
+
+        <div class="auth-bottom-toggle" id="bottomToggle" style="display:none">
+          已有账号？<a class="auth-toggle-link" onclick="toggleMode()">去登录</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============ 模式切换（登录/注册）============
+    let mode = "login";
+    function toggleMode() {
+      mode = mode === "login" ? "register" : "login";
+      const isRegister = mode === "register";
+      document.getElementById("authTitle").textContent = isRegister ? "创建账号" : "欢迎回来";
+      document.getElementById("authSub").textContent = isRegister ? "注册即可开始使用 SAR-Sense" : "登录以使用智能问答与知识库";
+      document.getElementById("submitBtn").textContent = isRegister ? "注册" : "登录";
+      document.getElementById("modeSwitchLink").textContent = isRegister ? "已有账号？去登录" : "没有账号？去注册";
+      document.getElementById("bottomToggle").style.display = isRegister ? "block" : "none";
+      // 注册时显示确认密码框，隐藏"记住我"和体验账号提示
+      document.getElementById("confirmField").style.display = isRegister ? "flex" : "none";
+      document.getElementById("rememberRow").style.display = isRegister ? "none" : "flex";
+      document.getElementById("authHint").style.display = isRegister ? "none" : "block";
+      // 注册时左侧角色进入欢迎状态
+      document.getElementById("characters").classList.toggle("register-mode", isRegister);
+      document.getElementById("authError").textContent = "";
+      if (!isRegister) document.getElementById("confirmPassword").value = "";
+    }
+
+    // ============ 密码显示切换 ============
+    let showPassword = false;
+    const pwdInput = document.getElementById("password");
+    const eyeIcon = document.getElementById("eyeIcon");
+    document.getElementById("pwdToggle").addEventListener("click", () => {
+      showPassword = !showPassword;
+      pwdInput.type = showPassword ? "text" : "password";
+      eyeIcon.innerHTML = showPassword
+        ? '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/>'
+        : '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';
+      updateCharacterState();
+    });
+
+    // 确认密码显示切换
+    let showConfirm = false;
+    const confirmInput = document.getElementById("confirmPassword");
+    const confirmEye = document.getElementById("confirmEyeIcon");
+    document.getElementById("confirmPwdToggle").addEventListener("click", () => {
+      showConfirm = !showConfirm;
+      confirmInput.type = showConfirm ? "text" : "password";
+      confirmEye.innerHTML = showConfirm
+        ? '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/>'
+        : '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';
+    });
+    confirmInput.addEventListener("focus", () => { isTyping = true; triggerLookAtEachOther(); updateCharacterState(); });
+    confirmInput.addEventListener("blur",  () => { isTyping = false; updateCharacterState(); });
+
+    // ============ 眼球追踪 + 角色互动 ============
+    let mouseX = 0, mouseY = 0;
+    let isTyping = false;
+    let isLookingAtEachOther = false;
+    let isPurplePeeking = false;
+    let isPurpleBlinking = false, isBlackBlinking = false;
+
+    const charConfigs = [
+      { id: 'char-purple', faceSel: '.eyes', maxFaceX: 15, maxFaceY: 10, skewDiv: 120 },
+      { id: 'char-black',  faceSel: '.eyes', maxFaceX: 15, maxFaceY: 10, skewDiv: 120, skewMul: 1.5 },
+      { id: 'char-orange', faceSel: '.eyes', maxFaceX: 15, maxFaceY: 10, skewDiv: 120 },
+      { id: 'char-yellow', faceSel: '.eyes', maxFaceX: 15, maxFaceY: 10, skewDiv: 120, hasMouth: true },
+    ];
+
+    function updateCharacters() {
+      charConfigs.forEach(cfg => {
+        const el = document.getElementById(cfg.id);
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 3;
+        const dx = mouseX - centerX;
+        const dy = mouseY - centerY;
+        const faceX = Math.max(-cfg.maxFaceX, Math.min(cfg.maxFaceX, dx / 20));
+        const faceY = Math.max(-cfg.maxFaceY, Math.min(cfg.maxFaceY, dy / 30));
+        const skewMul = cfg.skewMul || 1;
+        const bodySkew = Math.max(-6, Math.min(6, -dx / cfg.skewDiv)) * skewMul;
+
+        // 互看模式：输入时角色偏向对方
+        let extraSkew = 0, extraTx = 0;
+        if (isLookingAtEachOther) {
+          if (cfg.id === 'char-purple') { extraSkew = -12; extraTx = 40; }
+          if (cfg.id === 'char-black')  { extraSkew = 10;  extraTx = 20; }
+        }
+        // 密码可见时角色躲开（不看密码）
+        const pwdVisible = pwdInput.value.length > 0 && showPassword;
+
+        if (pwdVisible) {
+          el.style.transform = 'skewX(0deg)';
+        } else if (isLookingAtEachOther) {
+          el.style.transform = `skewX(${bodySkew + extraSkew}deg) translateX(${extraTx}px)`;
+        } else if (isTyping || (pwdInput.value.length > 0 && !showPassword)) {
+          el.style.transform = `skewX(${bodySkew + (cfg.id === 'char-purple' ? -12 : 0)}deg) translateX(${cfg.id === 'char-purple' ? 40 : 0}px)`;
+        } else {
+          el.style.transform = `skewX(${bodySkew}deg)`;
+        }
+
+        // 眼睛位移
+        const eyes = el.querySelector(cfg.faceSel);
+        if (eyes) {
+          if (pwdVisible) {
+            // 角色闭眼/看向别处：紫色偷看时例外
+            if (cfg.id === 'char-purple' && isPurplePeeking) {
+              eyes.style.transform = `translate(${faceX}px, ${faceY}px)`;
+            } else {
+              eyes.style.transform = `translate(${-15}px, ${-10}px)`;
+            }
+          } else if (isLookingAtEachOther) {
+            const tx = cfg.id === 'char-purple' ? 10 : (cfg.id === 'char-black' ? 6 : 0);
+            eyes.style.transform = `translate(${tx}px, ${faceY}px)`;
+          } else {
+            eyes.style.transform = `translate(${faceX}px, ${faceY}px)`;
+          }
+        }
+        // 黄色嘴也跟着动
+        if (cfg.hasMouth) {
+          const mouth = el.querySelector('.mouth');
+          if (mouth) mouth.style.transform = `translate(${pwdVisible ? -30 : faceX}px, ${pwdVisible ? -5 : faceY}px)`;
+        }
+      });
+    }
+
+    // 瞳孔追踪（眼球内的黑点）
+    function updatePupils() {
+      document.querySelectorAll('[data-pupil]').forEach(p => {
+        const eye = p.parentElement;
+        const eyeRect = eye.getBoundingClientRect();
+        const cx = eyeRect.left + eyeRect.width / 2;
+        const cy = eyeRect.top + eyeRect.height / 2;
+        const dx = mouseX - cx;
+        const dy = mouseY - cy;
+        const maxD = 5;
+        const dist = Math.min(Math.sqrt(dx*dx + dy*dy), maxD);
+        const angle = Math.atan2(dy, dx);
+        const x = Math.cos(angle) * dist;
+        const y = Math.sin(angle) * dist;
+        p.style.transform = `translate(${x}px, ${y}px)`;
+      });
+    }
+
+    window.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX; mouseY = e.clientY;
+      updateCharacters();
+      updatePupils();
+    });
+
+    // 输入框焦点 → 角色互动
+    pwdInput.addEventListener('focus', () => { isTyping = true; triggerLookAtEachOther(); updateCharacterState(); });
+    pwdInput.addEventListener('blur',  () => { isTyping = false; updateCharacterState(); });
+    document.getElementById('username').addEventListener('focus', () => { isTyping = true; triggerLookAtEachOther(); updateCharacterState(); });
+    document.getElementById('username').addEventListener('blur',  () => { isTyping = false; updateCharacterState(); });
+    pwdInput.addEventListener('input', updateCharacterState);
+
+    function triggerLookAtEachOther() {
+      isLookingAtEachOther = true;
+      updateCharacters();
+      setTimeout(() => { isLookingAtEachOther = false; updateCharacters(); }, 800);
+    }
+
+    function updateCharacterState() {
+      updateCharacters();
+      // 紫色角色在密码可见时偷看
+      if (pwdInput.value.length > 0 && showPassword) {
+        schedulePeek();
+      }
+    }
+
+    // 紫色偷看动画
+    let peekTimer = null;
+    function schedulePeek() {
+      if (peekTimer) return;
+      peekTimer = setTimeout(() => {
+        isPurplePeeking = true;
+        updateCharacters();
+        setTimeout(() => {
+          isPurplePeeking = false;
+          updateCharacters();
+          peekTimer = null;
+          if (pwdInput.value.length > 0 && showPassword) schedulePeek();
+        }, 800);
+      }, 2000 + Math.random() * 3000);
+    }
+
+    // 眨眼定时（紫色 + 黑色）
+    function scheduleBlink(charId, setFlag) {
+      const delay = 3000 + Math.random() * 4000;
+      setTimeout(() => {
+        const el = document.getElementById(charId);
+        if (el) el.classList.add('blinking');
+        setTimeout(() => {
+          if (el) el.classList.remove('blinking');
+          scheduleBlink(charId, setFlag);
+        }, 150);
+      }, delay);
+    }
+    scheduleBlink('char-purple');
+    scheduleBlink('char-black');
+
+    // ============ 登录/注册提交 ============
+    async function submitAuth() {
+      const username = document.getElementById("username").value.trim();
+      const password = pwdInput.value;
+      const errEl = document.getElementById("authError");
+      errEl.textContent = "";
+      if (!username || !password) { errEl.textContent = "用户名和密码不能为空"; return; }
+      // 注册时校验两次密码一致
+      if (mode === "register") {
+        const confirmPwd = document.getElementById("confirmPassword").value;
+        if (password !== confirmPwd) { errEl.textContent = "两次输入的密码不一致"; return; }
+        if (password.length < 4) { errEl.textContent = "密码至少 4 位"; return; }
+      }
+
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true;
+      btn.textContent = "处理中...";
+      try {
+        const res = await fetch(`/api/auth/${mode}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setToken(data.token, data.user.username);
+          window.location.href = "chat.html";
+        } else {
+          errEl.textContent = data.detail || "操作失败";
+          btn.disabled = false;
+          btn.textContent = mode === "login" ? "登录" : "注册";
+        }
+      } catch (e) {
+        errEl.textContent = "网络错误，请重试";
+        btn.disabled = false;
+        btn.textContent = mode === "login" ? "登录" : "注册";
+      }
+    }
+    pwdInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submitAuth(); });
+
+    // 已登录直接跳走
+    if (isLoggedIn()) window.location.href = "chat.html";
+  </script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

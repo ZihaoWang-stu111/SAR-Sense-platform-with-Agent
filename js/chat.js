@@ -100,7 +100,7 @@ function initMobileMenu() {
 // ==================== Conversation Management ====================
 async function loadConversations() {
   try {
-    const response = await fetch(`${API_BASE}/api/conversations`);
+    const response = await apiFetch(`${API_BASE}/api/conversations`);
     const data = await response.json();
     if (data.success) {
       renderConversationList(data.conversations);
@@ -177,7 +177,7 @@ async function loadConversation(convId) {
       // 不调用cancel，让SSE连接继续运行
     }
 
-    const response = await fetch(`${API_BASE}/api/conversations/${convId}`);
+    const response = await apiFetch(`${API_BASE}/api/conversations/${convId}`);
     const data = await response.json();
     if (data.success) {
       state.currentConversationId = convId;
@@ -198,7 +198,7 @@ async function loadConversation(convId) {
 
 async function createConversation(firstMessage) {
   try {
-    const response = await fetch(`${API_BASE}/api/conversations`, {
+    const response = await apiFetch(`${API_BASE}/api/conversations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: firstMessage })
@@ -218,7 +218,7 @@ async function createConversation(firstMessage) {
 
 async function deleteConversation(convId) {
   try {
-    await fetch(`${API_BASE}/api/conversations/${convId}`, { method: 'DELETE' });
+    await apiFetch(`${API_BASE}/api/conversations/${convId}`, { method: 'DELETE' });
     if (state.currentConversationId === convId) {
       state.currentConversationId = null;
       state.messages = [];
@@ -237,7 +237,7 @@ async function appendMessageToConversation(conversationId, role, content, though
     return;
   }
   try {
-    const response = await fetch(`${API_BASE}/api/conversations/${conversationId}/messages`, {
+    const response = await apiFetch(`${API_BASE}/api/conversations/${conversationId}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role, content, thought_steps: thoughtSteps })
@@ -451,7 +451,7 @@ async function extractFileContent(file) {
   const formData = new FormData();
   formData.append('file', file);
   try {
-    const response = await fetch(`${API_BASE}/api/extract-file`, {
+    const response = await apiFetch(`${API_BASE}/api/extract-file`, {
       method: 'POST',
       body: formData
     });
@@ -562,7 +562,7 @@ async function sendMessageStreaming(message, displayMessage) {
 
   try {
     const messagesHistory = state.messages.slice(0, -2).map(m => ({ role: m.role, content: m.content }));
-    const response = await fetch(`${API_BASE}/api/chat/stream`, {
+    const response = await apiFetch(`${API_BASE}/api/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
