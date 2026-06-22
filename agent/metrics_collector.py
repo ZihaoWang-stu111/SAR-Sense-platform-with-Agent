@@ -1,8 +1,16 @@
+"""Agent 指标收集（内存实时统计 + 同步写 MySQL）。
+
+设计：
+- 内存：单例 + dict/list，/api/metrics 直接读，零延迟。
+- 持久化：每次 record_* 同步写一条 metric_events 到 MySQL（pymysql 直连）。
+  写失败只 warning 不抛，绝不影响 agent 执行。
+- 不按用户隔离（暂时统一写 user_id=1=种子用户），二期可加 user_id 透传。
+"""
 import time
 from collections import defaultdict
 from datetime import datetime
 
-from utils.logger_handler import logger
+from crud.metrics import insert_metric_event
 
 
 class AgentMetrics:
@@ -24,34 +32,6 @@ class AgentMetrics:
         self.llm_call_count = 0
         self.conversation_start_time = None
         self.total_response_time_ms = 0.0
-        self._db_ready = None
-
-    def _persist_event(self, event_type: str, tool_name=None, success=None, duration_ms=None):
-        """写入 metric_events。DB 失败只 warning，不影响内存与主流程。"""
-        if self._db_ready is None:
-            try:
-                from utils.db import init_db
-                init_db()
-                self._db_ready = True
-            except Exception as e:  # noqa: BLE001
-                logger.warning(f"[metrics] init_db 失败，指标仅内存: {e}")
-                self._db_ready = False
-        if not self._db_ready:
-            return
-        try:
-            from utils.db import get_conn
-            with get_conn() as conn:
-                conn.execute(
-                    """INSERT INTO metric_events
-                       (user_id, event_type, tool_name, success, duration_ms, created_at)
-                       VALUES ('default_user', ?, ?, ?, ?, ?)""",
-                    (event_type, tool_name,
-                     1 if success else 0 if success is not None else None,
-                     duration_ms,
-                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                )
-        except Exception as e:  # noqa: BLE001
-            logger.warning(f"[metrics] DB 写事件失败（不影响内存）: {e}")
 
     def start_conversation(self):
         self.conversation_rounds += 1
@@ -62,7 +42,7 @@ class AgentMetrics:
             duration_ms = (time.time() - self.conversation_start_time) * 1000
             self.total_response_time_ms += duration_ms
             self.conversation_start_time = None
-            self._persist_event("conversation_timing", duration_ms=duration_ms)
+            insert_metric_event(event_type="conversation_timing", duration_ms=duration_ms)
 
     def record_tool_call(self, tool_name: str, success: bool, duration_ms: float):
         self.tool_call_counts[tool_name] += 1
@@ -77,15 +57,16 @@ class AgentMetrics:
             "success": success,
             "duration_ms": round(duration_ms, 1)
         })
-        self._persist_event("tool_call", tool_name=tool_name,
-                            success=success, duration_ms=duration_ms)
+        insert_metric_event(
+            event_type="tool_call", tool_name=tool_name,
+            success=success, duration_ms=duration_ms,
+        )
 
     def record_llm_call(self):
         self.llm_call_count += 1
-        self._persist_event("llm_call")
+        insert_metric_event(event_type="llm_call")
 
     def reset(self):
-        # reset 只清内存；DB 历史保留（持久化的意义）
         self._reset()
 
     @property

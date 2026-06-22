@@ -4,16 +4,22 @@ import traceback
 
 from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.responses import StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_agent, get_conv_manager, get_metrics
 from api.auth import get_current_user
+from config.db_conf import get_db
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["chat"])
 
 
 @router.post("/chat/stream")
-async def chat_stream(request: Request, user: dict = Depends(get_current_user)):
+async def chat_stream(
+    request: Request,
+    user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     """Streaming chat endpoint using SSE"""
     try:
         logger.info("Streaming chat request received")
@@ -36,8 +42,11 @@ async def chat_stream(request: Request, user: dict = Depends(get_current_user)):
 
         conv_mgr = get_conv_manager()
         if conversation_id:
-            conv_mgr.append_message(conversation_id, "user", display_message, user_id=user["id"])
-            messages = conv_mgr.build_chat_pack(conversation_id, user_id=user["id"])
+            await conv_mgr.append_message(db, conversation_id, user["id"], "user", display_message)
+            messages = await conv_mgr.build_chat_pack(db, conversation_id, user["id"])
+            # 路由级别先 commit 一次，让 user 消息 + chat_pack 用到的 summary 更新立刻落库；
+            # 后续 agent 在线程内跑、不再用 db，避免长时间持有连接。
+            await db.commit()
             if messages and messages[-1].get("role") == "user":
                 messages[-1] = {"role": "user", "content": message}
         else:

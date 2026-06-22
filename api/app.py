@@ -38,7 +38,28 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def startup_event():
-        """Pre-load components on startup to avoid slow first request"""
+        """Startup: 1) 建表 + 种子用户  2) 后台预加载重对象"""
+        # 1. 异步建表（幂等）：从 models 包导入所有模型注册到同一 metadata
+        try:
+            from config.db_conf import async_engine
+            from models import Base
+            from models import users, conversations, metrics  # noqa: F401 注册 ORM
+            async with async_engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info("DB 表已建（或已存在）")
+            # 2. 种子用户：admin/admin123（幂等）
+            from config.db_conf import AsyncSessionLocal
+            from crud.users import get_user_by_username, create_user, count_users
+            from utils.security import hash_password
+            async with AsyncSessionLocal() as session:
+                if (await count_users(session)) == 0:
+                    await create_user(session, "admin", hash_password("admin123"))
+                    await session.commit()
+                    logger.info("已创建种子用户 admin/admin123")
+        except Exception as e:
+            logger.warning(f"DB 建表/种子用户失败: {e}")
+
+        # 3. 后台预加载（同步对象，不阻塞 startup）
         def preload():
             logger.info("Pre-loading components...")
             try:
