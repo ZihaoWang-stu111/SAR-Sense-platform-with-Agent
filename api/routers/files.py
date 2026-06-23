@@ -19,7 +19,9 @@ async def extract_file(file: UploadFile = File(...)):
         content_bytes = await file.read()
 
         temp_dir = tempfile.gettempdir()
-        temp_path = os.path.join(temp_dir, file.filename)
+        # basename 防路径穿越：客户端可能传 "../../evil.py" 之类文件名
+        safe_name = os.path.basename(file.filename)
+        temp_path = os.path.join(temp_dir, safe_name)
         with open(temp_path, "wb") as f:
             f.write(content_bytes)
 

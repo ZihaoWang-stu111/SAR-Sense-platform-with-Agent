@@ -88,4 +88,4 @@ class RagSummarizeService:
 
 if __name__ == '__main__':
     rag = RagSummarizeService()
-    print(rag.retriever_docs("我家是复式结构，不仅有楼梯，而且客厅还铺了长毛地毯，另外家里养了三只掉毛的猫。请问这种极端情况，扫地机器人能应付得来吗？如果会迷路或者卡住，该怎么解决？"))
+    print(rag.retriever_docs("SA-WDP 为什么能处理斑点噪声和尺度变化？"))

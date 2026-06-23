@@ -1,0 +1,5 @@
+﻿pipeline,qa_id,k,hit,first_hit_rank,rr,n_returned,latency_ms,error
+vector_only,q01,3,True,2,0.5,3,5580.9,
+vector_only,q02,3,False,,0.0,3,3527.8,
+full,q01,3,True,1,1.0,3,11531.4,
+full,q02,3,True,1,1.0,3,6099.4,

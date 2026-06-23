@@ -33,6 +33,13 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     return {"id": payload["user_id"], "username": payload["username"]}
 
 
+def require_admin(user: dict = Depends(get_current_user)) -> dict:
+    """知识库管理需要 admin 权限。"""
+    if user["username"] != "admin":
+        raise HTTPException(status_code=403, detail="只有管理员才能操作知识库")
+    return user
+
+
 @router.post("/register")
 async def register(creds: RegisterRequest, db: AsyncSession = Depends(get_db)):
     exists = await get_user_by_username(db, creds.username)

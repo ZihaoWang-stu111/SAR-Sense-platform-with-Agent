@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from api.dependencies import get_agent, get_conv_manager, get_metrics
+from api.dependencies import get_agent, get_metrics
 from api.auth import router as auth_router
 from api.routers import (
     pages,
@@ -67,12 +67,6 @@ def create_app() -> FastAPI:
                 logger.info("Agent loaded")
             except Exception as e:
                 logger.warning(f"Failed to pre-load agent: {e}")
-
-            try:
-                get_conv_manager()
-                logger.info("Conversation manager loaded")
-            except Exception as e:
-                logger.warning(f"Failed to pre-load conversation manager: {e}")
 
             try:
                 get_metrics()

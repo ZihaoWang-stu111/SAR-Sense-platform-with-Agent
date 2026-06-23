@@ -5,10 +5,8 @@ from agent.tools.agent_tools import get_weather,get_scene_id,\
     get_current_month,get_user_location,rag_summarize,fetch_external_data,fill_context_for_report,\
     get_sea_state,compare_scenes,get_scene_trend,web_search,detect_ships,extract_file_content
 from agent.tools.middleware import monitor_tool, report_prompt_switch,log_before_model
-from agent.metrics_collector import AgentMetrics
 from datetime import datetime
 
-_thought_chains = {}  # conversation_id -> {"steps": [...]}
 
 class ReactAgent:
 
@@ -24,20 +22,16 @@ class ReactAgent:
 
         )
 
-    def execute_stream(self, chat_pack, conversation_id=None):
-        # 为这个会话创建独立的思考链
-        if conversation_id:
-            _thought_chains[conversation_id] = {"steps": []}
-            current_chain = _thought_chains[conversation_id]
-        else:
-            # 兼容没有 ID 的调用（如命令行测试）
-            current_chain = {"steps": []}
+    def execute_stream(self, chat_pack, conversation_id=None, on_step=None):
+        """流式产出 agent 回答。on_step(step_dict) 回调在每次产生思维链步骤时被调用，
+        调用方自行收集（请求局部变量），agent 不再持有任何全局状态。"""
+        # 把"判断 on_step + 调用"封装一层，避免每处 append 都写 if
+        def emit_step(step):
+            if on_step:
+                on_step(step)
 
         if chat_pack is None:
             chat_pack = []
-
-        metrics = AgentMetrics()
-        metrics.start_conversation()
 
         input_dict = {
             "messages": chat_pack
@@ -59,13 +53,13 @@ class ReactAgent:
 
                     if tool_calls:
                         if content:
-                            current_chain["steps"].append({
+                            emit_step({
                                 "step_type": "thinking",
                                 "content": content[:300],
                                 "timestamp": datetime.now().strftime("%H:%M:%S")
                             })
                         for tc in tool_calls:
-                            current_chain["steps"].append({
+                            emit_step({
                                 "step_type": "tool_call",
                                 "content": f"调用 {tc.get('name', '')}",
                                 "tool_name": tc.get('name', ''),
@@ -74,7 +68,7 @@ class ReactAgent:
                                 "timestamp": datetime.now().strftime("%H:%M:%S")
                             })
                     elif content:
-                        current_chain["steps"].append({
+                        emit_step({
                             "step_type": "final_answer",
                             "content": "生成最终回答",
                             "timestamp": datetime.now().strftime("%H:%M:%S")
@@ -83,7 +77,7 @@ class ReactAgent:
                 elif msg_type == "tool":
                     result_content = message.content.strip() if message.content else ""
                     truncated = result_content[:200] + "..." if len(result_content) > 200 else result_content
-                    current_chain["steps"].append({
+                    emit_step({
                         "step_type": "tool_result",
                         "content": truncated,
                         "tool_name": getattr(message, 'name', ''),
@@ -107,8 +101,6 @@ class ReactAgent:
                         yield content + "\n"
 
             processed_message_count = len(messages)
-
-        metrics.end_conversation()
 
 if __name__ == '__main__':
     agent = ReactAgent()

@@ -1,4 +1,4 @@
-"""对话路由：5 端点，全部 async + Depends(get_db, get_current_user)。"""
+"""对话路由：5 端点，全部 async + Depends(get_db, get_current_user)。直接调 crud。"""
 import logging
 import traceback
 
@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
-from api.dependencies import get_conv_manager
 from config.db_conf import get_db
+from crud import conversations as conv_crud
 from schemas.conversations import AppendMessageRequest, CreateConversationRequest
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ async def list_conversations(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        convs = await get_conv_manager().list_conversations(db, user["id"])
+        convs = await conv_crud.list_conversations(db, user["id"])
         return {"success": True, "conversations": convs}
     except Exception as e:
         traceback.print_exc()
@@ -34,7 +34,7 @@ async def create_conversation(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        conv_id = await get_conv_manager().create_conversation(db, user["id"], req.message or "")
+        conv_id = await conv_crud.create_conversation(db, user["id"], req.message or "")
         return {"success": True, "conversation_id": conv_id}
     except Exception as e:
         traceback.print_exc()
@@ -48,7 +48,7 @@ async def load_conversation(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        conv = await get_conv_manager().load_conversation(db, conv_id, user["id"])
+        conv = await conv_crud.load_conversation(db, conv_id, user["id"])
         return {"success": True, "conversation": conv}
     except Exception as e:
         traceback.print_exc()
@@ -62,7 +62,7 @@ async def delete_conversation(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        await get_conv_manager().delete_conversation(db, conv_id, user["id"])
+        await conv_crud.delete_conversation(db, conv_id, user["id"])
         return {"success": True}
     except Exception as e:
         traceback.print_exc()
@@ -77,7 +77,7 @@ async def append_message(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        await get_conv_manager().append_message(
+        await conv_crud.append_message(
             db, conv_id, user["id"], req.role, req.content,
             thought_steps=req.thought_steps,
         )

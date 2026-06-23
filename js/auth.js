@@ -14,6 +14,7 @@ function clearToken() {
 }
 function isLoggedIn() { return !!getToken(); }
 function getUsername() { return localStorage.getItem(USER_KEY) || ""; }
+function isAdmin() { return getUsername() === "admin"; }
 
 // 封装 fetch：注入 Authorization 头，401 清 token 跳登录
 async function apiFetch(url, options = {}) {

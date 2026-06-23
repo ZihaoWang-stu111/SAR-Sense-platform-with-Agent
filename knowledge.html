@@ -138,6 +138,20 @@
   </section>
 
   <script src="js/auth.js"></script>
+  <script>
+    // 非 admin 用户隐藏上传 tab + 删除按钮（后端已拦截，前端也不露入口）
+    if (isLoggedIn() && !isAdmin()) {
+      // 隐藏上传 tab 按钮
+      document.querySelectorAll('[data-tab="tabUpload"]').forEach(el => el.style.display = 'none');
+      // 知识库页面自动切换到文件列表 tab
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      const listTab = document.querySelector('[data-tab="tabFiles"]');
+      const listPanel = document.getElementById('tabFiles');
+      if (listTab) listTab.classList.add('active');
+      if (listPanel) listPanel.classList.add('active');
+    }
+  </script>
   <script src="js/knowledge.js"></script>
 </body>
 </html>

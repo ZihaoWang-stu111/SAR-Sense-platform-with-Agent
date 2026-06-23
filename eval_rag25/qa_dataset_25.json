@@ -1,0 +1,252 @@
+[
+  {
+    "id": "q01",
+    "question": "SAR 为什么适合海洋环境下的舰船检测？",
+    "gold_answer": "SAR 能穿透云层和雨雾，具备全天候、全天时观测能力，因此适合海洋环境下的舰船检测。",
+    "gold_filename": "SAR舰船检测概述.txt",
+    "gold_snippet": "能够穿透云层和雨雾，因此特别适合海洋环境下的目标检测",
+    "source_type": "txt",
+    "qa_type": "fact",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q02",
+    "question": "SSDD 图像主要来自哪些 SAR 卫星？",
+    "gold_answer": "SSDD 图像主要来自 RadarSat-2、TerraSAR-X、Sentinel-1 等多颗 SAR 卫星。",
+    "gold_filename": "HRSID与SSDD数据集.txt",
+    "gold_snippet": "图像来自RadarSat-2、TerraSAR-X、Sentinel-1等多颗SAR卫星",
+    "source_type": "txt",
+    "qa_type": "fact",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q03",
+    "question": "MBE-Net 论文在哪两个数据集上验证？",
+    "gold_answer": "MBE-Net 论文在 HRSID 和 SSDD 数据集上进行了实验验证。",
+    "gold_filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
+    "gold_snippet": "Extensive experiments on the HRSID and SSDD",
+    "source_type": "pdf",
+    "qa_type": "fact",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q04",
+    "question": "poster 中 CWW-Det 的完整标题是什么？",
+    "gold_answer": "完整标题是 CWW-Det: A Context-aware Wavelet-enhanced Detector for SAR Ship Detection。",
+    "gold_filename": "posterWZH.pdf",
+    "gold_snippet": "CWW-Det: A Context-aware Wavelet-enhanced Detector for SAR Ship Detection",
+    "source_type": "pdf",
+    "qa_type": "fact",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q05",
+    "question": "poster 中 CWW-Det 使用了哪些公开数据集做实验？",
+    "gold_answer": "poster 中 CWW-Det 使用了 HRSID 和 SAR-Ship-Dataset 做实验。",
+    "gold_filename": "posterWZH.pdf",
+    "gold_snippet": "public HRSID dataset and the SAR-Ship-Dataset",
+    "source_type": "pdf",
+    "qa_type": "fact",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q06",
+    "question": "CFAR 方法的核心思想是什么？",
+    "gold_answer": "CFAR 通过估计背景杂波分布来设定自适应阈值，从而检测显著目标。",
+    "gold_filename": "SAR舰船检测概述.txt",
+    "gold_snippet": "通过估计背景杂波分布设定自适应阈值",
+    "source_type": "txt",
+    "qa_type": "concept",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q07",
+    "question": "SAR 图像中的斑点噪声是怎样产生的？",
+    "gold_answer": "斑点噪声由雷达分辨单元内多个散射体回波的相干叠加产生。",
+    "gold_filename": "SAR图像特性与挑战.txt",
+    "gold_snippet": "由雷达分辨单元内多个散射体回波的相干叠加产生",
+    "source_type": "txt",
+    "qa_type": "concept",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q08",
+    "question": "DFL Loss 如何建模边界框坐标？",
+    "gold_answer": "DFL Loss 将边界框坐标建模为离散概率分布，而不是只做单点坐标回归。",
+    "gold_filename": "YOLO目标检测模型知识.txt",
+    "gold_snippet": "DFL Loss（Distribution Focal Loss）：将边界框坐标建模为离散概率分布",
+    "source_type": "txt",
+    "qa_type": "concept",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q09",
+    "question": "SA-WDP 为什么能处理斑点噪声和尺度变化？",
+    "gold_answer": "SA-WDP 使用 speckle-aware wavelet decomposition pooling，通过频率解耦和自适应抑制来处理斑点噪声与尺度变化。",
+    "gold_filename": "SFQ-Det.pdf",
+    "gold_snippet": "frequency decoupling",
+    "source_type": "pdf",
+    "qa_type": "concept",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q10",
+    "question": "poster 总结 SAR 舰船检测面临哪些主要挑战？",
+    "gold_answer": "poster 总结的挑战包括低对比度、复杂背景、多尺度变化和部分遮挡。",
+    "gold_filename": "posterWZH.pdf",
+    "gold_snippet": "low contrast, complex backgrounds, multi-scale variations, and partial occlusions",
+    "source_type": "pdf",
+    "qa_type": "concept",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q11",
+    "question": "EEWB 为什么有利于小目标检测？",
+    "gold_answer": "EEWB 能保留高频细节信息，避免传统下采样导致小目标信息丢失。",
+    "gold_filename": "MBE-Net算法详解.txt",
+    "gold_snippet": "保留高频细节信息，避免传统下采样导致的小目标信息丢失",
+    "source_type": "txt",
+    "qa_type": "method",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q12",
+    "question": "ACF-FPN 在 MBE-Net 中承担什么作用？",
+    "gold_answer": "ACF-FPN 是 MBE-Net 的特征融合颈部网络，用于多尺度特征融合与上下文增强。",
+    "gold_filename": "MBE-Net算法详解.txt",
+    "gold_snippet": "ACF-FPN是MBE-Net的特征融合颈部网络",
+    "source_type": "txt",
+    "qa_type": "method",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q13",
+    "question": "LD-DEH 解耦了哪两个检测任务？",
+    "gold_answer": "LD-DEH 解耦了分类和回归两个检测任务。",
+    "gold_filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
+    "gold_snippet": "decouples classification and regression tasks",
+    "source_type": "pdf",
+    "qa_type": "method",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q14",
+    "question": "SFQ-Det 的质量感知检测头如何利用定位质量？",
+    "gold_answer": "SFQ-Det 的 shared lightweight quality-aware detection head 将定位质量显式融入分类置信度。",
+    "gold_filename": "SFQ-Det.pdf",
+    "gold_snippet": "shared lightweight quality-aware detection head",
+    "source_type": "pdf",
+    "qa_type": "method",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q15",
+    "question": "ALSF-Head 的作用是什么？",
+    "gold_answer": "ALSF-Head 通过共享卷积和尺度无关归一化降低计算成本，同时提升预测精度。",
+    "gold_filename": "posterWZH.pdf",
+    "gold_snippet": "Adaptive Lightweight Shared Feature Head (ALSF-Head)",
+    "source_type": "pdf",
+    "qa_type": "method",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q16",
+    "question": "单阶段检测器相比两阶段检测器的核心优势是什么？",
+    "gold_answer": "单阶段检测器直接预测目标类别和位置，因此速度更快，更适合实时或边缘场景。",
+    "gold_filename": "SAR舰船检测概述.txt",
+    "gold_snippet": "直接预测目标类别和位置，速度更快",
+    "source_type": "txt",
+    "qa_type": "comparison",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q17",
+    "question": "L/C/X 三种 SAR 波段穿透能力如何排序？",
+    "gold_answer": "穿透能力通常为 L 波段最强，其次 C 波段，X 波段最弱。",
+    "gold_filename": "SAR图像特性与挑战.txt",
+    "gold_snippet": "L波段 > C波段 > X波段",
+    "source_type": "txt",
+    "qa_type": "comparison",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q18",
+    "question": "OpenSARShip 相比普通 SAR 舰船数据集有什么特色？",
+    "gold_answer": "OpenSARShip 包含 AIS 信息作为辅助标注，因此有利于更细粒度的舰船识别和分析。",
+    "gold_filename": "HRSID与SSDD数据集.txt",
+    "gold_snippet": "包含AIS信息作为辅助标注",
+    "source_type": "txt",
+    "qa_type": "comparison",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q19",
+    "question": "YOLO11 的 C3k2 模块相比 C2f 有什么变化？",
+    "gold_answer": "YOLO11 使用 C3k2 模块替代 C2f，以实现更高效的特征提取。",
+    "gold_filename": "YOLO目标检测模型知识.txt",
+    "gold_snippet": "C3k2模块：替代C2f，更高效的特征提取",
+    "source_type": "txt",
+    "qa_type": "comparison",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q20",
+    "question": "SFQ-Det 相比 YOLO11n 的总体表现如何？",
+    "gold_answer": "SFQ-Det 相比 YOLO11n 表现更好，同时显著降低模型复杂度。",
+    "gold_filename": "SFQ-Det.pdf",
+    "gold_snippet": "outperforms the YOLO11n baseline",
+    "source_type": "pdf",
+    "qa_type": "comparison",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q21",
+    "question": "YOLO11n 的参数量大约是多少？",
+    "gold_answer": "YOLO11n 是 Nano 版本，参数量大约为 2.6M。",
+    "gold_filename": "YOLO目标检测模型知识.txt",
+    "gold_snippet": "YOLO11n（Nano）：最轻量版本，参数量约2.6M，适合边缘设备",
+    "source_type": "txt",
+    "qa_type": "numeric",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q22",
+    "question": "SSDD 数据集包含多少张 SAR 图像？",
+    "gold_answer": "SSDD 数据集包含 1160 张 SAR 图像。",
+    "gold_filename": "HRSID与SSDD数据集.txt",
+    "gold_snippet": "图像数量：1160张SAR图像",
+    "source_type": "txt",
+    "qa_type": "numeric",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q23",
+    "question": "SFQ-Det 中 SSDD 的训练、验证、测试划分比例是多少？",
+    "gold_answer": "SFQ-Det 中 SSDD 被按 70%/10%/20% 划分为训练、验证和测试集。",
+    "gold_filename": "SFQ-Det.pdf",
+    "gold_snippet": "ratio of 70%/10%/20%",
+    "source_type": "pdf",
+    "qa_type": "numeric",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q24",
+    "question": "SFQ-Det 训练时图像 resize 到多大？",
+    "gold_answer": "SFQ-Det 训练时所有图像都 resize 到 640x640。",
+    "gold_filename": "SFQ-Det.pdf",
+    "gold_snippet": "All images were resized to 640×640",
+    "source_type": "pdf",
+    "qa_type": "numeric",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q25",
+    "question": "MBE-Net 在 416、640、1024 输入尺寸下 GFLOPs 如何变化？",
+    "gold_answer": "MBE-Net 的 GFLOPs 随输入尺寸增大而升高：416x416 为 2.5，640x640 为 5.9，1024x1024 为 15.1。",
+    "gold_filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf",
+    "gold_snippet": "2.5 at 416×416, 5.9 at 640×640, and 15.1 at 1024×1024",
+    "source_type": "pdf",
+    "qa_type": "numeric",
+    "difficulty": "hard"
+  }
+]

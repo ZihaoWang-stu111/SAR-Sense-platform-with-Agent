@@ -3,7 +3,6 @@
 _yolo_model = None
 _agent = None
 _metrics = None
-_conv_manager = None
 
 
 def get_yolo_model():
@@ -39,12 +38,3 @@ def get_metrics():
         from agent.metrics_collector import AgentMetrics
         _metrics = AgentMetrics()
     return _metrics
-
-
-def get_conv_manager():
-    """Lazy load ConversationManager"""
-    global _conv_manager
-    if _conv_manager is None:
-        from utils.conversation_manager import ConversationManager
-        _conv_manager = ConversationManager()
-    return _conv_manager

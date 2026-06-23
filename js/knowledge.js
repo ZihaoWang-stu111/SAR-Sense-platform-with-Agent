@@ -170,7 +170,7 @@ async function uploadAndIngest(files) {
 
     showStatus('正在上传并写入向量库，请稍候...', 'info');
 
-    const response = await fetch(`${API_BASE}/api/knowledge/upload`, {
+    const response = await apiFetch(`${API_BASE}/api/knowledge/upload`, {
       method: 'POST',
       body: formData
     });
@@ -197,7 +197,7 @@ async function uploadAndIngest(files) {
 async function loadFileList() {
   showListStatus('正在读取 manifest...', 'info');
   try {
-    const response = await fetch(`${API_BASE}/api/knowledge/files`);
+    const response = await apiFetch(`${API_BASE}/api/knowledge/files`);
     const data = await response.json();
 
     if (response.ok && data.success) {
@@ -264,9 +264,10 @@ function renderFileList(files) {
           </div>
         </div>
         <div class="file-actions">
+          ${(typeof isAdmin === 'function' && isAdmin()) ? `
           <button class="btn btn-secondary file-delete" data-doc-id="${escapeAttr(docId)}" data-name="${escapeAttr(name)}" title="删除文档及向量">
             删除
-          </button>
+          </button>` : ''}
         </div>
       </div>
     `;
@@ -300,7 +301,7 @@ async function deleteKnowledgeFile(docId, name, button) {
   showListStatus(`正在删除 ${name}...`, 'info');
 
   try {
-    const response = await fetch(`${API_BASE}/api/knowledge/files/${encodeURIComponent(docId)}?delete_file=true`, {
+    const response = await apiFetch(`${API_BASE}/api/knowledge/files/${encodeURIComponent(docId)}?delete_file=true`, {
       method: 'DELETE'
     });
     const data = await response.json();

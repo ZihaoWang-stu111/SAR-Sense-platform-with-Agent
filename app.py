@@ -5,7 +5,7 @@ import streamlit as st
 import pandas as pd
 from PIL import Image
 from ultralytics import YOLO
-from agent.react_agent import ReactAgent, _thought_chains
+from agent.react_agent import ReactAgent
 from rag.vector_store import get_vector_store_service
 from utils.config_handler import chroma_conf
 from utils.path_tool import get_abs_path
@@ -1175,10 +1175,12 @@ elif page == "🤖 智能体问答":
         chat_pack = conv_mgr.build_chat_pack(st.session_state["current_conv_id"])
 
         response_messages = []
+        thought_snapshot = []
         with st.spinner("🤖 AI助手正在检测并分析SAR图像..."):
             res_stream = st.session_state["agent"].execute_stream(
                 chat_pack,
-                conversation_id=st.session_state["current_conv_id"]
+                conversation_id=st.session_state["current_conv_id"],
+                on_step=thought_snapshot.append
             )
 
             with stream_placeholder.container():
@@ -1190,7 +1192,7 @@ elif page == "🤖 智能体问答":
             st.session_state["_pending_viz"] = agent_tools._last_viz_path
             agent_tools._last_viz_path = None
         conv_id = st.session_state["current_conv_id"]
-        thought_snapshot = list(_thought_chains.get(conv_id, {}).get("steps", []))
+        thought_snapshot = list(thought_snapshot)
         assistant_msg = {"role": "assistant", "content": assistant_content}
         if thought_snapshot:
             assistant_msg["thought_steps"] = thought_snapshot
@@ -1219,10 +1221,12 @@ elif page == "🤖 智能体问答":
         chat_pack = conv_mgr.build_chat_pack(st.session_state["current_conv_id"])
 
         response_messages = []
+        thought_snapshot = []
         with st.spinner("智能客服思考中..."):
             res_stream = st.session_state["agent"].execute_stream(
                 chat_pack,
-                conversation_id=st.session_state["current_conv_id"]
+                conversation_id=st.session_state["current_conv_id"],
+                on_step=thought_snapshot.append
             )
 
             with stream_placeholder.container():
@@ -1234,7 +1238,7 @@ elif page == "🤖 智能体问答":
             st.session_state["_pending_viz"] = agent_tools._last_viz_path
             agent_tools._last_viz_path = None
         conv_id = st.session_state["current_conv_id"]
-        thought_snapshot = list(_thought_chains.get(conv_id, {}).get("steps", []))
+        thought_snapshot = list(thought_snapshot)
         assistant_msg = {"role": "assistant", "content": assistant_content}
         if thought_snapshot:
             assistant_msg["thought_steps"] = thought_snapshot

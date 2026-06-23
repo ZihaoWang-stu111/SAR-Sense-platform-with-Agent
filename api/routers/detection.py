@@ -23,7 +23,9 @@ async def detect_ships(image: UploadFile = File(...)):
         content = await image.read()
 
         temp_dir = tempfile.gettempdir()
-        temp_path = os.path.join(temp_dir, f"sar_detect_{image.filename}")
+        # basename 防路径穿越：客户端可能传 "../../evil.png" 之类文件名
+        safe_name = os.path.basename(image.filename)
+        temp_path = os.path.join(temp_dir, f"sar_detect_{safe_name}")
         with open(temp_path, "wb") as f:
             f.write(content)
         logger.info(f"File saved to: {temp_path}")

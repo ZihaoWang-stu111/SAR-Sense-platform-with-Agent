@@ -2,17 +2,21 @@ import logging
 import os
 import traceback
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 
 from api.dependencies import get_vector_store
+from api.auth import get_current_user, require_admin
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["knowledge"])
 
 
 @router.post("/upload")
-async def upload_knowledge(files: list[UploadFile] = File(...)):
-    """Upload documents to knowledge base"""
+async def upload_knowledge(
+    files: list[UploadFile] = File(...),
+    _admin: dict = Depends(require_admin),
+):
+    """Upload documents to knowledge base（仅 admin）"""
     try:
         if not files:
             raise HTTPException(status_code=400, detail='No files provided')
@@ -52,8 +56,9 @@ async def upload_knowledge(files: list[UploadFile] = File(...)):
 
 
 @router.get("/files")
-async def list_knowledge_files():
-    """List knowledge base files — 从 manifest 读，展示 chunk_count/doc_id/status 等结构化信息"""
+async def list_knowledge_files(_user: dict = Depends(get_current_user)):
+    """List knowledge base files — 从 manifest 读，展示 chunk_count/doc_id/status 等结构化信息。
+    所有登录用户都能看（知识库内容公开），但只有 admin 能改。"""
     try:
         vector_store = get_vector_store()
         manifest = vector_store.manifest
@@ -84,8 +89,12 @@ async def list_knowledge_files():
 
 
 @router.delete("/files/{doc_id}")
-async def delete_knowledge_file(doc_id: str, delete_file: bool = True):
-    """Delete one knowledge document by doc_id."""
+async def delete_knowledge_file(
+    doc_id: str,
+    delete_file: bool = True,
+    _admin: dict = Depends(require_admin),
+):
+    """Delete one knowledge document by doc_id（仅 admin）。"""
     try:
         vector_store = get_vector_store()
         target = None
