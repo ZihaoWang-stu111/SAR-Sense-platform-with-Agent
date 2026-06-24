@@ -22,5 +22,16 @@ logs/
 server.log
 runtime/
 
+# 数据库文件（SQLite 等，防止误入库）
+*.sqlite3
+*.db
+
+# demo 运行时产物
+learning/_parent_child_demo_runtime/
+
 # MCP 学习项目
 mcp-learning/
+
+# OS 临时文件
+Thumbs.db
+.DS_Store
