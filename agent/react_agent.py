@@ -91,13 +91,17 @@ class ReactAgent:
                 msg_type = getattr(message, 'type', '')
 
                 if msg_type == 'ai':
-                    content = message.content.strip()
-                    if content:
+                    tool_calls = getattr(message, 'tool_calls', None)
+                    content = message.content.strip() if message.content else ""
+                    # 带 tool_calls 的是"思考+调用工具"，走思维链（上面已 emit_step），不进正文
+                    # 不带 tool_calls 的才是最终回答，yield 到正文
+                    if content and not tool_calls:
                         yield content + "\n"
                 elif msg_type == 'tool':
-                    # 输出工具结果（包含参考来源），供前端溯源使用
-                    content = message.content.strip()
-                    if content:
+                    content = message.content.strip() if message.content else ""
+                    # 只把 RAG 检索结果（含参考来源）输出到正文，前端要解析参考来源按钮
+                    # 其他工具结果（天气、位置等）走思维链，不进正文
+                    if content and "参考来源" in content:
                         yield content + "\n"
 
             processed_message_count = len(messages)
