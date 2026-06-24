@@ -1,8 +1,8 @@
-"""对话路由：5 端点，全部 async + Depends(get_db, get_current_user)。直接调 crud。"""
+"""对话路由：5 端点，全部 async + Depends(get_db, get_current_user)。直接调 crud。
+异常由全局处理器兜底，路由不再写 try/except。"""
 import logging
-import traceback
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
@@ -19,12 +19,8 @@ async def list_conversations(
     user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    try:
-        convs = await conv_crud.list_conversations(db, user["id"])
-        return {"success": True, "conversations": convs}
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    convs = await conv_crud.list_conversations(db, user["id"])
+    return {"success": True, "conversations": convs}
 
 
 @router.post("")
@@ -33,12 +29,8 @@ async def create_conversation(
     user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    try:
-        conv_id = await conv_crud.create_conversation(db, user["id"], req.message or "")
-        return {"success": True, "conversation_id": conv_id}
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    conv_id = await conv_crud.create_conversation(db, user["id"], req.message or "")
+    return {"success": True, "conversation_id": conv_id}
 
 
 @router.get("/{conv_id}")
@@ -47,12 +39,8 @@ async def load_conversation(
     user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    try:
-        conv = await conv_crud.load_conversation(db, conv_id, user["id"])
-        return {"success": True, "conversation": conv}
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    conv = await conv_crud.load_conversation(db, conv_id, user["id"])
+    return {"success": True, "conversation": conv}
 
 
 @router.delete("/{conv_id}")
@@ -61,12 +49,8 @@ async def delete_conversation(
     user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    try:
-        await conv_crud.delete_conversation(db, conv_id, user["id"])
-        return {"success": True}
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    await conv_crud.delete_conversation(db, conv_id, user["id"])
+    return {"success": True}
 
 
 @router.post("/{conv_id}/messages")
@@ -76,12 +60,8 @@ async def append_message(
     user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    try:
-        await conv_crud.append_message(
-            db, conv_id, user["id"], req.role, req.content,
-            thought_steps=req.thought_steps,
-        )
-        return {"success": True}
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    await conv_crud.append_message(
+        db, conv_id, user["id"], req.role, req.content,
+        thought_steps=req.thought_steps,
+    )
+    return {"success": True}

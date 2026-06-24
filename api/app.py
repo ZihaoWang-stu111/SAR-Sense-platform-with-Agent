@@ -36,6 +36,10 @@ def create_app() -> FastAPI:
     app.mount("/js", StaticFiles(directory="js"), name="js")
     app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
+    # 全局异常处理器（路由删 try/except 后由这里兜底）
+    from utils.exception_handlers import register_exception_handlers
+    register_exception_handlers(app)
+
     @app.on_event("startup")
     async def startup_event():
         """Startup: 1) 建表 + 种子用户  2) 后台预加载重对象"""
