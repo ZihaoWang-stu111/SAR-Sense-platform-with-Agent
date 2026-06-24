@@ -380,7 +380,10 @@ def fill_context_for_report():
 @tool(description="联网搜索最新信息。query为搜索关键词，days为可选的时间范围（仅在最近N天内搜索，默认为0表示不限时间）。当用户明确要求'今天''最近X天'的新闻时，必须传入days参数。")
 def web_search(query: str, days: int = 0) -> str:
     try:
-        tavily_client = TavilyClient(api_key=agent_conf["tavily_api_key"])
+        api_key = os.environ.get("TAVILY_API_KEY") or agent_conf.get("tavily_api_key")
+        if not api_key:
+            return "未配置 TAVILY_API_KEY，无法联网搜索"
+        tavily_client = TavilyClient(api_key=api_key)
         search_kwargs = {
             "query": query,
             "search_depth": "advanced",

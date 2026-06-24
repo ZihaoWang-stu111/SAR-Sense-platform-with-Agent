@@ -1,2 +1,2 @@
 external_data_path: data/external/records.csv
-tavily_api_key: "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"
+# tavily_api_key 从 .env 的 TAVILY_API_KEY 读取，不在此明文存放
