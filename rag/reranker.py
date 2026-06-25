@@ -12,21 +12,23 @@ from utils.logger_handler import logger
 
 
 class BGERerankerService:
-    # 🌟 核心修改 1：把默认参数改成你刚才下载的本地绝对路径
-    # 记得前面的 'r' 一定要有，防止 Windows 路径里的反斜杠转义报错
-    def __init__(self, model_name=r'E:/models/Xorbits/bge-reranker-base'):
-        logger.info(f"🚀 正在从本地加载重排模型 (准备启动 GPU 加速): {model_name}...")
+    def __init__(self, model_name=None):
+        # 两级回退：配置(rag.yml reranker_model_name) → 公共模型名(任何机器可拉)
+        if not model_name:
+            from utils.config_handler import rag_conf
+            model_name = rag_conf.get("reranker_model_name") or "BAAI/bge-reranker-base"
+
+        logger.info(f"正在加载重排模型: {model_name}...")
         try:
-            # 🌟 核心修改 2：加入 local_files_only=True，彻底禁止程序去联网！
+            # 本地路径存在则禁止联网；HF repo id 则允许下载
             self.reranker = CrossEncoder(
                 model_name,
                 device='cpu',
-                local_files_only=True
+                local_files_only=os.path.exists(model_name),
             )
-            logger.info("✅ BGE 重排模型已成功加载到 GPU！起飞！")
+            logger.info("✅ BGE 重排模型加载完成")
         except Exception as e:
             logger.error(f"❌ 模型加载失败: {e}", exc_info=True)
-            logger.error("👉 如果报错说找不到 CUDA 或请求 CPU 回退，说明你的环境里没有装 GPU 版的 PyTorch。")
             raise e
 
     def rerank(self, query: str, documents: list[Document], score_threshold: float = 0.3) -> list[Document]:

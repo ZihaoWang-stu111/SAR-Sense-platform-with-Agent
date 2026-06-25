@@ -36,10 +36,9 @@ utils/migrate_sqlite_to_mysql.py
 CLAUDE.md
 eval/results/
 
-# demo 运行时产物
-learning/_parent_child_demo_runtime/
-
-# MCP 学习项目
+# 学习/demo/参考资料（不进仓库）
+learning/
+LLM-wiki
 mcp-learning/
 
 # OS 临时文件

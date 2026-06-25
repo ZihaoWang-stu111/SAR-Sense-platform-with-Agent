@@ -1,2 +1,4 @@
 chat_model_name: qwen3-max
 embedding_model_name: text-embedding-v3
+# 本地开发用本地路径（秒加载）；容器里改成 BAAI/bge-reranker-base 或删掉（自动从 HF 下载）
+reranker_model_name: E:/models/Xorbits/bge-reranker-base
