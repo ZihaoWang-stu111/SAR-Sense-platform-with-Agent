@@ -1,5 +1,8 @@
+import os
+import pickle
 import re
 import warnings
+from threading import Lock
 
 with warnings.catch_warnings():
     warnings.filterwarnings(
@@ -11,6 +14,7 @@ with warnings.catch_warnings():
 from langchain_community.retrievers import BM25Retriever
 from langchain_classic.retrievers import EnsembleRetriever
 from langchain_core.documents import Document
+from utils.file_handler import get_file_hash
 from utils.logger_handler import logger  # 复用你的日志模块
 
 
@@ -42,9 +46,14 @@ class DynamicHybridRetriever:
         "父子块", "语义分块", "混合检索",
     ]
 
-    def __init__(self, vector_store, k=3):
+    def __init__(self, vector_store, k=3, manifest_path=None, bm25_cache_path=None):
         self.vector_store = vector_store
         self.k = k
+        # BM25 索引持久化：重启 load pkl 而非重建，省几十秒。
+        # 指纹用 manifest.json 的 SHA-256（get_file_hash）：知识库变更 → manifest 变 → hash 不符 → 自动重建。
+        self.manifest_path = manifest_path
+        self.bm25_cache_path = bm25_cache_path
+        self._bm25_lock = Lock()
         # 实例化时，直接在内存中炼制好 BM25 备用
         self.bm25_retriever = self._build_bm25()
 
@@ -86,8 +95,69 @@ class DynamicHybridRetriever:
 
         return tokens
 
-    def _build_bm25(self):
-        """从 Chroma 提取所有切片，在内存中构建 BM25 检索器"""
+    def _build_bm25(self, force=False):
+        """构建/加载 BM25 检索器。
+        force=False（默认）：load pkl 优先，pkl 存在且 manifest 指纹相符则直接 load（省几十秒重建）。
+        force=True：强制重建（知识库变更后），重建后覆盖 pkl。
+        整个 load-or-rebuild 在 self._bm25_lock 内原子执行，防并发双重重建。
+        """
+        with self._bm25_lock:
+            current_hash = get_file_hash(self.manifest_path) if self.manifest_path else None
+
+            # load 优先：pkl 存在且指纹相符则直接用
+            if not force and self.bm25_cache_path and current_hash is not None:
+                cached = self._load_bm25_cache(current_hash)
+                if cached is not None:
+                    logger.info("BM25 从 pkl 加载完成（跳过重建）")
+                    return cached
+
+            # 重建：从 Chroma 拉全量文档 + 分词 + 建树
+            bm25_retriever = self._rebuild_bm25_from_chroma()
+            if bm25_retriever is None:
+                return None  # 知识库空
+
+            # 重建后持久化（带当前 manifest 指纹，供下次 load 比对）
+            if self.bm25_cache_path and current_hash is not None:
+                self._persist_bm25_cache(bm25_retriever, current_hash)
+            return bm25_retriever
+
+    def _load_bm25_cache(self, current_hash):
+        """load pkl：指纹相符且 preprocess_func 引用未漂移则返回 bm25，否则 None。"""
+        if not os.path.exists(self.bm25_cache_path):
+            return None
+        try:
+            with open(self.bm25_cache_path, "rb") as f:
+                data = pickle.load(f)
+            if data.get("manifest_hash") != current_hash:
+                logger.info("BM25 pkl 指纹不符（知识库已变更），重建")
+                return None
+            bm25 = data.get("bm25")
+            if bm25 is None:
+                return None
+            # 防反序列化后分词函数引用漂移，用错分词器
+            # 用 __qualname__ 字符串比较：pickle round-trip 后 bound method 身份变，但底层函数 qualname 不变
+            actual_func = getattr(bm25.preprocess_func, "__func__", bm25.preprocess_func)
+            if getattr(actual_func, "__qualname__", "") != "DynamicHybridRetriever._preprocess_for_bm25":
+                logger.warning("BM25 pkl 的 preprocess_func 引用漂移，重建")
+                return None
+            bm25.k = self.k
+            return bm25
+        except Exception as e:
+            logger.warning(f"BM25 pkl 加载失败，回退重建: {e}")
+            return None
+
+    def _persist_bm25_cache(self, bm25_retriever, manifest_hash):
+        """pickle 持久化 BM25 索引 + manifest 指纹。"""
+        try:
+            os.makedirs(os.path.dirname(self.bm25_cache_path) or ".", exist_ok=True)
+            with open(self.bm25_cache_path, "wb") as f:
+                pickle.dump({"bm25": bm25_retriever, "manifest_hash": manifest_hash}, f)
+            logger.info("BM25 索引已持久化")
+        except Exception as e:
+            logger.warning(f"BM25 pkl 持久化失败（不影响运行）: {e}")
+
+    def _rebuild_bm25_from_chroma(self):
+        """从 Chroma 提取所有切片，在内存中构建 BM25 检索器。"""
         try:
             logger.info("正在内存中构建 BM25 检索树...")
             all_data = self.vector_store.get(include=['documents', 'metadatas'])
@@ -114,8 +184,8 @@ class DynamicHybridRetriever:
             return None
 
     def rebuild_bm25(self):
-        """文档变更后重建 BM25 索引"""
-        self.bm25_retriever = self._build_bm25()
+        """文档变更后重建 BM25 索引（强制重建并覆盖 pkl）"""
+        self.bm25_retriever = self._build_bm25(force=True)
 
     def _get_dynamic_weights(self, query: str):
         """根据中英文混合查询特征，动态分配 [向量权重, BM25权重]。"""

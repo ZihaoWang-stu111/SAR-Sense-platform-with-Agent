@@ -47,7 +47,9 @@ class VectorStoreService:
         retrieve_k = chroma_conf.get("retrieve_k_children", 15)
         self.hybrid_engine = DynamicHybridRetriever(
             vector_store=self.vector_store,
-            k=retrieve_k
+            k=retrieve_k,
+            manifest_path=get_abs_path(chroma_conf["manifest_store"]),
+            bm25_cache_path=get_abs_path(chroma_conf.get("bm25_cache_path", "runtime/bm25_index.pkl")),
         )
 
         # 父子块检索配置

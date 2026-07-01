@@ -27,5 +27,6 @@ parent_child_enabled: true
 child_chunk_size: 160
 child_chunk_overlap: 40
 parent_docstore: parent_docstore.json
+bm25_cache_path: runtime/bm25_index.pkl   # BM25 索引 pickle 持久化（重启 load 而非重建，知识库变更自动失效）
 retrieve_k_children: 20          # 混合检索召回子块数（rerank 候选池）
 retrieve_k_parents: 3              # 重排+回表去重后最终喂给 LLM 的父块数
