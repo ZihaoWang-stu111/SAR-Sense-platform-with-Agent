@@ -6,6 +6,7 @@ from io import BytesIO
 
 from fastapi import APIRouter, UploadFile, File
 from PIL import Image
+from starlette.concurrency import run_in_threadpool
 
 from api.dependencies import get_yolo_model
 
@@ -13,16 +14,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["detection"])
 
 
-@router.post("/detect")
-async def detect_ships(image: UploadFile = File(...)):
-    """SAR ship detection endpoint"""
-    logger.info(f"Detection request received: {image.filename}")
-
-    content = await image.read()
-
+def _detect_ships_sync(content: bytes, filename: str | None) -> dict:
+    """Run blocking PIL/YOLO work outside the event loop."""
     temp_dir = tempfile.gettempdir()
     # basename 防路径穿越：客户端可能传 "../../evil.png" 之类文件名
-    safe_name = os.path.basename(image.filename)
+    safe_name = os.path.basename(filename or "upload.png")
     temp_path = os.path.join(temp_dir, f"sar_detect_{safe_name}")
     with open(temp_path, "wb") as f:
         f.write(content)
@@ -66,4 +62,12 @@ async def detect_ships(image: UploadFile = File(...)):
         'temp_path': temp_path,
         'message': f'检测完成，共发现 {ship_count} 个目标'
     }
+
+
+@router.post("/detect")
+async def detect_ships(image: UploadFile = File(...)):
+    """SAR ship detection endpoint"""
+    logger.info(f"Detection request received: {image.filename}")
+    content = await image.read()
+    return await run_in_threadpool(_detect_ships_sync, content, image.filename)
 
