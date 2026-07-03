@@ -35,6 +35,7 @@ langchain-protocol==0.0.15
 # --- 向量库 / 检索 ---
 chromadb==1.5.9
 rank-bm25==0.2.2
+jieba==0.42.1                    # 中文分词（BM25 预处理）
 
 # --- 模型 / embedding ---
 sentence-transformers==5.5.0
@@ -52,3 +53,9 @@ pillow==12.2.0
 dashscope==1.25.18
 openai==2.42.0
 tavily-python==0.7.24
+requests==2.34.2
+
+# --- 文件解析（extract_file_content 工具：PDF / docx / OCR）---
+python-docx==1.2.0               # .docx 文档解析
+PyMuPDF==1.27.2.3                # PDF 解析（import fitz）
+rapidocr-onnxruntime==1.4.4      # 图片 OCR（onnxruntime 推理）
