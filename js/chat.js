@@ -422,19 +422,18 @@ async function sendMessage() {
 
   let attachmentContent = '';
   let attachmentName = '';
-  let attachmentPath = '';
   if (state.attachedFile) {
     attachmentName = state.attachedFile.name;
     const result = await extractFileContent(state.attachedFile.file);
     attachmentContent = result.content;
-    attachmentPath = result.filePath;
     state.attachedFile = null;
     updateAttachmentIndicator();
   }
 
   let fullMessage = message;
   if (attachmentContent) {
-    fullMessage = `[用户上传了附件「${attachmentName}」，文件路径：${attachmentPath}，内容如下]\n\n${attachmentContent}\n\n${message || '请分析'}`;
+    // 不再向 Agent 透传服务端 temp 路径（后端已不返回，且泄漏服务端布局）；仅传文件名 + 提取内容
+    fullMessage = `[用户上传了附件「${attachmentName}」，内容如下]\n\n${attachmentContent}\n\n${message || '请分析'}`;
   }
 
   const userMessage = { role: 'user', content: message || '请分析附件内容' };
@@ -456,11 +455,11 @@ async function extractFileContent(file) {
       body: formData
     });
     const data = await response.json();
-    if (data.success) return { content: data.content, filePath: data.file_path };
-    return { content: '', filePath: '' };
+    if (data.success) return { content: data.content };
+    return { content: '' };
   } catch (error) {
     console.error('Failed to extract file:', error);
-    return { content: '', filePath: '' };
+    return { content: '' };
   }
 }
 

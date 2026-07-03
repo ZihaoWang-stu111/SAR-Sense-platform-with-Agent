@@ -21,41 +21,47 @@ def detect_ships_from_bytes(content: bytes, filename: str | None) -> dict:
         f.write(content)
     logger.info(f"File saved to: {temp_path}")
 
-    logger.info("Loading image...")
-    img = Image.open(BytesIO(content))
-    logger.info("Loading YOLO model...")
-    model = get_yolo_model()
-    logger.info("Running detection...")
-    results = model.predict(source=img, imgsz=640)
-    logger.info(f"Detection complete, found {len(results[0].boxes)} objects")
+    try:
+        logger.info("Loading image...")
+        img = Image.open(BytesIO(content))
+        logger.info("Loading YOLO model...")
+        model = get_yolo_model()
+        logger.info("Running detection...")
+        results = model.predict(source=img, imgsz=640)
+        logger.info(f"Detection complete, found {len(results[0].boxes)} objects")
 
-    ship_count = len(results[0].boxes)
+        ship_count = len(results[0].boxes)
 
-    res_plotted = results[0].plot()
-    result_image = Image.fromarray(res_plotted[:, :, ::-1])
+        res_plotted = results[0].plot()
+        result_image = Image.fromarray(res_plotted[:, :, ::-1])
 
-    buffered = BytesIO()
-    result_image.save(buffered, format="PNG")
-    result_base64 = base64.b64encode(buffered.getvalue()).decode()
+        buffered = BytesIO()
+        result_image.save(buffered, format="PNG")
+        result_base64 = base64.b64encode(buffered.getvalue()).decode()
 
-    orig_buffered = BytesIO()
-    img.save(orig_buffered, format="PNG")
-    orig_base64 = base64.b64encode(orig_buffered.getvalue()).decode()
+        orig_buffered = BytesIO()
+        img.save(orig_buffered, format="PNG")
+        orig_base64 = base64.b64encode(orig_buffered.getvalue()).decode()
 
-    detections = []
-    for box in results[0].boxes:
-        detections.append({
-            "confidence": float(box.conf[0]),
-            "class": int(box.cls[0]),
-            "bbox": box.xyxy[0].tolist(),
-        })
+        detections = []
+        for box in results[0].boxes:
+            detections.append({
+                "confidence": float(box.conf[0]),
+                "class": int(box.cls[0]),
+                "bbox": box.xyxy[0].tolist(),
+            })
 
-    return {
-        "success": True,
-        "ship_count": ship_count,
-        "original_image": orig_base64,
-        "result_image": result_base64,
-        "detections": detections,
-        "temp_path": temp_path,
-        "message": f"检测完成，共发现 {ship_count} 个目标",
-    }
+        return {
+            "success": True,
+            "ship_count": ship_count,
+            "original_image": orig_base64,
+            "result_image": result_base64,
+            "detections": detections,
+            "message": f"检测完成，共发现 {ship_count} 个目标",
+        }
+    finally:
+        # 推理结束（无论成功或异常）清理临时文件，避免 temp 目录堆积 + 不向响应暴露服务端路径
+        try:
+            os.remove(temp_path)
+        except OSError:
+            logger.warning(f"Failed to remove temp file: {temp_path}")

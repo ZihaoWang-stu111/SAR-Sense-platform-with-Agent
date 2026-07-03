@@ -10,7 +10,15 @@ from rag.vector_store import get_vector_store_service
 from utils.config_handler import chroma_conf
 from utils.path_tool import get_abs_path
 from agent.metrics_collector import AgentMetrics
-from utils.conversation_manager import ConversationManager
+
+# NOTE: This file is ARCHIVED (legacy Streamlit frontend, no longer maintained).
+# utils.conversation_manager was removed (methods moved to crud/conversations.py +
+# utils/conversation_builder.py). The FastAPI frontend under api/ is the active
+# entry point. This import will fail at runtime — kept only for historical reference.
+try:
+    from utils.conversation_manager import ConversationManager
+except ImportError:
+    ConversationManager = None  # type: ignore
 from agent.tools import agent_tools
 
 
@@ -853,7 +861,7 @@ if "agent" not in st.session_state:
     st.session_state["agent"] = ReactAgent()
 
 if "conv_manager" not in st.session_state:
-    st.session_state["conv_manager"] = ConversationManager()
+    st.session_state["conv_manager"] = ConversationManager() if ConversationManager else None
 
 if "current_conv_id" not in st.session_state:
     st.session_state["current_conv_id"] = None

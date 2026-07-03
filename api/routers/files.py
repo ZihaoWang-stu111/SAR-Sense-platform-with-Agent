@@ -23,12 +23,18 @@ async def extract_file(file: UploadFile = File(...)):
     with open(temp_path, "wb") as f:
         f.write(content_bytes)
 
-    from agent.tools.agent_tools import extract_file_content
-    content = extract_file_content.invoke({"file_path": temp_path})
+    try:
+        from agent.tools.agent_tools import extract_file_content
+        content = extract_file_content.invoke({"file_path": temp_path})
+    finally:
+        # 提取结束（无论成功或异常）清理临时文件；不向响应暴露服务端路径
+        try:
+            os.remove(temp_path)
+        except OSError:
+            logger.warning(f"Failed to remove temp file: {temp_path}")
 
     return {
         'success': True,
         'content': content,
         'filename': file.filename,
-        'file_path': temp_path
     }
