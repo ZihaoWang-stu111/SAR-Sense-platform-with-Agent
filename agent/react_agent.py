@@ -3,7 +3,7 @@ from model.factory import chat_model
 from utils.prompt_loader import load_system_prompts
 from agent.tools.agent_tools import get_weather,get_scene_id,\
     get_current_month,get_user_location,rag_summarize,fetch_external_data,fill_context_for_report,\
-    get_sea_state,compare_scenes,get_scene_trend,web_search,detect_ships,extract_file_content
+    get_sea_state,compare_scenes,get_scene_trend,web_search,detect_ships
 from agent.tools.middleware import monitor_tool, report_prompt_switch,log_before_model
 from datetime import datetime
 
@@ -17,7 +17,7 @@ class ReactAgent:
             system_prompt=load_system_prompts(),
             tools=[get_weather, get_scene_id, get_current_month,
                    get_user_location, rag_summarize, fetch_external_data, fill_context_for_report,
-                   get_sea_state, compare_scenes, get_scene_trend, web_search, detect_ships, extract_file_content],
+                   get_sea_state, compare_scenes, get_scene_trend, web_search, detect_ships],
             middleware=[monitor_tool, report_prompt_switch,log_before_model]
 
         )
