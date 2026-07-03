@@ -2562,6 +2562,30 @@ body::after { display: none; }
   box-shadow: 0 0 8px rgba(6, 182, 212, 0.5);
 }
 
+/* Agent detect_ships 工具的检测结果图卡片——显示在回答下方，不进思维链 */
+.detect-result-card {
+  margin-top: var(--space-md, 12px);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-secondary, rgba(0, 0, 0, 0.2));
+}
+
+.detect-result-card .detect-result-title {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary, #aaa);
+  background: rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+}
+
+.detect-result-card img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
 .thought-step:not(:last-child)::after {
   content: '';
   position: absolute;

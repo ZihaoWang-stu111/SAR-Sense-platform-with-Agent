@@ -692,6 +692,34 @@ async function processTypewriterQueue() {
   isTypewriterRunning = false;
 }
 
+// 把 detect_ships 工具产生的检测图渲染成回答下方卡片。
+// detect_image step 只带 upload_id（短标识），图字节由 /api/image/{upload_id} 按需拉取——
+// 不走 SSE 管（避免 base64 撑爆流），与附件上传同走 upload_store 机制。
+async function appendDetectImages(contentDiv, thoughtSteps) {
+  const imgSteps = (thoughtSteps || []).filter(s => s && s.step_type === 'detect_image' && s.upload_id);
+  for (const step of imgSteps) {
+    // 防重复：updateLastMessage 会被多次调用，同一 upload_id 的卡片已存在就跳过
+    if (contentDiv.querySelector(`.detect-result-card[data-upload-id="${step.upload_id}"]`)) continue;
+    try {
+      const resp = await apiFetch(`${API_BASE}/api/image/${step.upload_id}`);
+      if (!resp.ok) continue;
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const card = document.createElement('div');
+      card.className = 'detect-result-card';
+      card.dataset.uploadId = step.upload_id;
+      card.innerHTML = `
+        <div class="detect-result-title">🔍 SAR 舰船检测结果图</div>
+        <img src="${url}" alt="SAR舰船检测结果">
+      `;
+      contentDiv.appendChild(card);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    } catch (e) {
+      console.warn('拉取检测结果图失败:', e);
+    }
+  }
+}
+
 function updateLastMessage(isFinal = false) {
   const chatMessages = document.getElementById('chatMessages');
   const lastMessage = chatMessages.lastElementChild;
@@ -731,11 +759,14 @@ function updateLastMessage(isFinal = false) {
   }
   if (isFinal) {
     initCitationClickHandlers(contentDiv);
+    appendDetectImages(contentDiv, assistantMessage.thoughtSteps);
   }
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 function updateThoughtChainRealtime(thoughtSteps) {
+  // detect_image 步骤不进思维链，由 appendDetectImages 渲染成回答下方卡片
+  thoughtSteps = (thoughtSteps || []).filter(s => s && s.step_type !== 'detect_image');
   // 防御检查：确保当前会话正在流式输出
   const currentConvId = state.currentConversationId;
   if (!state.streamingStatus.has(currentConvId)) return;
@@ -894,6 +925,9 @@ function renderMessages() {
     if (msg.role === 'assistant' && msg.thought_steps && msg.thought_steps.length > 1) {
       const thoughtChainHtml = renderThoughtChain(msg.thought_steps);
       contentDiv.innerHTML += thoughtChainHtml;
+    }
+    if (msg.role === 'assistant') {
+      appendDetectImages(contentDiv, msg.thought_steps);
     }
 
     messageDiv.appendChild(avatar);
@@ -1323,6 +1357,9 @@ function initCitationClickHandlers(container) {
 }
 
 function renderThoughtChain(steps) {
+  // detect_image 步骤不进思维链，由 appendDetectImages 单独渲染成回答下方卡片
+  steps = (steps || []).filter(s => s && s.step_type !== 'detect_image');
+  if (steps.length === 0) return '';
   const stepConfig = {
     thinking: { icon: '💭', label: '思考', color: '#3b82f6' },
     tool_call: { icon: '🔧', label: '工具调用', color: '#22c55e' },

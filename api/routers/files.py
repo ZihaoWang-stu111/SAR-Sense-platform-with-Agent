@@ -4,11 +4,12 @@ import tempfile
 from io import BytesIO
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi.responses import FileResponse
 from PIL import Image
 
 from api.auth import get_current_user
 from services.upload_store import (
-    save_upload, IMAGE_EXTS, IMAGE_MIMES, MAX_UPLOAD_BYTES, MAX_IMAGE_PIXELS,
+    save_upload, get_upload_path, IMAGE_EXTS, IMAGE_MIMES, MAX_UPLOAD_BYTES, MAX_IMAGE_PIXELS,
 )
 
 logger = logging.getLogger(__name__)
@@ -80,3 +81,16 @@ async def extract_file(
         'content': content,
         'filename': file.filename,
     }
+
+
+@router.get("/image/{upload_id}", dependencies=[Depends(get_current_user)])
+async def get_upload_image(upload_id: str):
+    """按 upload_id 返回上传的图片字节。
+
+    鉴权后访问，防匿名枚举他人上传。detect_ships 工具画完检测图存 upload_store 后，
+    前端用此端点按 upload_id 拉图渲染成回答下方卡片。
+    """
+    path = get_upload_path(upload_id)
+    if path is None:
+        raise HTTPException(status_code=404, detail="文件不存在或已过期")
+    return FileResponse(path)

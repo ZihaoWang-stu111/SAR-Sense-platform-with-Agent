@@ -6,6 +6,7 @@ from agent.tools.agent_tools import get_weather,get_scene_id,\
     get_sea_state,compare_scenes,get_scene_trend,web_search,detect_ships
 from agent.tools.middleware import monitor_tool, report_prompt_switch,log_before_model
 from datetime import datetime
+import re
 
 
 class ReactAgent:
@@ -76,6 +77,19 @@ class ReactAgent:
 
                 elif msg_type == "tool":
                     result_content = message.content.strip() if message.content else ""
+                    # detect_ships 工具画完检测图存 upload_store 后，在返回字符串末尾附 [viz:<upload_id>] marker。
+                    # 这里抽出来发专门的 detect_image step，由前端拉图渲染成回答下方卡片（不进思维链）；
+                    # 同时从 tool_result 展示内容里剥掉 marker，保持思维链干净。LLM 仍会在 observation
+                    # 里看到原始 marker，但那只是个短 id（非 base64），不影响推理。
+                    viz_match = re.search(r'\[viz:(img_\w+)\]', result_content)
+                    if viz_match:
+                        viz_upload_id = viz_match.group(1)
+                        result_content = (result_content[:viz_match.start()] + result_content[viz_match.end():]).rstrip()
+                        emit_step({
+                            "step_type": "detect_image",
+                            "upload_id": viz_upload_id,
+                            "timestamp": datetime.now().strftime("%H:%M:%S")
+                        })
                     truncated = result_content[:200] + "..." if len(result_content) > 200 else result_content
                     emit_step({
                         "step_type": "tool_result",

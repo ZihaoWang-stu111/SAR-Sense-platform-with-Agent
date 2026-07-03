@@ -8,7 +8,7 @@ from langchain_core.output_parsers import StrOutputParser
 from rag.rag_service import RagSummarizeService
 from model.factory import chat_model
 from api.dependencies import get_yolo_model
-from services.upload_store import get_upload_path
+from services.upload_store import get_upload_path, save_upload
 import random
 from utils.config_handler import agent_conf
 from utils.path_tool import get_abs_path
@@ -17,8 +17,6 @@ from tavily import TavilyClient
 
 
 rag = RagSummarizeService()
-
-_last_viz_path = None
 
 scene_ids = ["S001", "S002", "S003", "S004", "S005", "S006", "S007", "S008", "S009", "S010",]
 
@@ -476,7 +474,7 @@ def detect_ships(upload_id: str) -> str:
             warning = f"\n⚠️ 其中有 {low_conf_count} 个目标置信度低于0.6，可能存在误检或漏检，建议结合海况数据和专业知识进一步分析。"
 
         from PIL import ImageDraw
-        import tempfile
+        import io
 
         draw_img = image.copy().convert("RGB")
         draw = ImageDraw.Draw(draw_img)
@@ -488,12 +486,13 @@ def detect_ships(upload_id: str) -> str:
             draw.rectangle([x1, y1 - 14, x1 + 55, y1], fill=color)
             draw.text((x1 + 3, y1 - 13), f"{conf:.2f}", fill="#000000")
 
-        output_dir = tempfile.mkdtemp()
-        output_path = os.path.join(output_dir, f"detected_{os.path.basename(image_path)}")
-        draw_img.save(output_path)
-
-        global _last_viz_path
-        _last_viz_path = output_path
+        # 画好框的图存进 upload_store，拿不透明 upload_id（不再用 mkdtemp+全局变量：
+        # 旧方案临时目录永不删 + 并发竞态）。upload_id 通过 [viz:<id>] marker 附在返回
+        # 字符串里，由 execute_stream 解析后经 SSE 旁路传前端，前端按 id 拉图渲染——
+        # LLM 只看到短 id，不背 base64 巨串。
+        buf = io.BytesIO()
+        draw_img.save(buf, format="PNG")
+        viz_upload_id = save_upload(buf.getvalue(), ".png")
 
         return (
             f"🔍 SAR舰船检测结果：\n"
@@ -505,6 +504,7 @@ def detect_ships(upload_id: str) -> str:
             f"- 各目标详情：\n"
             + "\n".join(detail_lines)
             + warning
+            + f"\n[viz:{viz_upload_id}]"
         )
 
     except Exception as e:
