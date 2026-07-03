@@ -422,18 +422,23 @@ async function sendMessage() {
 
   let attachmentContent = '';
   let attachmentName = '';
+  let attachmentUploadId = '';
   if (state.attachedFile) {
     attachmentName = state.attachedFile.name;
     const result = await extractFileContent(state.attachedFile.file);
     attachmentContent = result.content;
+    attachmentUploadId = result.uploadId;
     state.attachedFile = null;
     updateAttachmentIndicator();
   }
 
   let fullMessage = message;
   if (attachmentContent) {
-    // 不再向 Agent 透传服务端 temp 路径（后端已不返回，且泄漏服务端布局）；仅传文件名 + 提取内容
+    // 文档：已提取文本，直接给 Agent 分析（不传服务端路径）
     fullMessage = `[用户上传了附件「${attachmentName}」，内容如下]\n\n${attachmentContent}\n\n${message || '请分析'}`;
+  } else if (attachmentUploadId) {
+    // 图片：只传不透明 upload_id（非路径），Agent 调 detect_ships 时按 id 解析
+    fullMessage = `[用户上传了SAR图像「${attachmentName}」，上传标识：${attachmentUploadId}，可使用 detect_ships 工具（传入 upload_id）进行舰船检测]\n\n${message || '请检测并分析'}`;
   }
 
   const userMessage = { role: 'user', content: message || '请分析附件内容' };
@@ -455,11 +460,11 @@ async function extractFileContent(file) {
       body: formData
     });
     const data = await response.json();
-    if (data.success) return { content: data.content };
-    return { content: '' };
+    if (data.success) return { content: data.content || '', uploadId: data.upload_id || '' };
+    return { content: '', uploadId: '' };
   } catch (error) {
     console.error('Failed to extract file:', error);
-    return { content: '' };
+    return { content: '', uploadId: '' };
   }
 }
 

@@ -8,6 +8,7 @@ from langchain_core.output_parsers import StrOutputParser
 from rag.rag_service import RagSummarizeService
 from model.factory import chat_model
 from api.dependencies import get_yolo_model
+from services.upload_store import get_upload_path
 import random
 from utils.config_handler import agent_conf
 from utils.path_tool import get_abs_path
@@ -425,13 +426,16 @@ def web_search(query: str, days: int = 0) -> str:
         return f"联网搜索失败：{str(e)}"
 
 
-@tool(description="对指定路径的SAR图像执行舰船目标检测，返回检测到的舰船数量、各目标置信度、平均置信度等结构化文本结果。适用于用户上传了SAR图像并要求进行检测分析的场景。")
-def detect_ships(image_path: str) -> str:
+@tool(description="对用户上传的SAR图像执行舰船目标检测，返回检测到的舰船数量、各目标置信度、平均置信度等结构化文本结果。适用于用户上传了SAR图像并要求进行检测分析的场景。入参 upload_id 为上传图片的唯一标识（非文件路径）。")
+def detect_ships(upload_id: str) -> str:
     try:
         from PIL import Image
 
-        if not os.path.exists(image_path):
-            return f"图像文件不存在：{image_path}，请确认路径是否正确。"
+        # upload_id 是不透明标识，不是路径——按 id 在受控上传目录内解析文件
+        # LLM 无路径可注入；解析失败说明上传不存在或已过期
+        image_path = get_upload_path(upload_id)
+        if image_path is None:
+            return f"找不到上传图片（upload_id={upload_id}），可能已过期或不存在。"
 
         # 复用 api.dependencies 的全局单例，避免每次调用都重新加载 YOLO 权重
         # （HTTP /api/detect 与本 Agent 工具共享同一份已加载模型）
