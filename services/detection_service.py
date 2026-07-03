@@ -24,8 +24,9 @@ def detect_ships_from_bytes(content: bytes, filename: str | None) -> dict:
     try:
         logger.info("Loading image...")
         img = Image.open(BytesIO(content))
-        # 解码炸弹防护：超过 50MP 的图片直接拒，防小 PNG 解压成 gigapixel 致 OOM
-        if img.size[0] * img.size[1] > 50_000_000:
+        # 解码炸弹防护（defense-in-depth：路由层已校验，这里再兜一次）
+        from services.upload_store import MAX_IMAGE_PIXELS
+        if img.size[0] * img.size[1] > MAX_IMAGE_PIXELS:
             raise ValueError(f"图片像素过大（{img.size[0]}×{img.size[1]}），拒绝处理")
         logger.info("Loading YOLO model...")
         model = get_yolo_model()

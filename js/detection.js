@@ -108,7 +108,7 @@ function initDetection() {
     const startTime = Date.now();
 
     try {
-      const response = await fetch(`${API_BASE}/api/detect`, {
+      const response = await apiFetch(`${API_BASE}/api/detect`, {
         method: 'POST',
         body: formData
       });

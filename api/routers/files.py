@@ -7,13 +7,12 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from PIL import Image
 
 from api.auth import get_current_user
-from services.upload_store import save_upload, IMAGE_EXTS, IMAGE_MIMES
+from services.upload_store import (
+    save_upload, IMAGE_EXTS, IMAGE_MIMES, MAX_UPLOAD_BYTES, MAX_IMAGE_PIXELS,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["files"])
-
-MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10MB
-MAX_IMAGE_PIXELS = 50_000_000  # 50MP，防 PIL 解码炸弹
 
 
 @router.post("/extract-file", dependencies=[Depends(get_current_user)])

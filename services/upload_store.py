@@ -24,6 +24,12 @@ IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".webp"}
 # 图片 MIME 白名单
 IMAGE_MIMES = {"image/png", "image/jpeg", "image/jpg", "image/webp", "image/bmp"}
 
+# 上传文件大小上限（字节）—— files.py / detection.py 共用
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10MB
+
+# 图片像素上限——防 PIL 解码炸弹，files.py / detection_service.py 共用
+MAX_IMAGE_PIXELS = 50_000_000  # 50MP
+
 # 旧上传超过该时长（秒）就在下次上传时顺手清掉
 UPLOAD_MAX_AGE_SECONDS = 3600
 
