@@ -1,0 +1,54 @@
+# SAR-Sense Python 依赖（直接依赖，版本对齐 rag_env_backup conda 环境 3.10.20）
+# torch / torchvision 不在此处，由 Dockerfile 用 pytorch CPU index 单独安装，避免默认拉 2.5GB CUDA 轮子（本地环境是 2.12.0+cpu）
+
+# --- Web 框架 ---
+fastapi==0.112.4
+uvicorn==0.47.0
+python-multipart==0.0.28
+aiofiles==25.1.0
+
+# --- 数据校验 / 配置 ---
+pydantic==2.13.4
+pydantic-settings==2.14.1
+PyYAML==6.0.3
+python-dotenv==1.2.2
+
+# --- 数据库 ---
+SQLAlchemy==2.0.28
+aiomysql==0.3.2
+PyMySQL==1.2.0
+cryptography==48.0.0
+
+# --- 鉴权 ---
+bcrypt==5.0.0
+PyJWT==2.13.0
+
+# --- LangChain 生态 ---
+langchain==1.3.0
+langchain-core==1.4.0
+langchain-community==0.4.1
+langchain-chroma==1.1.0
+langchain-text-splitters==1.1.2
+langchain-classic==1.0.7
+langchain-protocol==0.0.15
+
+# --- 向量库 / 检索 ---
+chromadb==1.5.9
+rank-bm25==0.2.2
+
+# --- 模型 / embedding ---
+sentence-transformers==5.5.0
+transformers==5.8.1
+sentencepiece==0.2.1
+onnxruntime==1.18.1
+
+# --- 科学计算 / 图像 ---
+scikit-learn==1.7.2
+numpy==1.26.4
+pandas==2.2.3
+pillow==12.2.0
+
+# --- LLM / 搜索 API ---
+dashscope==1.25.18
+openai==2.42.0
+tavily-python==0.7.24

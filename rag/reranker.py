@@ -13,10 +13,12 @@ from utils.logger_handler import logger
 
 class BGERerankerService:
     def __init__(self, model_name=None):
-        # 两级回退：配置(rag.yml reranker_model_name) → 公共模型名(任何机器可拉)
+        # 三级回退：环境变量(容器注入) → 配置(rag.yml reranker_model_name，本地路径) → 公共模型名(任何机器可拉)
+        # 这样本地开发继续用 rag.yml 里的 E:/... 路径（秒加载、禁联网），
+        # Docker 里 compose 注入 RERANKER_MODEL_NAME=BAAI/bge-reranker-base 走 HF 下载。
         if not model_name:
             from utils.config_handler import rag_conf
-            model_name = rag_conf.get("reranker_model_name") or "BAAI/bge-reranker-base"
+            model_name = os.getenv("RERANKER_MODEL_NAME") or rag_conf.get("reranker_model_name") or "BAAI/bge-reranker-base"
 
         logger.info(f"正在加载重排模型: {model_name}...")
         try:

@@ -3,15 +3,21 @@
 LangChain middleware 是同步函数，调 AgentMetrics.record_*；这里走最简的同步 pymysql。
 连接每次写入开一个，写完关——单 worker 单用户场景够用，求职项目不必上同步连接池。
 """
+import os
+
 import pymysql
 from utils.logger_handler import logger
 
 
 def _conn():
+    # 与 db_conf.py 同一组 MYSQL_* 环境变量（同步 pymysql 直连，本地默认值不变）
     return pymysql.connect(
-        host="localhost", port=3306,
-        user="root", password="root",
-        database="sar_sense", charset="utf8mb4",
+        host=os.getenv("MYSQL_HOST", "localhost"),
+        port=int(os.getenv("MYSQL_PORT", "3306")),
+        user=os.getenv("MYSQL_USER", "root"),
+        password=os.getenv("MYSQL_PASSWORD", "root"),
+        database=os.getenv("MYSQL_DATABASE", "sar_sense"),
+        charset="utf8mb4",
         autocommit=True,
     )
 

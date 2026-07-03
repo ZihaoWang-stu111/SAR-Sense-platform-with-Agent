@@ -1,0 +1,58 @@
+# 版本控制
+.git/
+.gitignore
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# IDE / 工具索引
+.idea/
+.vscode/
+.codegraph/
+.claude/
+
+# 密钥（绝不进镜像层 —— .env 由 docker-compose 注入，不打进镜像）
+.env
+
+# 参考 / 学习资料（运行时不需要，体积大）
+参考项目/
+learning/
+LLM-wiki
+mcp-learning/
+
+# 文档（运行时不需要）
+CLAUDE.md
+AGENTS.md
+工程审查报告.md
+*.md
+
+# 评测 / 测试（运行时不需要）
+eval/
+eval_rag25/
+tests/
+
+# 归档的旧 Streamlit 前端
+legacy/
+
+# 运行时数据（挂载为 volume，不进镜像）
+logs/
+server.log
+runtime/
+data/uploads/
+
+# Windows 脚本（Linux 容器用不上）
+*.bat
+
+# OS 临时文件
+Thumbs.db
+.DS_Store
+
+# Docker 自身文件（避免进 build context）
+Dockerfile
+docker-compose.yml
+.dockerignore
