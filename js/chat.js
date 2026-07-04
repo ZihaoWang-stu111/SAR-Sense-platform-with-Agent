@@ -162,17 +162,12 @@ async function loadConversation(convId) {
       // 将当前正在打字的消息的 pendingChunks 立即累积到 content
       const lastMessage = state.messages[state.messages.length - 1];
       if (lastMessage && lastMessage.role === 'assistant') {
-        // 等待打字机完成当前 chunk（避免丢失正在打字的内容）
-        while (lastMessage.isTyping) {
-          await new Promise(resolve => setTimeout(resolve, 20));
-        }
-        // 累积所有剩余的 pendingChunks
-        if (lastMessage.pendingChunks) {
-          while (lastMessage.pendingChunks.length > 0) {
-            lastMessage.content += lastMessage.pendingChunks.shift();
-          }
-        }
-        console.log(`[Background] 已累积当前消息内容，长度: ${lastMessage.content.length}`);
+        // 让打字机快速打完当前 chunk（跳过 15ms/char 延迟），避免阻塞切换
+        // 不在这里累积 pendingChunks——切回时的 backlog-flush 会处理，避免与打字机当前 chunk 乱序
+        lastMessage.fastForward = true;
+        // 注册到后台消息，供切回该会话时 syncBackgroundMessages 恢复（否则回复丢失）
+        state.backgroundMessages.set(previousConvId, [lastMessage]);
+        console.log(`[Background] 会话 ${previousConvId} 转后台，内容长度: ${lastMessage.content.length}`);
       }
       // 不调用cancel，让SSE连接继续运行
     }
@@ -188,7 +183,24 @@ async function loadConversation(convId) {
         syncBackgroundMessages(convId);
       }
 
+      // 切回的会话仍在流式：先把后台积累的 pendingChunks 一次性累积到 content
+      // （避免逐字 15ms 打字机慢慢追 backlog，那样切回来要等很久才追上），再 render
+      if (state.streamingStatus.has(convId)) {
+        const lastMsg = state.messages[state.messages.length - 1];
+        if (lastMsg && lastMsg.role === 'assistant' && lastMsg.pendingChunks) {
+          while (lastMsg.pendingChunks.length > 0) {
+            lastMsg.content += lastMsg.pendingChunks.shift();
+          }
+        }
+        // 切走时可能设了 fastForward 但没被消费（chunk 间），切回来重置，让新 chunk 正常逐字打
+        if (lastMsg) lastMsg.fastForward = false;
+      }
+
       renderMessages();
+      // 恢复打字机，续打后续到达的新 chunk（之前切走时 break 了，isTypewriterRunning=false）
+      if (state.streamingStatus.has(convId)) {
+        startTypewriterEffect();
+      }
       loadConversations();
     }
   } catch (error) {
@@ -674,6 +686,13 @@ async function processTypewriterQueue() {
         msg.isTyping = true;
         for (let j = 0; j < chunk.length; j++) {
           msg.content += chunk[j];
+          if (msg.fastForward) {
+            // 会话切走，剩余字符一次性追加（跳过 15ms/char），避免阻塞切换 + 与后续 chunk 乱序
+            msg.content += chunk.slice(j + 1);
+            msg.fastForward = false;
+            msg.isTyping = false;
+            break;
+          }
           if (i === state.messages.length - 1) {
             updateLastMessage(false);
           }
