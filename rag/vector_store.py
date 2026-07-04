@@ -341,7 +341,7 @@ class VectorStoreService:
         logger.warning(f"manifest 中未找到 doc_id={doc_id}")
         return 0
 
-    def load_document(self):
+    def load_document(self, file_paths=None):
         """
         加载文件，存入向量库（manifest 模式去重 + 稳定 chunk ID）
         :return: (new_count, updated_count, skipped_count, removed_count)
@@ -353,10 +353,20 @@ class VectorStoreService:
                 return pdf_loader(read_path)
             return []
 
-        allow_files_path = listdir_with_allowed_type(
-            get_abs_path(chroma_conf["data_path"]),
-            tuple(chroma_conf["allow_knowledge_file_type"])
-        )
+        allowed_types = tuple(chroma_conf["allow_knowledge_file_type"])
+        if file_paths is None:
+            allow_files_path = listdir_with_allowed_type(
+                get_abs_path(chroma_conf["data_path"]),
+                allowed_types
+            )
+            cleanup_missing = True
+        else:
+            allow_files_path = [
+                os.path.abspath(path if os.path.isabs(path) else get_abs_path(path))
+                for path in file_paths
+                if path and path.lower().endswith(allowed_types) and os.path.exists(path)
+            ]
+            cleanup_missing = False
 
         new_count = 0
         updated_count = 0
@@ -475,9 +485,12 @@ class VectorStoreService:
                 continue
 
         # 清理：manifest 中的文件已物理删除 → 移除残留记录
-        current_filenames = {os.path.basename(p) for p in allow_files_path}
-        stale_files = [f for f in self.manifest if f not in current_filenames]
         removed_count = 0
+        if cleanup_missing:
+            current_filenames = {os.path.basename(p) for p in allow_files_path}
+            stale_files = [f for f in self.manifest if f not in current_filenames]
+        else:
+            stale_files = []
         for stale in stale_files:
             logger.info(f"文件 {stale} 已不存在，清理残留向量")
             self.delete_document(stale)
@@ -490,6 +503,9 @@ class VectorStoreService:
             self.hybrid_engine.rebuild_bm25()
 
         return new_count, updated_count, skipped_count, removed_count
+
+    def load_documents(self, file_paths):
+        return self.load_document(file_paths=file_paths)
 
 
 

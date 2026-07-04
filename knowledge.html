@@ -70,6 +70,9 @@
             <svg class="icon icon-sm" aria-hidden="true"><use href="/assets/icons.svg#clipboard-list"/></svg>
             文件列表
           </button>
+          <button class="tab-btn" data-tab="tabUsers" data-admin-only>
+            用户角色
+          </button>
         </div>
 
         <div class="tab-panels">
@@ -95,6 +98,22 @@
                   已选择
                 </span>
                 <span class="selected-names" id="selectedFiles"></span>
+              </div>
+
+              <div class="permission-panel" id="permissionPanel">
+                <label class="permission-option">
+                  <input type="radio" name="visibilityMode" value="admin_only" checked>
+                  <span>仅管理员可见</span>
+                </label>
+                <label class="permission-option">
+                  <input type="radio" name="visibilityMode" value="roles">
+                  <span>指定角色可见</span>
+                </label>
+                <div class="role-checks" id="roleChecks">
+                  <label><input type="checkbox" value="researcher"> researcher</label>
+                  <label><input type="checkbox" value="business"> business</label>
+                  <label><input type="checkbox" value="guest"> guest</label>
+                </div>
               </div>
 
               <div class="status-message" id="uploadStatus" style="display: none;"></div>
@@ -132,6 +151,11 @@
             <div class="status-message status-info" id="fileListStatus" style="display: none;"></div>
             <div class="file-list" id="fileList"></div>
           </div>
+
+          <div class="tab-panel" id="tabUsers">
+            <div class="status-message status-info" id="userListStatus" style="display: none;"></div>
+            <div class="file-list" id="userRoleList"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -142,7 +166,7 @@
     // 非 admin 用户隐藏上传 tab + 删除按钮（后端已拦截，前端也不露入口）
     if (isLoggedIn() && !isAdmin()) {
       // 隐藏上传 tab 按钮
-      document.querySelectorAll('[data-tab="tabUpload"]').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('[data-tab="tabUpload"], [data-admin-only]').forEach(el => el.style.display = 'none');
       // 知识库页面自动切换到文件列表 tab
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));

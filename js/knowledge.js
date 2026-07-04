@@ -78,8 +78,31 @@ function initMobileMenu() {
 
 function initKnowledge() {
   initTabs();
+  initPermissionControls();
   initUpload();
   loadFileList();
+  if (typeof isAdmin === 'function' && isAdmin()) {
+    loadUserRoles();
+  }
+}
+
+function initPermissionControls() {
+  const roleChecks = document.getElementById('roleChecks');
+  if (!roleChecks) return;
+  const sync = () => {
+    const mode = document.querySelector('input[name="visibilityMode"]:checked')?.value || 'admin_only';
+    roleChecks.style.display = mode === 'roles' ? 'flex' : 'none';
+  };
+  document.querySelectorAll('input[name="visibilityMode"]').forEach(input => {
+    input.addEventListener('change', sync);
+  });
+  sync();
+}
+
+function getSelectedPermissions() {
+  const visibilityMode = document.querySelector('input[name="visibilityMode"]:checked')?.value || 'admin_only';
+  const allowedRoles = Array.from(document.querySelectorAll('#roleChecks input[type="checkbox"]:checked')).map(input => input.value);
+  return { visibilityMode, allowedRoles };
 }
 
 function initTabs() {
@@ -167,6 +190,13 @@ async function uploadAndIngest(files) {
   try {
     const formData = new FormData();
     files.forEach(f => formData.append('files', f));
+    const { visibilityMode, allowedRoles } = getSelectedPermissions();
+    if (visibilityMode === 'roles' && allowedRoles.length === 0) {
+      showStatus('请至少选择一个可见角色', 'warning');
+      return;
+    }
+    formData.append('visibility_mode', visibilityMode);
+    formData.append('allowed_roles', JSON.stringify(allowedRoles));
 
     showStatus('正在上传并写入向量库，请稍候...', 'info');
 
@@ -233,6 +263,8 @@ function renderFileList(files) {
     const icon = (f.file_type || '').toLowerCase() === 'pdf' || name.toLowerCase().endsWith('.pdf') ? '📄' : '📝';
     const docId = f.doc_id || '';
     const hash = f.file_hash || '';
+    const roles = Array.isArray(f.allowed_roles) ? f.allowed_roles : [];
+    const roleText = roles.length ? roles.join(', ') : 'admin-only';
     return `
       <div class="file-item kb-file-card">
         <div class="file-main">
@@ -263,8 +295,19 @@ function renderFileList(files) {
             <span class="meta-value">${escapeHtml(formatDate(f.ingested_at))}</span>
           </div>
         </div>
+        ${(typeof isAdmin === 'function' && isAdmin()) ? `
+        <div class="permission-row">
+          <span class="meta-label">visibility</span>
+          <span class="role-chip">${escapeHtml(roleText)}</span>
+        </div>` : ''}
         <div class="file-actions">
+          <button class="btn btn-secondary file-download" data-doc-id="${escapeAttr(docId)}" data-name="${escapeAttr(name)}">
+            下载
+          </button>
           ${(typeof isAdmin === 'function' && isAdmin()) ? `
+          <button class="btn btn-secondary file-permission" data-doc-id="${escapeAttr(docId)}" data-roles="${escapeAttr(roles.join(','))}">
+            权限
+          </button>
           <button class="btn btn-secondary file-delete" data-doc-id="${escapeAttr(docId)}" data-name="${escapeAttr(name)}" title="删除文档及向量">
             删除
           </button>` : ''}
@@ -273,7 +316,40 @@ function renderFileList(files) {
     `;
   }).join('');
 
+  bindDownloadButtons();
   bindDeleteButtons();
+  bindPermissionButtons();
+}
+
+function bindDownloadButtons() {
+  document.querySelectorAll('.file-download').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await downloadKnowledgeFile(btn.dataset.docId, btn.dataset.name);
+    });
+  });
+}
+
+async function downloadKnowledgeFile(docId, name) {
+  if (!docId) return;
+  try {
+    const response = await apiFetch(`${API_BASE}/api/knowledge/files/${encodeURIComponent(docId)}/download`);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      showListStatus('下载失败: ' + (data.detail || data.error || '未知错误'), 'error');
+      return;
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name || 'document';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    showListStatus('下载失败: ' + error.message, 'error');
+  }
 }
 
 function bindDeleteButtons() {
@@ -284,6 +360,122 @@ function bindDeleteButtons() {
       await deleteKnowledgeFile(docId, name, btn);
     });
   });
+}
+
+function bindPermissionButtons() {
+  document.querySelectorAll('.file-permission').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const docId = btn.dataset.docId;
+      const current = btn.dataset.roles || '';
+      const value = window.prompt('输入可见角色，用逗号分隔；留空表示仅管理员可见', current);
+      if (value === null) return;
+      const roles = value.split(',').map(role => role.trim()).filter(Boolean);
+      await updateKnowledgePermissions(docId, roles, btn);
+    });
+  });
+}
+
+async function updateKnowledgePermissions(docId, roles, button) {
+  if (!docId) return;
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = '保存中...';
+  try {
+    const response = await apiFetch(`${API_BASE}/api/knowledge/files/${encodeURIComponent(docId)}/permissions`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        visibility_mode: roles.length ? 'roles' : 'admin_only',
+        allowed_roles: roles
+      })
+    });
+    const data = await response.json();
+    if (response.ok && data.success) {
+      showListStatus('权限已更新', 'success');
+      await loadFileList();
+    } else {
+      showListStatus('权限更新失败: ' + (data.detail || data.error || '未知错误'), 'error');
+    }
+  } catch (error) {
+    showListStatus('权限更新失败: ' + error.message, 'error');
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
+async function loadUserRoles() {
+  const listEl = document.getElementById('userRoleList');
+  if (!listEl) return;
+  showUserStatus('正在读取用户...', 'info');
+  try {
+    const response = await apiFetch(`${API_BASE}/api/admin/users`);
+    const data = await response.json();
+    if (response.ok && data.success) {
+      renderUserRoles(data.users || []);
+      showUserStatus('', 'info', false);
+    } else {
+      showUserStatus('用户列表读取失败: ' + (data.detail || data.error || '未知错误'), 'error');
+    }
+  } catch (error) {
+    showUserStatus('用户列表读取失败: ' + error.message, 'error');
+  }
+}
+
+function renderUserRoles(users) {
+  const listEl = document.getElementById('userRoleList');
+  if (!listEl) return;
+  if (users.length === 0) {
+    listEl.innerHTML = '<div class="empty-state"><p>暂无用户</p></div>';
+    return;
+  }
+  const roles = ['admin', 'researcher', 'business', 'guest'];
+  listEl.innerHTML = users.map(user => `
+    <div class="file-item kb-file-card user-role-card">
+      <div class="file-main">
+        <div class="file-info">
+          <div class="file-title-block">
+            <span class="file-name">${escapeHtml(user.username || '')}</span>
+            <span class="file-subtitle">id: ${Number(user.id || 0)}</span>
+          </div>
+        </div>
+        <select class="role-select" data-user-id="${Number(user.id || 0)}">
+          ${roles.map(role => `<option value="${role}" ${role === user.role ? 'selected' : ''}>${role}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+  `).join('');
+
+  document.querySelectorAll('.role-select').forEach(select => {
+    select.addEventListener('change', async () => {
+      await updateUserRole(select.dataset.userId, select.value, select);
+    });
+  });
+}
+
+async function updateUserRole(userId, role, select) {
+  const oldValue = Array.from(select.options).find(option => option.defaultSelected)?.value || 'guest';
+  select.disabled = true;
+  try {
+    const response = await apiFetch(`${API_BASE}/api/admin/users/${encodeURIComponent(userId)}/role`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role })
+    });
+    const data = await response.json();
+    if (response.ok && data.success) {
+      showUserStatus('角色已更新', 'success');
+      await loadUserRoles();
+    } else {
+      select.value = oldValue;
+      showUserStatus('角色更新失败: ' + (data.detail || data.error || '未知错误'), 'error');
+    }
+  } catch (error) {
+    select.value = oldValue;
+    showUserStatus('角色更新失败: ' + error.message, 'error');
+  } finally {
+    select.disabled = false;
+  }
 }
 
 async function deleteKnowledgeFile(docId, name, button) {
@@ -361,6 +553,14 @@ function showStatus(message, type) {
 
 function showListStatus(message, type, visible = true) {
   const el = document.getElementById('fileListStatus');
+  if (!el) return;
+  el.textContent = message;
+  el.className = `status-message status-${type}`;
+  el.style.display = visible && message ? 'block' : 'none';
+}
+
+function showUserStatus(message, type, visible = true) {
+  const el = document.getElementById('userListStatus');
   if (!el) return;
   el.textContent = message;
   el.className = `status-message status-${type}`;

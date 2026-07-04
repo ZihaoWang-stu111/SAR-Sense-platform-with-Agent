@@ -313,6 +313,7 @@
 </head>
 <body class="lux-cursor-on" data-public>
   <script src="js/luxury.js"></script>
+  <script src="js/auth.js"></script>
 
   <div class="auth-page">
     <!-- ============ 左侧视觉区 ============ -->
@@ -672,7 +673,7 @@
         });
         const data = await res.json();
         if (res.ok && data.success) {
-          setToken(data.token, data.user.username);
+          setToken(data.token, data.user);
           window.location.href = "chat.html";
         } else {
           errEl.textContent = data.detail || "操作失败";
@@ -690,6 +691,5 @@
     // 已登录直接跳走
     if (isLoggedIn()) window.location.href = "chat.html";
   </script>
-  <script src="js/auth.js"></script>
 </body>
 </html>

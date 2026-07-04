@@ -3164,6 +3164,30 @@ body::after { display: none; }
   white-space: nowrap;
 }
 
+.permission-panel {
+  display: grid;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.permission-option,
+.role-checks,
+.role-checks label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.role-checks {
+  flex-wrap: wrap;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
 .status-message {
   padding: var(--space-md) var(--space-lg);
   border-radius: var(--radius-md);
@@ -3386,7 +3410,35 @@ body::after { display: none; }
 
 .file-actions {
   display: flex;
+  gap: var(--space-sm);
   justify-content: flex-end;
+}
+
+.permission-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.role-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid rgba(10, 132, 255, 0.28);
+  border-radius: var(--radius-full);
+  color: var(--accent-primary-soft);
+  background: rgba(10, 132, 255, 0.08);
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+}
+
+.role-select {
+  min-width: 9rem;
+  padding: 0.45rem 0.6rem;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
 }
 
 .file-delete {
