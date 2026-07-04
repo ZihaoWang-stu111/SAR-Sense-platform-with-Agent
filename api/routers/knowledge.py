@@ -77,7 +77,7 @@ def _document_payload(filename: str, entry: dict, allowed_roles: list[str], can_
 @router.post("/upload")
 async def upload_knowledge(
     files: list[UploadFile] = File(...),
-    visibility_mode: str = Form("admin_only"),
+    visibility_mode: str = Form(...),
     allowed_roles: str = Form("[]"),
     admin: dict = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
