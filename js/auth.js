@@ -43,6 +43,26 @@ function isAdmin() {
   return getRole() === "admin";
 }
 
+async function refreshCurrentUser() {
+  const token = getToken();
+  if (!token) return {};
+  const res = await fetch("/api/auth/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) {
+    clearToken();
+    window.location.href = "login.html";
+    return {};
+  }
+  if (!res.ok) return getCurrentUser();
+  const data = await res.json();
+  if (data && data.user) {
+    setToken(token, data.user);
+    return data.user;
+  }
+  return getCurrentUser();
+}
+
 async function apiFetch(url, options = {}) {
   const token = getToken();
   options.headers = {
@@ -100,8 +120,9 @@ function renderAuthUI() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   if (requireAuth()) {
+    await refreshCurrentUser();
     renderAuthUI();
   }
 });

@@ -1,12 +1,21 @@
 // SAR-Sense Knowledge Base Page JavaScript
 
 const API_BASE = '';
+const KB_ROLES = [
+  { value: 'researcher', label: 'Researcher', hint: '论文 / 算法资料' },
+  { value: 'business', label: 'Business', hint: '业务问答资料' },
+  { value: 'guest', label: 'Guest', hint: '公开演示资料' },
+];
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initNavbar();
   initScrollReveal();
   initParticles();
   initMobileMenu();
+  if (typeof refreshCurrentUser === 'function') {
+    await refreshCurrentUser();
+  }
+  applyKnowledgeAccessUI();
   initKnowledge();
   highlightNav('knowledge');
 });
@@ -89,20 +98,79 @@ function initKnowledge() {
 function initPermissionControls() {
   const roleChecks = document.getElementById('roleChecks');
   if (!roleChecks) return;
+  roleChecks.querySelectorAll('label').forEach(label => label.classList.add('role-card'));
   const sync = () => {
     const mode = document.querySelector('input[name="visibilityMode"]:checked')?.value || 'admin_only';
     roleChecks.style.display = mode === 'roles' ? 'flex' : 'none';
+    document.querySelectorAll('.permission-option').forEach(label => {
+      label.classList.toggle('selected', !!label.querySelector('input:checked'));
+    });
+    roleChecks.querySelectorAll('label').forEach(label => {
+      label.classList.toggle('selected', !!label.querySelector('input:checked'));
+    });
   };
   document.querySelectorAll('input[name="visibilityMode"]').forEach(input => {
     input.addEventListener('change', sync);
   });
+  roleChecks.querySelectorAll('input[type="checkbox"]').forEach(input => {
+    input.addEventListener('change', sync);
+  });
   sync();
+}
+
+function applyKnowledgeAccessUI() {
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  document.querySelectorAll('[data-tab="tabUpload"], [data-admin-only]').forEach(el => {
+    el.style.display = admin ? '' : 'none';
+  });
+  if (admin) return;
+
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const listTab = document.querySelector('[data-tab="tabFiles"]');
+  const listPanel = document.getElementById('tabFiles');
+  if (listTab) listTab.classList.add('active');
+  if (listPanel) listPanel.classList.add('active');
 }
 
 function getSelectedPermissions() {
   const visibilityMode = document.querySelector('input[name="visibilityMode"]:checked')?.value || 'admin_only';
   const allowedRoles = Array.from(document.querySelectorAll('#roleChecks input[type="checkbox"]:checked')).map(input => input.value);
   return { visibilityMode, allowedRoles };
+}
+
+function renderRoleChips(roles) {
+  if (!roles.length) {
+    return '<span class="role-chip role-chip-admin">admin-only</span>';
+  }
+  return roles.map(role => `<span class="role-chip">${escapeHtml(role)}</span>`).join('');
+}
+
+function renderRoleEditor(docId, roles) {
+  return `
+    <div class="file-permission-editor" data-doc-id="${escapeAttr(docId)}" hidden>
+      <div class="permission-editor-head">
+        <div>
+          <span class="permission-kicker">ACCESS</span>
+          <strong>编辑文件可见角色</strong>
+        </div>
+        <span class="permission-editor-hint">不勾选角色即仅管理员可见</span>
+      </div>
+      <div class="role-picker">
+        ${KB_ROLES.map(role => `
+          <label class="role-card ${roles.includes(role.value) ? 'selected' : ''}">
+            <input type="checkbox" value="${role.value}" ${roles.includes(role.value) ? 'checked' : ''}>
+            <span>${role.label}</span>
+            <small>${role.hint}</small>
+          </label>
+        `).join('')}
+      </div>
+      <div class="permission-editor-actions">
+        <button class="btn btn-secondary permission-cancel" data-doc-id="${escapeAttr(docId)}">取消</button>
+        <button class="btn btn-primary permission-save" data-doc-id="${escapeAttr(docId)}">保存权限</button>
+      </div>
+    </div>
+  `;
 }
 
 function initTabs() {
@@ -264,7 +332,7 @@ function renderFileList(files) {
     const docId = f.doc_id || '';
     const hash = f.file_hash || '';
     const roles = Array.isArray(f.allowed_roles) ? f.allowed_roles : [];
-    const roleText = roles.length ? roles.join(', ') : 'admin-only';
+    const canManage = typeof isAdmin === 'function' && isAdmin();
     return `
       <div class="file-item kb-file-card">
         <div class="file-main">
@@ -295,16 +363,16 @@ function renderFileList(files) {
             <span class="meta-value">${escapeHtml(formatDate(f.ingested_at))}</span>
           </div>
         </div>
-        ${(typeof isAdmin === 'function' && isAdmin()) ? `
+        ${canManage ? `
         <div class="permission-row">
           <span class="meta-label">visibility</span>
-          <span class="role-chip">${escapeHtml(roleText)}</span>
+          <span class="role-chip-group">${renderRoleChips(roles)}</span>
         </div>` : ''}
         <div class="file-actions">
           <button class="btn btn-secondary file-download" data-doc-id="${escapeAttr(docId)}" data-name="${escapeAttr(name)}">
             下载
           </button>
-          ${(typeof isAdmin === 'function' && isAdmin()) ? `
+          ${canManage ? `
           <button class="btn btn-secondary file-permission" data-doc-id="${escapeAttr(docId)}" data-roles="${escapeAttr(roles.join(','))}">
             权限
           </button>
@@ -312,6 +380,7 @@ function renderFileList(files) {
             删除
           </button>` : ''}
         </div>
+        ${canManage ? renderRoleEditor(docId, roles) : ''}
       </div>
     `;
   }).join('');
@@ -362,15 +431,49 @@ function bindDeleteButtons() {
   });
 }
 
+function findPermissionEditor(docId) {
+  return Array.from(document.querySelectorAll('.file-permission-editor'))
+    .find(panel => panel.dataset.docId === docId);
+}
+
+function findPermissionButton(docId) {
+  return Array.from(document.querySelectorAll('.file-permission'))
+    .find(button => button.dataset.docId === docId);
+}
+
 function bindPermissionButtons() {
   document.querySelectorAll('.file-permission').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const editor = findPermissionEditor(btn.dataset.docId);
+      if (!editor) return;
+      const shouldOpen = editor.hidden;
+      document.querySelectorAll('.file-permission-editor').forEach(panel => { panel.hidden = true; });
+      document.querySelectorAll('.file-permission').forEach(button => button.classList.remove('active'));
+      editor.hidden = !shouldOpen;
+      btn.classList.toggle('active', shouldOpen);
+    });
+  });
+
+  document.querySelectorAll('.file-permission-editor input[type="checkbox"]').forEach(input => {
+    input.addEventListener('change', () => {
+      input.closest('.role-card')?.classList.toggle('selected', input.checked);
+    });
+  });
+
+  document.querySelectorAll('.permission-cancel').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const editor = btn.closest('.file-permission-editor');
+      if (editor) editor.hidden = true;
+      findPermissionButton(btn.dataset.docId)?.classList.remove('active');
+    });
+  });
+
+  document.querySelectorAll('.permission-save').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const docId = btn.dataset.docId;
-      const current = btn.dataset.roles || '';
-      const value = window.prompt('输入可见角色，用逗号分隔；留空表示仅管理员可见', current);
-      if (value === null) return;
-      const roles = value.split(',').map(role => role.trim()).filter(Boolean);
-      await updateKnowledgePermissions(docId, roles, btn);
+      const editor = btn.closest('.file-permission-editor');
+      if (!editor) return;
+      const roles = Array.from(editor.querySelectorAll('input[type="checkbox"]:checked')).map(input => input.value);
+      await updateKnowledgePermissions(btn.dataset.docId, roles, btn);
     });
   });
 }
@@ -390,6 +493,12 @@ async function updateKnowledgePermissions(docId, roles, button) {
       })
     });
     const data = await response.json();
+    if (response.status === 403) {
+      if (typeof refreshCurrentUser === 'function') {
+        await refreshCurrentUser();
+      }
+      applyKnowledgeAccessUI();
+    }
     if (response.ok && data.success) {
       showListStatus('权限已更新', 'success');
       await loadFileList();
