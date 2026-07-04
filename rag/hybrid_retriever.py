@@ -4,6 +4,8 @@ import re
 import warnings
 from threading import Lock
 
+from pydantic import ConfigDict
+
 with warnings.catch_warnings():
     warnings.filterwarnings(
         "ignore",
@@ -13,9 +15,45 @@ with warnings.catch_warnings():
     import jieba
 from langchain_community.retrievers import BM25Retriever
 from langchain_classic.retrievers import EnsembleRetriever
+from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
+from langchain_core.retrievers import BaseRetriever
 from utils.file_handler import get_file_hash
 from utils.logger_handler import logger  # 复用你的日志模块
+
+
+class FilteredBM25Retriever(BaseRetriever):
+    source: BM25Retriever
+    allowed_doc_ids: set | None = None
+    k: int = 4
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    def _get_relevant_documents(
+        self,
+        query: str,
+        *,
+        run_manager: CallbackManagerForRetrieverRun,
+    ) -> list[Document]:
+        allowed = self.allowed_doc_ids
+        if allowed is not None and not allowed:
+            return []
+
+        processed_query = self.source.preprocess_func(query)
+        scores = self.source.vectorizer.get_scores(processed_query)
+        ranked = []
+        for score, doc in zip(scores, self.source.docs):
+            if allowed is not None and (doc.metadata or {}).get("doc_id") not in allowed:
+                continue
+            ranked.append((float(score), doc))
+
+        ranked.sort(key=lambda item: item[0], reverse=True)
+        results = []
+        for score, doc in ranked[: self.k]:
+            metadata = dict(doc.metadata or {})
+            metadata["bm25_score"] = score
+            results.append(Document(page_content=doc.page_content, metadata=metadata, id=doc.id))
+        return results
 
 
 class DynamicHybridRetriever:
@@ -230,9 +268,19 @@ class DynamicHybridRetriever:
 
         return [0.5, 0.5]
 
-    def get_retriever(self, query: str):
+    def retrieve(self, query: str, allowed_doc_ids=None) -> list[Document]:
+        if allowed_doc_ids is not None:
+            allowed_doc_ids = set(allowed_doc_ids)
+            if not allowed_doc_ids:
+                return []
+        return self.get_retriever(query, allowed_doc_ids=allowed_doc_ids).invoke(query)
+
+    def get_retriever(self, query: str, allowed_doc_ids=None):
         """根据当前 query，返回定制化权重的混合检索器"""
-        vector_retriever = self.vector_store.as_retriever(search_kwargs={'k': self.k})
+        search_kwargs = {"k": self.k}
+        if allowed_doc_ids is not None:
+            search_kwargs["filter"] = {"doc_id": {"$in": list(allowed_doc_ids)}}
+        vector_retriever = self.vector_store.as_retriever(search_kwargs=search_kwargs)
 
         # 降级保护
         if not self.bm25_retriever:
@@ -242,8 +290,16 @@ class DynamicHybridRetriever:
         weights = self._get_dynamic_weights(query)
 
 
+        bm25_retriever = self.bm25_retriever
+        if allowed_doc_ids is not None:
+            bm25_retriever = FilteredBM25Retriever(
+                source=self.bm25_retriever,
+                allowed_doc_ids=set(allowed_doc_ids),
+                k=self.k,
+            )
+
         ensemble_retriever = EnsembleRetriever(
-            retrievers=[vector_retriever, self.bm25_retriever],
+            retrievers=[vector_retriever, bm25_retriever],
             weights=weights  # <--- 去掉外面的 [ ]
         )
         return ensemble_retriever

@@ -10,6 +10,7 @@ from api.dependencies import get_agent, get_metrics
 from api.auth import get_current_user
 from config.db_conf import get_db
 from crud import conversations as conv_crud
+from crud.knowledge_acl import get_allowed_doc_ids
 from utils.conversation_builder import build_chat_pack
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,12 @@ async def chat_stream(
     logger.info("Loading agent for streaming...")
     agent = get_agent()
     logger.info("Agent loaded for streaming")
+    allowed_doc_ids = await get_allowed_doc_ids(db, user.get("role", "guest"))
+    user_context = {
+        "user_id": user["id"],
+        "role": user.get("role", "guest"),
+        "allowed_doc_ids": None if allowed_doc_ids is None else list(allowed_doc_ids),
+    }
 
     if conversation_id:
         await conv_crud.append_message(db, conversation_id, user["id"], "user", display_message)
@@ -69,7 +76,7 @@ async def chat_stream(
         def run_agent():
             """Run agent in a separate thread"""
             try:
-                for chunk in agent.execute_stream(messages, conversation_id, on_step=on_step):
+                for chunk in agent.execute_stream(messages, conversation_id, user_context=user_context, on_step=on_step):
                     if chunk and chunk.strip():
                         event_queue.put(('chunk', chunk))
             except Exception as e:

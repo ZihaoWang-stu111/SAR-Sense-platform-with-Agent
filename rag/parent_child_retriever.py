@@ -11,9 +11,17 @@ class ParentChildResolver:
         self.parent_docstore = parent_docstore
         self.top_k_parents = top_k_parents
 
-    def resolve(self, child_docs: list[Document]) -> list[Document]:
+    def resolve(self, child_docs: list[Document], allowed_doc_ids=None) -> list[Document]:
         if not child_docs:
             return []
+
+        allowed = None if allowed_doc_ids is None else set(allowed_doc_ids)
+        if allowed is not None:
+            if not allowed:
+                return []
+            child_docs = [doc for doc in child_docs if (doc.metadata or {}).get("doc_id") in allowed]
+            if not child_docs:
+                return []
 
         if not any(doc.metadata.get("parent_id") for doc in child_docs):
             return child_docs[:self.top_k_parents]
@@ -35,6 +43,9 @@ class ParentChildResolver:
             record = self.parent_docstore.get(parent_id)
             if not record:
                 logger.warning(f"parent docstore 中未找到 {parent_id}，跳过")
+                continue
+
+            if allowed is not None and (record.get("metadata") or {}).get("doc_id") not in allowed:
                 continue
 
             seen_parent_ids.add(parent_id)

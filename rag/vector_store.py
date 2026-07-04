@@ -78,7 +78,10 @@ class VectorStoreService:
         self.manifest = load_manifest(self.manifest_path)
 
     def get_retriever(self, query: str):
-        return self.hybrid_engine.get_retriever(query)
+        return self.hybrid_engine.get_retriyever(query)
+
+    def retrieve(self, query: str, allowed_doc_ids=None):
+        return self.hybrid_engine.retrieve(query, allowed_doc_ids=allowed_doc_ids)
 
     def _build_spliter(self, chunk_size, chunk_overlap):
         return RecursiveCharacterTextSplitter(

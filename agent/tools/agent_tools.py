@@ -12,6 +12,7 @@ from services.upload_store import get_upload_path, save_upload
 import random
 from utils.config_handler import agent_conf
 from utils.path_tool import get_abs_path
+from langgraph.prebuilt import ToolRuntime
 import requests
 from tavily import TavilyClient
 
@@ -24,8 +25,8 @@ external_data = {}
 
 
 @tool(description="从向量存储中检索参考资料")
-def rag_summarize(query: str) -> str:
-    return rag.rag_summarize(query)
+def rag_summarize(query: str, runtime: ToolRuntime) -> str:
+    return rag.rag_summarize(query, allowed_doc_ids=runtime.context.get("allowed_doc_ids"))
 
 
 @tool(description="获取指定城市的实时天气信息，返回温度、体感温度、降水、风速等数据。")

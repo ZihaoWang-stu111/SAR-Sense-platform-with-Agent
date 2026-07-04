@@ -34,24 +34,36 @@ class RagSummarizeService:
         chain = self.prompt_template | self.model | StrOutputParser()
         return chain
 
-    def retriever_docs(self, query):
+    @staticmethod
+    def _filter_docs(docs, allowed_doc_ids=None):
+        if allowed_doc_ids is None:
+            return docs
+        allowed = set(allowed_doc_ids)
+        if not allowed:
+            return []
+        return [doc for doc in docs if (doc.metadata or {}).get("doc_id") in allowed]
+
+    def retriever_docs(self, query, allowed_doc_ids=None):
         # 子块召回 → 先在子块上重排(只打分不截断) → 再回表聚合成父块
         # rerank 提前到子块层：CrossEncoder 对短文本判分更准，并让"选哪些父块"由相关性决定
-        candidate_docs = self.vector_store.get_retriever(query).invoke(query)
+        if allowed_doc_ids is not None and not allowed_doc_ids:
+            return []
 
-        scored_children = self.reranker.rerank(query, candidate_docs)
+        candidate_docs = self.vector_store.retrieve(query, allowed_doc_ids=allowed_doc_ids)
+
+        scored_children = self._filter_docs(self.reranker.rerank(query, candidate_docs), allowed_doc_ids)
         if not scored_children:
             return []
 
         if self.parent_resolver:
             # resolve 按 rerank 顺序去重，父块继承子块相关性排序，并截断到 final_k
-            return self.parent_resolver.resolve(scored_children)
+            return self.parent_resolver.resolve(scored_children, allowed_doc_ids=allowed_doc_ids)
 
-        return scored_children[:self.final_k]
+        return self._filter_docs(scored_children[:self.final_k], allowed_doc_ids)
 
 
-    def rag_summarize(self, query):
-        docs = self.retriever_docs(query)
+    def rag_summarize(self, query, allowed_doc_ids=None):
+        docs = self.retriever_docs(query, allowed_doc_ids=allowed_doc_ids)
 
         if not docs:
             return "知识库中未检索到与该问题相关的可靠资料，无法基于知识库回答。"

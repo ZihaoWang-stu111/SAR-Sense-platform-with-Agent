@@ -23,7 +23,7 @@ class ReactAgent:
 
         )
 
-    def execute_stream(self, chat_pack, conversation_id=None, on_step=None):
+    def execute_stream(self, chat_pack, conversation_id=None, user_context=None, on_step=None):
         """流式产出 agent 回答。on_step(step_dict) 回调在每次产生思维链步骤时被调用，
         调用方自行收集（请求局部变量），agent 不再持有任何全局状态。"""
         # 把"判断 on_step + 调用"封装一层，避免每处 append 都写 if
@@ -40,7 +40,11 @@ class ReactAgent:
 
         processed_message_count = len(chat_pack)  # 跟踪已处理的消息数量
 
-        for chunk in self.agent.stream(input_dict, stream_mode="values", context={"report": False}):
+        runtime_context = {"report": False}
+        if user_context:
+            runtime_context.update(user_context)
+
+        for chunk in self.agent.stream(input_dict, stream_mode="values", context=runtime_context):
             messages = chunk["messages"]
 
             # 处理所有新消息（从上次处理位置到当前）
