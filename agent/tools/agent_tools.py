@@ -24,7 +24,7 @@ scene_ids = ["S001", "S002", "S003", "S004", "S005", "S006", "S007", "S008", "S0
 external_data = {}
 
 
-@tool(description="从向量存储中检索参考资料")
+@tool(description="从本地知识库/已上传文件中检索参考资料。适用于SAR专业知识、论文、简历、人名、作者、文件内容查询；默认应先于联网搜索使用，除非用户明确要求联网/最新信息。")
 def rag_summarize(query: str, runtime: ToolRuntime) -> str:
     return rag.rag_summarize(query, allowed_doc_ids=runtime.context.get("allowed_doc_ids"))
 
