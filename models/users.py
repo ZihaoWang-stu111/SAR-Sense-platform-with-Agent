@@ -19,6 +19,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, comment="用户名")
     password: Mapped[str] = mapped_column(String(255), nullable=False, comment="密码（bcrypt 哈希）")
     nickname: Mapped[Optional[str]] = mapped_column(String(50), comment="昵称")
+    role: Mapped[str] = mapped_column(String(32), nullable=False, default="guest", comment="角色")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, comment="创建时间")
 
     def __repr__(self):

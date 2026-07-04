@@ -15,3 +15,8 @@ class RegisterRequest(BaseModel):
 class UserInfo(BaseModel):
     id: int
     username: str
+    role: str
+
+
+class UpdateUserRoleRequest(BaseModel):
+    role: str = Field(min_length=1, max_length=32)

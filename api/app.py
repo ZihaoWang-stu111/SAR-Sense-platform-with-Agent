@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from api.dependencies import get_agent, get_metrics
 from api.auth import router as auth_router
 from api.routers import (
+    admin,
     pages,
     detection,
     chat,
@@ -53,13 +54,26 @@ def create_app() -> FastAPI:
             logger.info("DB 表已建（或已存在）")
             # 2. 种子用户：admin/admin123（幂等）
             from config.db_conf import AsyncSessionLocal
-            from crud.users import get_user_by_username, create_user, count_users
+            from crud.users import (
+                count_users,
+                create_user,
+                ensure_user_role_column,
+                get_user_by_username,
+                update_user_role,
+            )
             from utils.security import hash_password
+            from utils.rbac import ROLE_ADMIN
             async with AsyncSessionLocal() as session:
+                await ensure_user_role_column(session)
                 if (await count_users(session)) == 0:
-                    await create_user(session, "admin", hash_password("admin123"))
-                    await session.commit()
+                    await create_user(session, "admin", hash_password("admin123"), role=ROLE_ADMIN)
                     logger.info("已创建种子用户 admin/admin123")
+                else:
+                    admin_user = await get_user_by_username(session, "admin")
+                    if admin_user and admin_user.role != ROLE_ADMIN:
+                        await update_user_role(session, admin_user, ROLE_ADMIN)
+                        logger.info("已修正 admin 用户角色")
+                await session.commit()
         except Exception as e:
             logger.warning(f"DB 建表/种子用户失败: {e}")
 
@@ -84,6 +98,7 @@ def create_app() -> FastAPI:
 
     app.include_router(pages.router)
     app.include_router(auth_router)
+    app.include_router(admin.router, prefix="/api/admin")
     app.include_router(detection.router, prefix="/api")
     app.include_router(chat.router, prefix="/api")
     app.include_router(conversations.router, prefix="/api/conversations")
