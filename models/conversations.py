@@ -1,4 +1,4 @@
-"""对话 + 消息 ORM。conversation_messages 用 JSON 字段存 thought_steps。"""
+"""对话 + 消息 ORM。conversation_messages 用 JSON 字段存 thought_steps/rag_results。"""
 from datetime import datetime
 from typing import Optional
 
@@ -49,6 +49,7 @@ class ConversationMessage(Base):
     role: Mapped[str] = mapped_column(String(32), nullable=False, comment="user / assistant / system")
     content: Mapped[str] = mapped_column(Text, nullable=False)
     thought_steps: Mapped[Optional[dict]] = mapped_column(JSON, comment="思维链步骤（assistant 专用）")
+    rag_results: Mapped[Optional[list]] = mapped_column(JSON, comment="RAG 工具结果（assistant 专用）")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
     conversation: Mapped[Conversation] = relationship(back_populates="messages")

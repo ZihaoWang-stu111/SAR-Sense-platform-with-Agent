@@ -1,7 +1,5 @@
 """对话路由：5 端点，全部 async + Depends(get_db, get_current_user)。直接调 crud。
 异常由全局处理器兜底，路由不再写 try/except。"""
-import logging
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,7 +8,6 @@ from config.db_conf import get_db
 from crud import conversations as conv_crud
 from schemas.conversations import AppendMessageRequest, CreateConversationRequest
 
-logger = logging.getLogger(__name__)
 router = APIRouter(tags=["conversations"])
 
 
@@ -63,5 +60,6 @@ async def append_message(
     await conv_crud.append_message(
         db, conv_id, user["id"], req.role, req.content,
         thought_steps=req.thought_steps,
+        rag_results=req.rag_results,
     )
     return {"success": True}

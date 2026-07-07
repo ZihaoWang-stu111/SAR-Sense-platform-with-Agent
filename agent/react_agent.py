@@ -117,10 +117,10 @@ class ReactAgent:
                         yield content + "\n"
                 elif msg_type == 'tool':
                     content = message.content.strip() if message.content else ""
-                    # 只把 RAG 检索结果（含参考来源）输出到正文，前端要解析参考来源按钮
-                    # 其他工具结果（天气、位置等）走思维链，不进正文
+                    # RAG 检索结果单独作为结构化事件输出，前端用于渲染参考来源面板，不混进最终回答正文。
+                    # 其他工具结果（天气、位置等）走思维链，不进正文。
                     if content and "参考来源" in content:
-                        yield content + "\n"
+                        yield {"type": "rag_result", "content": content}
 
             processed_message_count = len(messages)
 

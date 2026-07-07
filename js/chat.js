@@ -472,6 +472,7 @@ async function processStreamInBackground(reader, conversationId) {
   let assistantMessage = {
     role: 'assistant',
     content: '',
+    rag_results: [],
     thoughtSteps: [],
     streamDone: false,
     pendingChunks: [],
@@ -506,6 +507,9 @@ async function processStreamInBackground(reader, conversationId) {
               if (status) {
                 status.progress = assistantMessage.content.length;
               }
+            } else if (data.type === 'rag_result') {
+              if (!assistantMessage.rag_results) assistantMessage.rag_results = [];
+              assistantMessage.rag_results.push(data.content);
             } else if (data.type === 'thought_step') {
               assistantMessage.thoughtSteps.push(data.step);
             } else if (data.type === 'done') {
@@ -549,7 +553,7 @@ async function sendMessageStreaming(message, displayMessage) {
     progress: 0
   });
 
-  const assistantMessage = { role: 'assistant', content: '', thoughtSteps: [], pendingChunks: [], isTyping: false };
+  const assistantMessage = { role: 'assistant', content: '', rag_results: [], thoughtSteps: [], pendingChunks: [], isTyping: false };
   state.messages.push(assistantMessage);
   renderMessages();
 
@@ -591,6 +595,9 @@ async function sendMessageStreaming(message, displayMessage) {
             const data = JSON.parse(line.slice(6));
             if (data.type === 'chunk') {
               assistantMessage.pendingChunks.push(data.content);
+            } else if (data.type === 'rag_result') {
+              if (!assistantMessage.rag_results) assistantMessage.rag_results = [];
+              assistantMessage.rag_results.push(data.content);
             } else if (data.type === 'thought_step') {
               assistantMessage.thoughtSteps.push(data.step);
               updateThoughtChainRealtime(assistantMessage.thoughtSteps);
@@ -719,6 +726,13 @@ async function appendDetectImages(contentDiv, thoughtSteps) {
   }
 }
 
+function buildAssistantDisplayContent(message) {
+  const ragResults = Array.isArray(message?.rag_results) ? message.rag_results.filter(Boolean) : [];
+  const content = message?.content || '';
+  if (!ragResults.length) return content;
+  return `${ragResults.join('\n\n')}\n\n${content}`.trim();
+}
+
 function updateLastMessage(isFinal = false) {
   const chatMessages = document.getElementById('chatMessages');
   const lastMessage = chatMessages.lastElementChild;
@@ -728,7 +742,7 @@ function updateLastMessage(isFinal = false) {
   const assistantMessage = state.messages[state.messages.length - 1];
   const existingThoughtChain = contentDiv.querySelector('.thought-chain');
 
-  let html = renderMarkdown(assistantMessage.content);
+  let html = renderMarkdown(buildAssistantDisplayContent(assistantMessage));
   if (isFinal) {
     html = renderWithCitations(html);
   }
@@ -911,7 +925,8 @@ function renderMessages() {
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
 
-    let html = renderMarkdown(msg.content);
+    let displayContent = msg.role === 'assistant' ? buildAssistantDisplayContent(msg) : msg.content;
+    let html = renderMarkdown(displayContent);
     if (msg.role === 'assistant') {
       html = renderWithCitations(html);
     }

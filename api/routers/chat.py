@@ -71,6 +71,7 @@ async def chat_stream(
         # 累积 assistant 回答 + 思维链，finally 存库
         # （后端存，不依赖前端 streamDone；前端断开/切页面也存，回来不空）
         full_content = ""
+        rag_results = []
         thought_steps_list = []
 
         # on_step 回调：agent 每产生一个思维链步骤就推到 event_queue + 累积，
@@ -83,7 +84,9 @@ async def chat_stream(
             """Run agent in a separate thread"""
             try:
                 for chunk in agent.execute_stream(messages, conversation_id, user_context=user_context, on_step=on_step):
-                    if chunk and chunk.strip():
+                    if isinstance(chunk, dict) and chunk.get("type") == "rag_result":
+                        event_queue.put(('rag_result', chunk.get("content", "")))
+                    elif isinstance(chunk, str) and chunk.strip():
                         event_queue.put(('chunk', chunk))
             except Exception as e:
                 event_queue.put(('error', str(e)))
@@ -110,6 +113,14 @@ async def chat_stream(
                         full_content += event_data   # 累积，finally 存库
                         data = json.dumps({
                             'type': 'chunk',
+                            'content': event_data
+                        }, ensure_ascii=False)
+                        yield f"data: {data}\n\n"
+                    elif event_type == 'rag_result':
+                        if event_data:
+                            rag_results.append(event_data)
+                        data = json.dumps({
+                            'type': 'rag_result',
                             'content': event_data
                         }, ensure_ascii=False)
                         yield f"data: {data}\n\n"
@@ -140,11 +151,12 @@ async def chat_stream(
         finally:
             metrics.end_conversation()
             # 后端存 assistant（前端断开/切页面也存，回来不空）
-            if conversation_id and full_content.strip():
+            if conversation_id and (full_content.strip() or rag_results):
                 try:
                     await conv_crud.append_message(
                         db, conversation_id, user["id"], "assistant", full_content,
                         thought_steps=thought_steps_list or None,
+                        rag_results=rag_results or None,
                     )
                     await db.commit()
                 except Exception as e:

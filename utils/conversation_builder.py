@@ -1,7 +1,9 @@
-"""对话消息包构建工具：滑动窗口 + 增量摘要压缩（从 ConversationManager 抽出）。
+"""Build the message pack sent to the agent.
 
-不依赖类或单例，crud 函数提取数据后直接调此函数组装 Agent 输入。
+Conversation history may contain display-only fields such as thought_steps and
+rag_results. This module intentionally keeps only role/content for the LLM.
 """
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from crud import conversations as conv_crud
@@ -11,7 +13,7 @@ from utils.logger_handler import logger
 async def build_chat_pack(
     db: AsyncSession, conv_id: str, user_id: int, window_size: int = 10,
 ) -> list:
-    """构建传给 Agent 的消息包：滑动窗口 + 增量摘要。返回 dict 列表。"""
+    """Build the agent input with a sliding window and incremental summary."""
     conv_data = await conv_crud.load_conversation(db, conv_id, user_id)
     all_messages = conv_data.get("messages", [])
 
@@ -30,11 +32,11 @@ async def build_chat_pack(
     has_been_compressed = bool(summary)
 
     if not has_been_compressed or summary_up_to < len(older):
-        new_messages = older[summary_up_to:]
+        new_messages = [_clean_message(msg) for msg in older[summary_up_to:]]
         logger.info(
             f"[记忆压缩] 对话 {conv_id} 需要增量压缩: "
             f"旧摘要覆盖 {summary_up_to} 条，新增 {len(new_messages)} 条，"
-            f"当前需覆盖 {len(older)} 条"
+            f"当前需要覆盖 {len(older)} 条"
         )
         if summary:
             summary = _compress_summary_incremental(summary, new_messages)
@@ -61,6 +63,7 @@ def _clean_message(msg: dict) -> dict:
 
 def _compress_messages(messages: list) -> str:
     from model.factory import chat_model
+
     text = ""
     for msg in messages:
         role = "用户" if msg.get("role") == "user" else "助手"
@@ -77,6 +80,7 @@ def _compress_messages(messages: list) -> str:
 
 def _compress_summary_incremental(summary: str, new_messages: list) -> str:
     from model.factory import chat_model
+
     text = ""
     for msg in new_messages:
         role = "用户" if msg.get("role") == "user" else "助手"

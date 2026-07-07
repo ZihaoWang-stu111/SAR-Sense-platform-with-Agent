@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.conversations import Conversation, ConversationMessage
@@ -11,6 +11,15 @@ from models.conversations import Conversation, ConversationMessage
 def _gen_conv_id() -> str:
     """带微秒的 conv_id，避免同秒主键冲突。"""
     return datetime.now().strftime("conv_%Y%m%d_%H%M%S_%f")
+
+
+async def ensure_conversation_rag_results_column(db: AsyncSession) -> None:
+    """ponytail: existing installs need one missing JSON column; no migration framework."""
+    try:
+        await db.execute(text("ALTER TABLE conversation_messages ADD COLUMN rag_results JSON NULL"))
+    except Exception as e:
+        if "Duplicate column name" not in str(e):
+            raise
 
 
 async def create_conversation(db: AsyncSession, user_id: int, first_message: str = "") -> str:
@@ -58,6 +67,8 @@ async def load_conversation(db: AsyncSession, conv_id: str, user_id: int) -> dic
         msg = {"role": m.role, "content": m.content}
         if m.thought_steps:
             msg["thought_steps"] = m.thought_steps
+        if m.rag_results:
+            msg["rag_results"] = m.rag_results
         messages.append(msg)
     return {
         "id": conv.id,
@@ -72,7 +83,7 @@ async def load_conversation(db: AsyncSession, conv_id: str, user_id: int) -> dic
 
 async def append_message(
     db: AsyncSession, conv_id: str, user_id: int, role: str, content: str,
-    thought_steps: Optional[list] = None,
+    thought_steps: Optional[list] = None, rag_results: Optional[list] = None,
 ) -> None:
     """先验证对话归属，再 INSERT 一行消息 + 更新 updated_at + 首条 user 消息时改 title。"""
     own_stmt = select(Conversation).where(Conversation.id == conv_id, Conversation.user_id == user_id)
@@ -90,7 +101,7 @@ async def append_message(
 
     db.add(ConversationMessage(
         conversation_id=conv_id, message_index=next_idx,
-        role=role, content=content, thought_steps=thought_steps,
+        role=role, content=content, thought_steps=thought_steps, rag_results=rag_results,
         created_at=datetime.now(),
     ))
     conv.updated_at = datetime.now()

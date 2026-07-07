@@ -61,10 +61,12 @@ def create_app() -> FastAPI:
                 get_user_by_username,
                 update_user_role,
             )
+            from crud.conversations import ensure_conversation_rag_results_column
             from utils.security import hash_password
             from utils.rbac import ROLE_ADMIN
             async with AsyncSessionLocal() as session:
                 await ensure_user_role_column(session)
+                await ensure_conversation_rag_results_column(session)
                 if (await count_users(session)) == 0:
                     await create_user(session, "admin", hash_password("admin123"), role=ROLE_ADMIN)
                     logger.info("已创建种子用户 admin/admin123")
