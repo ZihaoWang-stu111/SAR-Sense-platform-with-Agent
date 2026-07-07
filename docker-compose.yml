@@ -49,6 +49,9 @@ services:
       # API key 从宿主 .env 读取注入（未设置则传空串，不阻断启动）
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
       TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      # MinerU PDF 解析服务（指向 mineru 服务；mineru 挂了 pdf_loader 自动回退 PyPDFLoader）
+      MINERU_API_URL: http://mineru:8000
+      MINERU_ENABLED: "true"
     depends_on:
       db:
         condition: service_healthy
@@ -59,9 +62,46 @@ services:
       - hf_cache:/app/.cache/huggingface    # HF 模型缓存（BGE reranker，避免每次重启重下）
     restart: unless-stopped
 
+  # MinerU PDF 解析服务（CPU pipeline 后端，86.47 准确率，无需 GPU）
+  # app 通过 http://mineru:8000 调用；软依赖，不阻塞 app 启动（mineru 挂了走 PyPDFLoader 兜底）。
+  # 首次启动需预热模型权重：docker exec sar-sense-mineru mineru-models-download --source modelscope
+  mineru:
+    build:
+      context: .
+      dockerfile: docker/mineru.Dockerfile
+    container_name: sar-sense-mineru
+    # 本地调试开 8000 端口映射；纯容器间调用可注释掉
+    ports:
+      - "8000:8000"
+    environment:
+      MINERU_MODEL_SOURCE: modelscope
+      HF_ENDPOINT: https://hf-mirror.com
+      # NVIDIA GPU 直通（Docker Desktop + WSL2 + NVIDIA Windows 驱动 535+）
+      # 没装 CUDA toolkit 也行，驱动自带容器运行时；nvidia.com/gpu=all 让容器看到宿主 GPU
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - mineru_cache:/root/.cache          # 模型权重缓存（1-2GB，首次下载后秒加载）
+    healthcheck:
+      # python:3.10-slim 无 curl，用 urllib 探活
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health',timeout=3).status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
 volumes:
   mysql_data:
   app_uploads:
   app_logs:
   app_runtime:
   hf_cache:
+  mineru_cache:

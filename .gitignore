@@ -24,6 +24,7 @@ runtime/
 manifest.json
 parent_docstore.json
 data/uploads/
+data/
 
 # 数据库文件（SQLite 等，防止误入库）
 *.sqlite3

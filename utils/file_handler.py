@@ -100,6 +100,25 @@ def listdir_with_allowed_type(path, allowed_types):
 
 
 def pdf_loader(file_path, passwd=None):
+    """解析 PDF → list[Document]。
+
+    优先走 MinerU（结构化 Markdown，公式→LaTeX、表格→HTML，扫描页 OCR）；
+    失败/未启用/加密 PDF 自动回退 PyPDFLoader，上传永不中断。
+    """
+    # 加密 PDF：MinerU 不支持密码，直接走 PyPDFLoader。
+    if passwd:
+        return PyPDFLoader(file_path, password=passwd).load()
+
+    from utils.mineru_client import _mineru_enabled, parse_pdf_to_documents
+    if _mineru_enabled():
+        try:
+            docs = parse_pdf_to_documents(file_path)
+            if docs:
+                return docs
+            logger.warning(f"MinerU 返回空，回退 PyPDFLoader: {file_path}")
+        except Exception as e:
+            logger.warning(f"MinerU 解析失败，回退 PyPDFLoader: {file_path} - {e}")
+
     return PyPDFLoader(file_path, password=passwd).load()
 
 

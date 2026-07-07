@@ -234,8 +234,9 @@ class VectorStoreService:
                 "chunk_index": i,
             }
             # PDF 文档如果有 page 信息，保留
-            if "page" in chunk.metadata:
-                meta["page"] = chunk.metadata["page"]
+            for k in ("page", "chunk_type", "table_id"):
+                if k in chunk.metadata:
+                    meta[k] = chunk.metadata[k]
 
             enriched_chunks.append(Document(
                 page_content=chunk.page_content,
@@ -244,6 +245,53 @@ class VectorStoreService:
             chunk_ids.append(cid)
 
         return enriched_chunks, chunk_ids
+
+    def _structured_split(self, documents, doc_id):
+        """MinerU content_list 重组后的结构感知分块。
+        - text → 攒一批喂原 _semantic_split（只切正文，不碰 table/equation）
+        - table/equation → 原子保留，整块作 parent，page_content 带 caption
+        - table 生成 table_id 便于溯源
+        不做跨页合并/大表切分/章节栈（YAGNI，召回不行再加）。"""
+        text_buffer = []
+        parents = []
+        table_seq = 0
+
+        def flush_text():
+            if not text_buffer:
+                return
+            chunks = self._semantic_split(list(text_buffer))
+            if chunks is None:  # embedding 失败回退
+                chunks = self.pdf_splitter.split_documents(list(text_buffer))
+            for ch in chunks:
+                meta = dict(ch.metadata or {})
+                meta["chunk_type"] = "text"
+                meta["mineru_structured"] = True
+                parents.append(Document(page_content=ch.page_content, metadata=meta))
+            text_buffer.clear()
+
+        for doc in documents:
+            mtype = doc.metadata.get("mineru_type", "text")
+            page = doc.metadata.get("page")
+
+            if mtype == "table":
+                flush_text()
+                table_seq += 1
+                meta = dict(doc.metadata)
+                meta["chunk_type"] = "table"
+                meta["table_id"] = f"{doc_id}:table:{table_seq:03d}"
+                meta["page"] = page
+                parents.append(Document(page_content=doc.page_content, metadata=meta))
+            elif mtype == "equation":
+                flush_text()
+                meta = dict(doc.metadata)
+                meta["chunk_type"] = "equation"
+                meta["page"] = page
+                parents.append(Document(page_content=doc.page_content, metadata=meta))
+            else:
+                text_buffer.append(doc)
+
+        flush_text()
+        return parents
 
     def _build_parent_child_chunks(self, parent_docs, doc_id, file_hash, file_path, file_type):
         """父块写入 docstore，子块写入 Chroma。"""
@@ -269,15 +317,23 @@ class VectorStoreService:
             }
             if "page" in parent.metadata:
                 parent_meta["page"] = parent.metadata["page"]
+            # 透传 MinerU 结构化字段（table_id 溯源 / mineru_type 识别原子块）
+            for k in ("mineru_type", "table_id", "mineru_structured"):
+                if k in parent.metadata:
+                    parent_meta[k] = parent.metadata[k]
 
             parent_records[parent_id] = {
                 "page_content": parent.page_content,
                 "metadata": parent_meta,
             }
 
-            children = self.child_splitter.split_documents([parent])
-            if not children:
+            # table/equation 是原子块，不进字符切分，整块作 child（child_splitter 的 "" 兜底会切碎 HTML）
+            if parent.metadata.get("chunk_type") in ("table", "equation"):
                 children = [parent]
+            else:
+                children = self.child_splitter.split_documents([parent])
+                if not children:
+                    children = [parent]
 
             for child_index, child in enumerate(children):
                 child_id = f"{parent_id}:child:{child_index:03d}"
@@ -297,6 +353,9 @@ class VectorStoreService:
                 }
                 if "page" in parent_meta:
                     child_meta["page"] = parent_meta["page"]
+                for k in ("mineru_type", "table_id", "mineru_structured"):
+                    if k in parent_meta:
+                        child_meta[k] = parent_meta[k]
 
                 child_chunks.append(Document(page_content=child.page_content, metadata=child_meta))
                 child_ids.append(child_id)
@@ -418,7 +477,14 @@ class VectorStoreService:
                 if self.parent_child_enabled:
                     chunk_method = "parent_child_semantic"
                     parent_docs = None
-                    if self.semantic_enabled:
+                    # MinerU 结构化文档走结构感知分块；TXT / PyPDFLoader 兜底走原链路
+                    is_mineru_structured = bool(
+                        documents and documents[0].metadata.get("mineru_structured")
+                    )
+                    if is_mineru_structured and chroma_conf.get("mineru_structured_split", True):
+                        parent_docs = self._structured_split(documents, doc_id)
+                        chunk_method = "mineru_structured"
+                    elif self.semantic_enabled:
                         parent_docs = self._semantic_split(documents)
                     if parent_docs is None:
                         parent_docs = self._get_splitter(path).split_documents(documents)

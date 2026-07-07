@@ -12,6 +12,8 @@ from rag.parent_child_retriever import ParentChildResolver
 from utils.config_handler import chroma_conf
 
 
+
+
 class RagSummarizeService:
     def __init__(self):
         self.vector_store = get_vector_store_service()
@@ -46,6 +48,7 @@ class RagSummarizeService:
     def retriever_docs(self, query, allowed_doc_ids=None):
         # 子块召回 → 先在子块上重排(只打分不截断) → 再回表聚合成父块
         # rerank 提前到子块层：CrossEncoder 对短文本判分更准，并让"选哪些父块"由相关性决定
+        # 表格入库时已存 markdown（_compose_table 转），rerank 天然高分，无需 boost / doc 推断
         if allowed_doc_ids is not None and not allowed_doc_ids:
             return []
 
@@ -80,10 +83,14 @@ class RagSummarizeService:
             if isinstance(score, float):
                 score = f"{score:.4f}"
             context += f"[{i}] {doc.page_content}\n"
-            context += (
+            ctx_line = (
                 f"来源: {filename} | chunk_id={chunk_id} | parent_index={chunk_index} "
-                f"| match_child={match_child} | page={page} | score={score}\n\n"
+                f"| match_child={match_child} | page={page} | score={score}"
             )
+            table_id = doc.metadata.get('table_id', '')
+            if table_id:
+                ctx_line += f" | {table_id}"
+            context += ctx_line + "\n\n"
             sources.append(f"[{i}] {filename} | chunk_id={chunk_id} | score={score}")
 
         answer = self.chain.invoke(
