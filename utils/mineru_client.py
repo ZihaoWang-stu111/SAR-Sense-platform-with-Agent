@@ -69,9 +69,19 @@ def _table_html_to_markdown(html: str) -> str:
     return md_rows[0] + "\n" + sep + "\n" + "\n".join(md_rows[1:])
 
 
-def _compose_table(item: dict) -> str:
-    """table item → caption + markdown表格 + footnote。caption 必带，召回命脉。"""
+def _compose_table(item: dict, file_path: str) -> str:
+    """table item → 算法名 + caption + markdown表格 + footnote。
+
+    算法名取文件名 stem（去扩展名），拼在最前。消融表/对比表的 caption 常不含算法名
+    （如 "RESULTS OF ABLATION EXPERIMENTS"，用 Model A/B/C 而非 SFQ-Det），
+    导致 query "SFQ-Det 的消融表" 匹配不上表格内容 → rerank 低分被挤出 final。
+    拼上 stem 后表格自带算法名，rerank/embedding 能命中 query 里的算法名。
+    caption 必带（召回命脉），stem 是补充。
+    """
     parts = []
+    stem = os.path.splitext(os.path.basename(file_path))[0]
+    if stem:
+        parts.append(stem)
     cap = item.get("table_caption") or []
     if cap:
         parts.append(" ".join(str(c).strip() for c in cap if str(c).strip()))
@@ -97,7 +107,7 @@ def _docs_from_content_list(content_list: list, file_path: str) -> list[Document
 
         if mtype == "table":
             docs.append(Document(
-                page_content=_compose_table(item),
+                page_content=_compose_table(item, file_path),
                 metadata={
                     "mineru_type": "table",
                     "page": page,
