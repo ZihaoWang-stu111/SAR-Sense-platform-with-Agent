@@ -234,9 +234,8 @@ class VectorStoreService:
                 "chunk_index": i,
             }
             # PDF 文档如果有 page 信息，保留
-            for k in ("page", "chunk_type", "table_id"):
-                if k in chunk.metadata:
-                    meta[k] = chunk.metadata[k]
+            if "page" in chunk.metadata:
+                meta["page"] = chunk.metadata["page"]
 
             enriched_chunks.append(Document(
                 page_content=chunk.page_content,
