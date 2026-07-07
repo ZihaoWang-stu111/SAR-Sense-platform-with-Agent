@@ -46,4 +46,9 @@ mcp-learning/
 # OS 临时文件
 Thumbs.db
 .DS_Store
+
+# 个人简历 / Word 文档（不入仓库）
+*.docx
+*.docx.bak
+~$*
 data/MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf
