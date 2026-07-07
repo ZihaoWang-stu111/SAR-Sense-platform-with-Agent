@@ -68,9 +68,15 @@ async def chat_stream(
         metrics = get_metrics()
         metrics.start_conversation()
 
-        # on_step 回调：agent 每产生一个思维链步骤就推到 event_queue，
+        # 累积 assistant 回答 + 思维链，finally 存库
+        # （后端存，不依赖前端 streamDone；前端断开/切页面也存，回来不空）
+        full_content = ""
+        thought_steps_list = []
+
+        # on_step 回调：agent 每产生一个思维链步骤就推到 event_queue + 累积，
         # 由主循环 yield 给前端。状态走事件队列，不再用全局 dict。
         def on_step(step):
+            thought_steps_list.append(step)
             event_queue.put(('thought_step', step))
 
         def run_agent():
@@ -101,6 +107,7 @@ async def chat_stream(
                         }, ensure_ascii=False)
                         yield f"data: {data}\n\n"
                     elif event_type == 'chunk':
+                        full_content += event_data   # 累积，finally 存库
                         data = json.dumps({
                             'type': 'chunk',
                             'content': event_data
@@ -132,6 +139,16 @@ async def chat_stream(
 
         finally:
             metrics.end_conversation()
+            # 后端存 assistant（前端断开/切页面也存，回来不空）
+            if conversation_id and full_content.strip():
+                try:
+                    await conv_crud.append_message(
+                        db, conversation_id, user["id"], "assistant", full_content,
+                        thought_steps=thought_steps_list or None,
+                    )
+                    await db.commit()
+                except Exception as e:
+                    logger.warning(f"存 assistant 消息失败: {e}")
             logger.info("Streaming response completed")
 
     return StreamingResponse(

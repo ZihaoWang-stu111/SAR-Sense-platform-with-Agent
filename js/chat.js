@@ -242,23 +242,6 @@ async function deleteConversation(convId) {
   }
 }
 
-async function appendMessageToConversation(conversationId, role, content, thoughtSteps = null) {
-  console.log(`[appendMessageToConversation] 调用，conversationId: ${conversationId}, role: ${role}, content长度: ${content.length}`);
-  if (!conversationId) {
-    console.error('[appendMessageToConversation] conversationId为空，跳过保存');
-    return;
-  }
-  try {
-    const response = await apiFetch(`${API_BASE}/api/conversations/${conversationId}/messages`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role, content, thought_steps: thoughtSteps })
-    });
-    console.log(`[appendMessageToConversation] 保存成功，conversationId: ${conversationId}`);
-  } catch (error) {
-    console.error('Failed to append message:', error);
-  }
-}
 
 // 同步后台消息到当前会话
 function syncBackgroundMessages(conversationId) {
@@ -528,9 +511,7 @@ async function processStreamInBackground(reader, conversationId) {
             } else if (data.type === 'done') {
               assistantMessage.streamDone = true;
 
-              // 完成后自动保存
-              await appendMessageToConversation(conversationId, 'assistant', assistantMessage.content, assistantMessage.thoughtSteps);
-
+              // assistant 由后端 generate() finally 存库，前端不再重复存（避免切页面 streamDone 没触发导致丢回答）
               // 通知用户
               notifyBackgroundCompletion(conversationId);
             } else if (data.type === 'error') {
@@ -645,8 +626,7 @@ async function sendMessageStreaming(message, displayMessage) {
       notifyBackgroundCompletion(conversationId);
     }
 
-    console.log(`[保存消息] 会话 ${conversationId}，角色: assistant，内容长度: ${assistantMessage.content.length}`);
-    await appendMessageToConversation(conversationId, 'assistant', assistantMessage.content, assistantMessage.thoughtSteps);
+    console.log(`[会话完成] 会话 ${conversationId}，内容长度: ${assistantMessage.content.length}（assistant 由后端存库）`);
   } catch (error) {
     if (error.name === 'AbortError') {
       console.log('[Stream] 用户取消');
