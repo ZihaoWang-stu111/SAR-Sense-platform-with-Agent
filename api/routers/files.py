@@ -4,6 +4,7 @@ import tempfile
 from io import BytesIO
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from PIL import Image
 
@@ -69,7 +70,8 @@ async def extract_file(
         # 延迟导入：agent_tools 模块级会实例化 RagSummarizeService（触发 vector store + BM25 + BGE 加载），
         # 放函数内避免启动时同步阻塞；只在真正需要提取文档时才触发
         from agent.tools.agent_tools import extract_file_content
-        content = extract_file_content.invoke({"file_path": temp_path})
+        # extract_file_content 内部跑 PDF/OCR 解析，同步阻塞，丢线程池避免阻塞事件循环
+        content = await run_in_threadpool(extract_file_content.invoke, {"file_path": temp_path})
     finally:
         try:
             os.remove(temp_path)

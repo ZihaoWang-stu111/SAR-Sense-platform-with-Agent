@@ -39,9 +39,9 @@ async def build_chat_pack(
             f"当前需要覆盖 {len(older)} 条"
         )
         if summary:
-            summary = _compress_summary_incremental(summary, new_messages)
+            summary = await _compress_summary_incremental(summary, new_messages)
         else:
-            summary = _compress_messages(new_messages)
+            summary = await _compress_messages(new_messages)
         await conv_crud.update_summary(db, conv_id, user_id, summary, len(older))
         logger.info(f"[记忆压缩] 对话 {conv_id} 摘要已更新")
 
@@ -61,7 +61,9 @@ def _clean_message(msg: dict) -> dict:
     return {"role": msg.get("role", "user"), "content": msg.get("content", "")}
 
 
-def _compress_messages(messages: list) -> str:
+async def _compress_messages(messages: list) -> str:
+    # 改用 ainvoke：原 chat_model.invoke 是同步阻塞，在 async build_chat_pack 里
+    # 会阻塞 FastAPI 事件循环（LLM 往返数秒，长对话压缩时其他请求全排队）
     from model.factory import chat_model
 
     text = ""
@@ -69,7 +71,7 @@ def _compress_messages(messages: list) -> str:
         role = "用户" if msg.get("role") == "user" else "助手"
         text += f"{role}: {msg.get('content', '')}\n"
     try:
-        result = chat_model.invoke(
+        result = await chat_model.ainvoke(
             f"请将以下对话压缩为200字摘要，保留场景ID和技术要点：\n\n{text}"
         )
         return result.content.strip()
@@ -78,7 +80,8 @@ def _compress_messages(messages: list) -> str:
         return text[:500]
 
 
-def _compress_summary_incremental(summary: str, new_messages: list) -> str:
+async def _compress_summary_incremental(summary: str, new_messages: list) -> str:
+    # 同 _compress_messages：ainvoke 避免 async 函数里同步阻塞 LLM
     from model.factory import chat_model
 
     text = ""
@@ -88,7 +91,7 @@ def _compress_summary_incremental(summary: str, new_messages: list) -> str:
     if not text.strip():
         return summary
     try:
-        result = chat_model.invoke(
+        result = await chat_model.ainvoke(
             "请将已有摘要和新增对话融合为新的200字摘要，保留场景ID和技术要点。"
             f"\n\n已有摘要：\n{summary}"
             f"\n\n新增对话：\n{text}"

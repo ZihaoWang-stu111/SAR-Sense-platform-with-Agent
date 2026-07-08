@@ -3,6 +3,7 @@ import logging
 import os
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -103,7 +104,11 @@ async def upload_knowledge(
         uploaded_paths.append(file_path)
 
     vector_store = get_vector_store()
-    new_count, updated_count, skipped_count, removed_count = vector_store.load_documents(uploaded_paths)
+    # load_documents 内部跑 MinerU requests.post + embedding + BM25 重建，全同步阻塞，
+    # 丢线程池避免阻塞 FastAPI 事件循环（上传大 PDF 可达分钟级）
+    new_count, updated_count, skipped_count, removed_count = await run_in_threadpool(
+        vector_store.load_documents, uploaded_paths
+    )
 
     for filename in uploaded_files:
         entry = vector_store.manifest.get(filename)
