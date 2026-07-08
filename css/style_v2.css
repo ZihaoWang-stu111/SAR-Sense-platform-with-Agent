@@ -6,99 +6,98 @@
 
 /* ==================== Design Tokens — Apple Light ==================== */
 :root {
-  /* ── Surface palette — Apple system grays ── */
-  --bg-primary: #fbfbfd;             /* apple.com 主底色 */
-  --bg-secondary: #f5f5f7;           /* iOS settings grouped bg */
-  --bg-tertiary: #ffffff;            /* 卡片底层 */
-  --bg-elevated: #ffffff;            /* 浮起的高层卡片 */
+  /* ── Surface palette — Dark theme grays ── */
+  --bg-primary: #000000;             /* 全屏底色 */
+  --bg-secondary: #08080a;           /* 二级背景 */
+  --bg-tertiary: #121214;            /* 卡片背景 */
+  --bg-elevated: #1a1a1e;            /* 高起卡片 */
 
-  /* Glass surfaces — Apple light vibrancy（白色调透明 + 强 saturation）*/
+  /* Glass surfaces — Dark vibrancy */
   --glass-fill: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.85) 0%,
-    rgba(255, 255, 255, 0.65) 100%
+    rgba(18, 18, 20, 0.85) 0%,
+    rgba(18, 18, 20, 0.65) 100%
   );
   --glass-fill-hover: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(255, 255, 255, 0.78) 100%
+    rgba(30, 30, 35, 0.95) 0%,
+    rgba(30, 30, 35, 0.78) 100%
   );
-  --glass-bg: rgba(255, 255, 255, 0.72);
-  --bg-card: rgba(255, 255, 255, 0.72);
-  --bg-card-hover: rgba(255, 255, 255, 0.92);
+  --glass-bg: rgba(10, 10, 12, 0.72);
+  --bg-card: rgba(18, 18, 20, 0.72);
+  --bg-card-hover: rgba(30, 30, 35, 0.92);
 
-  /* ── Accent — Apple System Blue (light mode 偏深一档可读性更好) ── */
-  --accent-primary: #0066cc;          /* apple.com link blue */
-  --accent-primary-soft: #0a84ff;     /* hover / 二级 */
-  --accent-secondary: #af52de;        /* iOS Purple light */
-  --accent-mint: #34c759;             /* iOS Green light */
-  --accent-pink: #ff2d55;             /* iOS Pink light */
-  --accent-amber: #ff9500;             /* iOS Orange light */
+  /* ── Accent — Pink & Purple ── */
+  --accent-primary: #F598F2;          /* Slide 1 Pink */
+  --accent-primary-soft: #A068FF;     /* Purple soft */
+  --accent-secondary: #A068FF;        /* Purple */
+  --accent-mint: #30d158;             /* Dark mode iOS Green */
+  --accent-pink: #F598F2;             /* Pink */
+  --accent-amber: #ff9f0a;            /* Dark mode iOS Orange */
 
-  /* Premium gradients — restrained */
+  /* Premium gradients */
   --accent-gradient: linear-gradient(
     135deg,
-    #0066cc 0%,
-    #5856d6 50%,
-    #af52de 100%
+    #F598F2 0%,
+    #A068FF 100%
   );
   --accent-gradient-soft: linear-gradient(
     135deg,
-    rgba(0, 102, 204, 0.12) 0%,
-    rgba(175, 82, 222, 0.10) 100%
+    rgba(245, 152, 242, 0.12) 0%,
+    rgba(160, 104, 255, 0.10) 100%
   );
   --aurora-gradient: radial-gradient(
       ellipse 75% 45% at 18% 0%,
-      rgba(0, 102, 204, 0.08) 0%,
+      rgba(160, 104, 255, 0.08) 0%,
       transparent 60%
     ),
     radial-gradient(
       ellipse 55% 35% at 82% 30%,
-      rgba(175, 82, 222, 0.06) 0%,
+      rgba(245, 152, 242, 0.06) 0%,
       transparent 60%
     ),
     radial-gradient(
       ellipse 65% 45% at 50% 100%,
-      rgba(212, 175, 111, 0.05) 0%,
+      rgba(255, 255, 255, 0.03) 0%,
       transparent 70%
     );
 
-  /* ── Text — Apple system text (light) ── */
-  --text-primary: #1d1d1f;             /* apple.com 主文字 */
-  --text-secondary: #424245;
-  --text-tertiary: #6e6e73;            /* apple.com 副文字 */
-  --text-quaternary: #86868b;          /* apple.com tertiary */
+  /* ── Text — White/Silver text ── */
+  --text-primary: #ffffff;             /* 主文本白色 */
+  --text-secondary: #c0c0c5;
+  --text-tertiary: #8e8e93;            /* 副文本灰色 */
+  --text-quaternary: #64646a;
 
   /* ── Borders & dividers ── */
-  --border-color: rgba(0, 0, 0, 0.08);
-  --border-strong: rgba(0, 0, 0, 0.14);
-  --border-glow: rgba(0, 102, 204, 0.40);
-  --border-highlight: rgba(255, 255, 255, 0.95);  /* glass 顶部白边光 */
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-glow: rgba(245, 152, 242, 0.40);
+  --border-highlight: rgba(255, 255, 255, 0.05);
 
-  /* ── Layered shadows (light mode 用更深更柔和的阴影) ── */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  /* ── Layered shadows (Dark mode shadows) ── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-sm:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 2px 6px rgba(0, 0, 0, 0.06);
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 2px 6px rgba(0, 0, 0, 0.6);
   --shadow-md:
-    0 2px 4px rgba(0, 0, 0, 0.05),
-    0 8px 24px rgba(0, 0, 0, 0.08);
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    0 8px 24px rgba(0, 0, 0, 0.7);
   --shadow-lg:
-    0 4px 8px rgba(0, 0, 0, 0.06),
-    0 16px 48px rgba(0, 0, 0, 0.12);
+    0 4px 8px rgba(0, 0, 0, 0.5),
+    0 16px 48px rgba(0, 0, 0, 0.8);
   --shadow-xl:
-    0 8px 16px rgba(0, 0, 0, 0.08),
-    0 32px 80px rgba(0, 0, 0, 0.16);
+    0 8px 16px rgba(0, 0, 0, 0.6),
+    0 32px 80px rgba(0, 0, 0, 0.9);
 
-  /* Glow shadows — colored emissions */
-  --shadow-glow:        0 0 28px rgba(0, 102, 204, 0.14);
-  --shadow-glow-strong: 0 0 48px rgba(0, 102, 204, 0.22);
-  --shadow-glow-purple: 0 0 36px rgba(175, 82, 222, 0.18);
-  --shadow-glow-mint:   0 0 32px rgba(52, 199, 89, 0.18);
+  /* Glow shadows */
+  --shadow-glow:        0 0 28px rgba(245, 152, 242, 0.14);
+  --shadow-glow-strong: 0 0 48px rgba(160, 104, 255, 0.22);
+  --shadow-glow-purple: 0 0 36px rgba(160, 104, 255, 0.18);
+  --shadow-glow-mint:   0 0 32px rgba(48, 209, 88, 0.18);
 
-  /* Inner highlight — light mode 用白色高光（Apple 玻璃顶部反光） */
-  --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.85);
-  --inset-highlight-strong: inset 0 1px 0 rgba(255, 255, 255, 1);
+  /* Inner highlight */
+  --inset-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --inset-highlight-strong: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 
   /* ── Spacing — 4pt baseline ── */
   --space-xs: 0.25rem;
@@ -119,11 +118,9 @@
   --radius-2xl: 28px;
   --radius-full: 9999px;
 
-  /* ── Typography ── */
-  --font-display: 'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont,
-                  'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --font-body:    'Inter', -apple-system, BlinkMacSystemFont,
-                  'SF Pro Text', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  /* ── Typography (Figtree font) ── */
+  --font-display: 'Figtree', sans-serif;
+  --font-body:    'Figtree', sans-serif;
   --font-mono:    'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
 
   /* Type scale */
@@ -139,8 +136,8 @@
   --text-5xl: clamp(2.5rem, 5.5vw, 4.5rem);   /* 缩小一档防溢出 */
 
   /* ── Easing — Apple iOS spring curves ── */
-  --ease-ios:        cubic-bezier(0.32, 0.72, 0, 1);
-  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-ios:        cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring:     cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-expo:   cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out:     cubic-bezier(0.65, 0, 0.35, 1);
 
@@ -369,33 +366,23 @@ body::after { display: none; }
 
 /* ==================== Navigation — Light Liquid Glass Bar ==================== */
 .navbar {
-  position: fixed;
+  display: block;
+  position: static;
   top: 0;
   left: 0;
   right: 0;
   z-index: var(--z-sticky);
-  padding: var(--space-md) 0;
   transition: all var(--transition-normal);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.72) 0%,
-    rgba(255, 255, 255, 0.55) 100%
-  );
-  -webkit-backdrop-filter: var(--glass-blur-strong);
-          backdrop-filter: var(--glass-blur-strong);
-  border-bottom: 1px solid transparent;
+  background: transparent;
+  -webkit-backdrop-filter: none;
+          backdrop-filter: none;
+  border-bottom: none;
 }
 
 .navbar.scrolled {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(255, 255, 255, 0.82) 100%
-  );
-  border-bottom-color: var(--border-color);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.95) inset,
-    0 8px 24px rgba(0, 0, 0, 0.06);
+  background: transparent;
+  border-bottom-color: transparent;
+  box-shadow: none;
 }
 
 .navbar .container {

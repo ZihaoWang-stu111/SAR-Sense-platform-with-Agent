@@ -1,0 +1,817 @@
+/* Davies & Viktor Style - Home Renovation CSS */
+
+/* CSS Variable for Spring Easing */
+:root {
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --pink-accent: #F598F2;
+}
+
+/* ==================== 覆盖 luxury.css 以适配纯黑底色 ==================== */
+.lux-cursor-dot {
+  background: #ffffff !important;
+}
+
+.lux-cursor-ring {
+  border-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.lux-cursor-ring.is-hover {
+  border-color: var(--pink-accent) !important;
+  background: rgba(245, 152, 242, 0.12) !important;
+}
+
+.lux-cursor-ring.is-down {
+  border-color: var(--pink-accent) !important;
+  background: rgba(245, 152, 242, 0.18) !important;
+}
+
+.lux-cursor-ring.is-text {
+  border-color: rgba(255, 255, 255, 0.85) !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+}
+
+.lux-spotlight {
+  background: radial-gradient(
+    600px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(245, 152, 242, 0.05) 0%,
+    rgba(160, 104, 255, 0.02) 30%,
+    transparent 60%
+  ) !important;
+  mix-blend-mode: screen !important;
+}
+
+/* 隐藏原本主页的 glow 背景和 grid，保持纯净的视频黑底 */
+.bg-grid, .bg-glow {
+  display: none !important;
+}
+
+/* ==================== Navbar (Davies Absolute Header) ==================== */
+.davies-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.davies-nav {
+  max-width: 1340px;
+  margin: 0 auto;
+  padding: 36px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: auto;
+  box-sizing: border-box;
+}
+
+.davies-nav-left {
+  display: flex;
+  gap: 32px;
+}
+
+.davies-nav-link {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: #ffffff;
+  position: relative;
+  padding-bottom: 6px;
+  opacity: 0.65;
+  transition: opacity 0.3s var(--ease-spring);
+}
+
+.davies-nav-link:hover,
+.davies-nav-link.active {
+  opacity: 1;
+}
+
+.davies-nav-link .nav-num {
+  font-size: 8px;
+  line-height: 12px;
+  letter-spacing: -0.08px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.davies-nav-link .nav-label {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: -0.12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  font-family: 'Figtree', sans-serif;
+}
+
+/* Underline slide-in from right on hover */
+.davies-nav-link::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 1px;
+  bottom: 0;
+  left: 0;
+  background-color: #ffffff;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.45s var(--ease-spring);
+}
+
+.davies-nav-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* Navbar Right Side */
+.davies-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.davies-email {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: -0.12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-decoration: none;
+  opacity: 0.65;
+  transition: opacity 0.3s var(--ease-spring);
+  position: relative;
+  padding-bottom: 6px;
+}
+
+.davies-email::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 1px;
+  bottom: 0;
+  left: 0;
+  background-color: #ffffff;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.45s var(--ease-spring);
+}
+
+.davies-email:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+.davies-email:hover {
+  opacity: 1;
+}
+
+.davies-clock {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: -0.12px;
+  font-weight: 500;
+  color: #ffffff;
+  font-family: 'Figtree', sans-serif;
+}
+
+/* Mobile Nav Toggle */
+.mobile-toggle-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+}
+
+.mobile-nav-panel {
+  display: none;
+}
+
+/* ==================== Video Hero Container ==================== */
+.video-hero-container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  box-sizing: border-box;
+  background-color: #000000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+/* Loops videos stacked absolutely */
+.hero-video-bg-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.hero-bg-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1200ms ease-in-out;
+  pointer-events: none;
+}
+
+.hero-bg-video.active {
+  opacity: 1;
+}
+
+/* bg-black/10 overlay */
+.video-dark-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.15);
+  z-index: 1;
+}
+
+/* Hero Content Grid (z-2, relative) */
+.hero-content-wrap {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1340px;
+  margin: 0 auto;
+  padding: 190px 15px 60px 15px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 150px;
+}
+
+.hero-content-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.flex-4 { flex: 4; }
+.flex-2 { flex: 2; }
+.flex-1 { flex: 1; }
+.pl-50 { padding-left: 50px; }
+
+/* Switcher Buttons */
+.switcher-col-left {
+  display: flex;
+  gap: 24px;
+}
+
+.role-link {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  font-family: 'Figtree', sans-serif;
+  display: inline-flex;
+  align-items: center;
+}
+
+.role-link.active {
+  opacity: 1;
+}
+
+.role-link:hover {
+  opacity: 0.75;
+  transform: translateX(4px);
+}
+
+/* Pulsing dot status */
+.status-col-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+  transition: background-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.status-dot-pink {
+  background-color: var(--pink-accent);
+  box-shadow: 0 0 10px var(--pink-accent);
+  animation: dotPulse 1.6s infinite;
+}
+
+.status-dot-white {
+  background-color: #ffffff;
+  box-shadow: 0 0 10px #ffffff;
+  animation: dotPulse 1.6s infinite;
+}
+
+.status-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'Figtree', sans-serif;
+}
+
+@keyframes dotPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(1.45);
+  }
+}
+
+/* ==================== Section 2 Name + CTA ==================== */
+/* giant name */
+.giant-logo-title {
+  font-size: 200px !important;
+  line-height: 81% !important;
+  letter-spacing: -6px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  margin: 0 !important;
+  font-family: 'Figtree', sans-serif !important;
+  color: #ffffff !important;
+}
+
+.logo-period {
+  transition: color 0.4s ease;
+}
+
+.period-pink {
+  color: var(--pink-accent);
+}
+
+.period-white {
+  color: #ffffff;
+}
+
+/* description & cta */
+.description-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  align-items: flex-start;
+}
+
+.hero-desc-p {
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: -0.16px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  max-width: 480px;
+  font-family: 'Figtree', sans-serif;
+}
+
+.cta-button-wrap {
+  margin-top: 8px;
+}
+
+.start-project-btn {
+  position: relative;
+  border: 1.5px solid #ffffff;
+  color: #ffffff;
+  padding: 14px 28px;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: lowercase;
+  background: transparent;
+  overflow: hidden;
+  display: inline-block;
+  text-decoration: none;
+  z-index: 1;
+  font-family: 'Figtree', sans-serif;
+  transition: color 0.4s var(--ease-spring), border-color 0.4s var(--ease-spring);
+}
+
+.start-project-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--pink-accent);
+  transform: translateY(101%);
+  transition: transform 0.45s var(--ease-spring);
+  z-index: -1;
+}
+
+.start-project-btn:hover {
+  color: #000000;
+  border-color: var(--pink-accent);
+}
+
+.start-project-btn:hover::before {
+  transform: translateY(0);
+}
+
+/* ==================== Reveal Animations ==================== */
+.reveal-up {
+  opacity: 0;
+  transform: translateY(80px);
+  transition: opacity 0.9s var(--ease-spring), transform 0.9s var(--ease-spring);
+}
+
+.reveal-right {
+  opacity: 0;
+  transform: translateX(100px);
+  transition: opacity 0.9s var(--ease-spring), transform 0.9s var(--ease-spring);
+}
+
+.reveal-up.active,
+.reveal-right.active {
+  opacity: 1;
+  transform: translate(0, 0);
+}
+
+.delay-btn {
+  transition-delay: 0.08s;
+}
+
+/* ==================== 响应式设计 ==================== */
+@media (min-width: 810px) and (max-width: 1199.98px) {
+  .davies-nav {
+    padding: 30px 18px;
+  }
+  .davies-nav-left {
+    gap: 16px;
+  }
+  .giant-logo-title {
+    font-size: 129.6px !important;
+    line-height: 113.4px !important;
+    letter-spacing: -7.7px !important;
+  }
+  .hero-content-wrap {
+    gap: 28px;
+    padding-bottom: 52px;
+  }
+  .description-col-right {
+    padding-left: 24px;
+  }
+}
+
+@media (max-width: 809.98px) {
+  /* Navbar Mobile Hamburger Toggle */
+  .davies-nav-left,
+  .davies-nav-right {
+    display: none !important;
+  }
+
+  .mobile-toggle-btn {
+    display: block !important;
+  }
+
+  /* Mobile Panel using CSS Grid transition */
+  .mobile-nav-panel {
+    display: grid !important;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 420ms var(--ease-spring);
+    background-color: #000000;
+    width: 100%;
+    overflow: hidden;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 99;
+  }
+
+  .mobile-nav-panel.open {
+    grid-template-rows: 1fr;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .mobile-panel-inner {
+    min-height: 0;
+    padding: 32px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .mobile-nav-link {
+    font-size: 28px;
+    line-height: 32px;
+    letter-spacing: -0.84px;
+    font-weight: 500;
+    color: #ffffff;
+    text-decoration: none;
+    text-transform: uppercase;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+  }
+
+  .mobile-nav-link.active,
+  .mobile-nav-link:hover {
+    opacity: 1;
+  }
+
+  .mobile-panel-footer {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Hero Content Mobile Layout */
+  .hero-content-wrap {
+    justify-content: flex-end;
+    align-items: flex-start;
+    gap: 72px;
+    padding: 140px 18px 44px 18px;
+  }
+
+  .hero-content-row {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    gap: 28px;
+  }
+
+  .switcher-col-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .status-col-right {
+    margin-top: 8px;
+  }
+
+  .row-bottom {
+    gap: 32px;
+  }
+
+  .giant-logo-title {
+    font-size: clamp(68px, 21vw, 80px) !important;
+    line-height: 96px !important;
+    letter-spacing: -4.8px !important;
+  }
+
+  .description-col-right {
+    padding-left: 0 !important;
+    gap: 20px;
+    width: 100%;
+  }
+
+  .hero-desc-p {
+    max-w: 420px;
+  }
+}
+
+/* ==================== 确保滑动下去的 Chapters 和 Footer 统一为黑底 ==================== */
+section.lux-story,
+section.lux-values,
+section.trust,
+section.tech-stack,
+section.lux-cta,
+footer.footer {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+section.lux-story {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.lux-value-card {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+}
+
+.lux-value-card:hover {
+  border-color: var(--pink-accent) !important;
+  background: rgba(245, 152, 242, 0.02) !important;
+}
+
+.trust-card, .tech-card, .lux-cta-card {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+}
+
+.trust-card:hover, .tech-card:hover {
+  border-color: var(--pink-accent) !important;
+}
+
+.lux-cta-card {
+  background: radial-gradient(circle at center, rgba(160, 104, 255, 0.05) 0%, rgba(0, 0, 0, 0.95) 100%) !important;
+  border-color: rgba(160, 104, 255, 0.15) !important;
+}
+
+.btn-champagne {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #ffffff !important;
+}
+
+.btn-champagne:hover {
+  background-color: var(--pink-accent) !important;
+  border-color: var(--pink-accent) !important;
+  color: #000000 !important;
+}
+
+/* ==================== 子页面统一主题微调 ==================== */
+section.detection,
+section.chat,
+section.knowledge,
+section.metrics-page {
+  padding-top: 140px !important;
+  background-color: #000000 !important;
+}
+
+/* 按钮微调为黑白极简粉色高亮 */
+.btn-primary,
+button.btn-primary {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #ffffff !important;
+  font-family: 'Figtree', sans-serif !important;
+  font-weight: 500 !important;
+  border-radius: 50px !important;
+  transition: all 0.3s var(--ease-spring) !important;
+}
+
+.btn-primary:hover,
+button.btn-primary:hover {
+  background-color: var(--pink-accent) !important;
+  border-color: var(--pink-accent) !important;
+  color: #000000 !important;
+  box-shadow: 0 0 15px rgba(245, 152, 242, 0.35) !important;
+}
+
+.btn-secondary,
+button.btn-secondary {
+  background-color: transparent !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 50px !important;
+  transition: all 0.3s var(--ease-spring) !important;
+}
+
+.btn-secondary:hover,
+button.btn-secondary:hover {
+  border-color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* 知识库 Tab 切换 */
+.tab-btn {
+  font-family: 'Figtree', sans-serif !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  transition: all 0.3s var(--ease-spring) !important;
+}
+
+.tab-btn.active {
+  color: var(--pink-accent) !important;
+  border-bottom-color: var(--pink-accent) !important;
+}
+
+/* 卡片边框与高光 */
+.detection-upload-area,
+.detection-result-card,
+.chat-sidebar,
+.chat-main,
+.m-card,
+.timeline-item,
+.chart-container,
+.file-item {
+  background: rgba(255, 255, 255, 0.01) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: none !important;
+  border-radius: 12px !important;
+}
+
+.detection-upload-area:hover,
+.m-card:hover,
+.timeline-item:hover,
+.file-item:hover {
+  border-color: var(--pink-accent) !important;
+  box-shadow: 0 0 20px rgba(245, 152, 242, 0.05) !important;
+}
+
+/* 问答对话气泡 */
+.message.assistant {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.message.user {
+  background: rgba(160, 104, 255, 0.08) !important;
+  border: 1px solid rgba(160, 104, 255, 0.15) !important;
+}
+
+/* 可观测性卡片 */
+.m-card-blue { border-left: 3px solid var(--pink-accent) !important; }
+.m-card-amber { border-left: 3px solid var(--accent-secondary) !important; }
+.m-card-green { border-left: 3px solid var(--accent-mint) !important; }
+.m-card-purple { border-left: 3px solid var(--pink-accent) !important; }
+
+/* 输入框 */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+textarea {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  font-family: 'Figtree', sans-serif !important;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+textarea:focus {
+  border-color: var(--pink-accent) !important;
+  outline: none !important;
+}
+
+/* ==================== 彻底清除 .navbar / header 的旧版亮白背景和定位冲突 ==================== */
+.davies-nav.navbar,
+.navbar {
+  position: static !important;
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 36px 15px !important;
+  width: 100% !important;
+  max-width: 1340px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+/* 彻底清除 scrolled 时的亮白背景和底边框 */
+.davies-nav.navbar.scrolled,
+.navbar.scrolled {
+  background: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+/* 终极强制重置：抹杀任何可能被其他样式库或伪元素渲染的灰色/白色渐变或阴影 */
+header,
+.davies-header,
+.davies-nav,
+.navbar-nav,
+.navbar-actions {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-color: transparent !important;
+}
+
+body::before,
+body::after,
+header::before,
+header::after,
+.davies-header::before,
+.davies-header::after,
+.davies-nav::before,
+.davies-nav::after,
+.navbar::before,
+.navbar::after {
+  display: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  content: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}

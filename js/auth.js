@@ -123,6 +123,40 @@ function renderAuthUI() {
 document.addEventListener("DOMContentLoaded", async () => {
   if (requireAuth()) {
     await refreshCurrentUser();
-    renderAuthUI();
   }
+  renderAuthUI();
+
+  // ==================== 全局 Davies 时钟与 Hamburger 初始化 ====================
+  initDaviesNavbarInteractions();
 });
+
+function initDaviesNavbarInteractions() {
+  // 1. 24h CUP 实时时钟
+  const clockEl = document.getElementById("davies-clock");
+  if (clockEl) {
+    const timeFormatter = new Intl.DateTimeFormat('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+
+    function updateClock() {
+      const now = new Date();
+      clockEl.textContent = "CUP " + timeFormatter.format(now);
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+  }
+
+  // 2. 移动端 Hamburger Toggle
+  const mobileBtn = document.querySelector(".mobile-toggle-btn");
+  const mobilePanel = document.getElementById("mobile-nav-panel");
+  if (mobileBtn && mobilePanel) {
+    mobileBtn.addEventListener("click", () => {
+      const isOpen = mobilePanel.classList.toggle("open");
+      mobileBtn.querySelector(".btn-text").textContent = isOpen ? "Close" : "Menu";
+    });
+  }
+}

@@ -6,13 +6,14 @@
   <meta name="description" content="SAR-Sense — 编辑级合成孔径雷达船舶检测平台。为专业海事 / 国防分析师设计。">
   <title>SAR-Sense | An editorial-grade SAR intelligence platform</title>
 
-  <!-- Premium fonts: Inter UI · Space Grotesk display · Playfair editorial · JetBrains Mono data -->
+  <!-- Premium fonts: Figtree · Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style_v2.css?v=20260708">
   <link rel="stylesheet" href="css/luxury.css">
+  <link rel="stylesheet" href="css/home_renovation_v2.css?v=20260708">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a07f4f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='2.4' fill='%23a07f4f'/%3E%3Cpath d='M12 4a8 8 0 0 1 8 8'/%3E%3Cpath d='M12 8a4 4 0 0 1 4 4'/%3E%3Cline x1='12' y1='12' x2='19' y2='5'/%3E%3C/svg%3E">
 </head>
 <body class="lux-cursor-on">
@@ -22,145 +23,107 @@
   <div class="bg-glow bg-glow-2"></div>
   <div class="bg-glow bg-glow-3"></div>
 
-  <!-- Navigation -->
-  <nav class="navbar">
-    <div class="container">
-      <a href="index.html" class="navbar-brand">
-        <span class="logo-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/>
-            <path d="M12 4a8 8 0 0 1 8 8"/>
-            <path d="M12 8a4 4 0 0 1 4 4"/>
-            <line x1="12" y1="12" x2="19" y2="5"/>
-          </svg>
-        </span>
-        <span>SAR-Sense</span>
-      </a>
-      <ul class="navbar-nav">
-        <li><a href="index.html" class="active">首页</a></li>
-        <li><a href="detection.html">SAR 检测</a></li>
-        <li><a href="chat.html">智能问答</a></li>
-        <li><a href="knowledge.html">知识库</a></li>
-        <li><a href="metrics.html">可观测性</a></li>
-      </ul>
-      <div class="navbar-actions">
-        <a href="detection.html" class="btn btn-secondary btn-sm">开始检测</a>
-        <a href="#cta" class="btn btn-champagne btn-sm">
-          受邀体验
-          <svg class="icon icon-sm" aria-hidden="true"><use href="/assets/icons.svg#arrow-right"/></svg>
+  <!-- Navigation (Davies Absolute Navbar) -->
+  <header class="davies-header">
+    <nav class="davies-nav navbar" aria-label="Main Navigation">
+      <!-- 左侧：Works, Services, About, Contact 等导航链接 -->
+      <div class="davies-nav-left navbar-nav">
+        <a href="detection.html?v=20260708" class="davies-nav-link">
+          <span class="nav-num">01</span><span class="nav-label">SAR 检测</span>
+        </a>
+        <a href="chat.html?v=20260708" class="davies-nav-link">
+          <span class="nav-num">02</span><span class="nav-label">智能问答</span>
+        </a>
+        <a href="knowledge.html?v=20260708" class="davies-nav-link">
+          <span class="nav-num">03</span><span class="nav-label">知识库</span>
+        </a>
+        <a href="metrics.html?v=20260708" class="davies-nav-link">
+          <span class="nav-num">04</span><span class="nav-label">可观测性</span>
+        </a>
+        <a href="index.html?v=20260708" class="davies-nav-link active">
+          <span class="nav-num">05</span><span class="nav-label">首页</span>
         </a>
       </div>
-      <button class="mobile-menu-btn" aria-label="菜单">
-        <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#menu"/></svg>
+
+      <!-- 右侧：Davies 邮箱与 CUP live clock -->
+      <div class="davies-nav-right navbar-actions">
+        <a href="mailto:Davies@gmail.com" class="davies-email">Davies@gmail.com</a>
+        <div class="davies-clock" id="davies-clock" aria-live="polite">CUP 00:00:00</div>
+      </div>
+
+      <!-- 移动端汉堡包折叠按钮 -->
+      <button class="mobile-toggle-btn" aria-label="Toggle Navigation">
+        <span class="btn-text">Menu</span>
       </button>
+    </nav>
+
+    <!-- 移动端侧边面板 -->
+    <div class="mobile-nav-panel" id="mobile-nav-panel">
+      <div class="mobile-panel-inner">
+        <a href="detection.html?v=20260708" class="mobile-nav-link"><span class="nav-num">01</span> SAR 检测</a>
+        <a href="chat.html?v=20260708" class="mobile-nav-link"><span class="nav-num">02</span> 智能问答</a>
+        <a href="knowledge.html?v=20260708" class="mobile-nav-link"><span class="nav-num">03</span> 知识库</a>
+        <a href="metrics.html?v=20260708" class="mobile-nav-link"><span class="nav-num">04</span> 可观测性</a>
+        <a href="index.html?v=20260708" class="mobile-nav-link active"><span class="nav-num">05</span> 首页</a>
+
+        <div class="mobile-panel-footer">
+          <a href="mailto:Davies@gmail.com" class="davies-email">Davies@gmail.com</a>
+        </div>
+      </div>
     </div>
-  </nav>
+  </header>
 
-  <!-- ============== Editorial Hero ============== -->
-  <section class="lux-hero" id="hero">
-    <div class="container">
-      <div class="lux-hero-grid">
-        <div class="lux-reveal active">
-          <div class="stagger-child">
-            <div class="lux-eyebrow">
-              <span>An editorial intelligence layer</span>
-            </div>
-          </div>
+  <!-- ============== Custom Video Hero Section ============== -->
+  <main class="video-hero-container">
+    <!-- 视频背景层 (3个 mp4 交叉淡入淡出) -->
+    <div class="hero-video-bg-wrap" aria-hidden="true">
+      <video class="hero-bg-video active" id="video-0" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260629_030107_874273ea-684a-4e90-bb96-8fdfde48d53d.mp4" loop muted playsinline autoplay></video>
+      <video class="hero-bg-video" id="video-1" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260629_032424_3c9c2a9d-807b-4482-80e6-dd6d9dfd4545.mp4" loop muted playsinline autoplay></video>
+      <video class="hero-bg-video" id="video-2" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260627_094019_4214ea73-b963-46a4-8327-61489192de99.mp4" loop muted playsinline autoplay></video>
+      <div class="video-dark-overlay"></div>
+    </div>
 
-          <h1 class="lux-display stagger-child">
-            从一束雷达回波，<br>
-            到一份<em>可被信赖</em>的<br>
-            <em>海事判读</em>。
+    <!-- 顶层交互内容 (z-2) -->
+    <section class="hero-content-wrap">
+
+      <!-- Section 1: Video Switcher + Status -->
+      <div class="hero-content-row row-switcher">
+        <div class="switcher-col-left flex-4">
+          <button class="role-link active" data-slide="0">01 / WATER WAVE</button>
+          <button class="role-link" data-slide="1">02 / GRIDWAVE</button>
+          <button class="role-link" data-slide="2">03 / LIGHT TUNNEL</button>
+        </div>
+
+        <div class="status-col-right flex-1" aria-label="Platform Status">
+          <span class="status-dot status-dot-pink" id="status-pulsing-dot"></span>
+          <span class="status-text">Available for Analysis</span>
+        </div>
+      </div>
+
+      <!-- Section 2: Name + CTA -->
+      <div class="hero-content-row row-bottom">
+        <div class="name-col-left flex-2">
+          <h1 class="giant-logo-title" id="reveal-title">
+            SAR-Sense<span class="logo-period period-pink">.</span>
           </h1>
+        </div>
 
-          <p class="lux-lede stagger-child" style="margin-top: var(--space-xl)">
+        <div class="description-col-right flex-1 pl-50">
+          <p class="hero-desc-p" id="reveal-desc">
             SAR-Sense 是为合成孔径雷达图像而生的智能分析平台 ——
             把 YOLO 视觉引擎、ReAct 智能体、混合 RAG 检索与全链路可观测性，
             编织成一段克制而精准的工作流。
           </p>
-
-          <div class="lux-hero-actions stagger-child">
-            <a href="#cta" class="btn btn-champagne">
-              申请受邀访问
-              <svg class="icon icon-sm" aria-hidden="true"><use href="/assets/icons.svg#arrow-right"/></svg>
+          <div class="cta-button-wrap" id="reveal-cta-btn">
+            <a href="detection.html?v=20260708" class="start-project-btn">
+              start a project
             </a>
-            <a href="detection.html" class="btn-text">
-              直接进入检测台
-              <svg class="icon icon-xs" aria-hidden="true"><use href="/assets/icons.svg#arrow-right"/></svg>
-            </a>
-          </div>
-
-          <div class="lux-hero-meta stagger-child">
-            <div class="lux-hero-meta-item">
-              <div class="label">Detection precision</div>
-              <div class="value">98.5<span class="value-suffix">%</span></div>
-            </div>
-            <div class="lux-hero-meta-item">
-              <div class="label">Median latency</div>
-              <div class="value">87<span class="value-suffix">ms</span></div>
-            </div>
-            <div class="lux-hero-meta-item">
-              <div class="label">Curated tools</div>
-              <div class="value">13<span class="value-suffix">+</span></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="lux-hero-stage" data-lux-parallax="-0.06">
-          <div class="lux-stage-card back" aria-hidden="true"></div>
-          <div class="lux-stage-card middle" aria-hidden="true"></div>
-          <div class="lux-stage-card front">
-            <div class="lux-stage-front-header">
-              <span class="pulse">live · sar console</span>
-              <span>—— v 2.4</span>
-            </div>
-
-            <div class="lux-stage-readout">
-              <div class="label">Vessels detected</div>
-              <div class="number">1,247</div>
-              <div class="unit">past 24 hours · ↑ 12.5%</div>
-            </div>
-
-            <div class="lux-stage-front-footer">
-              <div class="lux-stage-mini">
-                <span class="k">accuracy</span>
-                <span class="v">98.5%</span>
-              </div>
-              <div class="lux-stage-mini">
-                <span class="k">latency</span>
-                <span class="v">87 ms</span>
-              </div>
-              <div class="lux-stage-mini">
-                <span class="k">corpus</span>
-                <span class="v">3,891 docs</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Marquee strip 在 hero 底部 — luxury 信誉滚动 -->
-    <div class="lux-marquee" aria-hidden="true">
-      <div class="lux-marquee-track">
-        <span>Trusted by maritime intelligence teams</span>
-        <span>YOLO v8 vision engine</span>
-        <span>LangChain ReAct agents</span>
-        <span>ChromaDB hybrid retrieval</span>
-        <span>BGE Reranker</span>
-        <span>Parent-child structured chunking</span>
-        <span>End-to-end observability</span>
-        <!-- 重复一次让滚动无缝 -->
-        <span>Trusted by maritime intelligence teams</span>
-        <span>YOLO v8 vision engine</span>
-        <span>LangChain ReAct agents</span>
-        <span>ChromaDB hybrid retrieval</span>
-        <span>BGE Reranker</span>
-        <span>Parent-child structured chunking</span>
-        <span>End-to-end observability</span>
-      </div>
-    </div>
-  </section>
+    </section>
+  </main>
 
   <!-- ============== Storytelling — Chapter 01 ============== -->
   <section class="lux-story" id="chapter-01">
@@ -417,11 +380,11 @@
         </p>
 
         <div class="lux-cta-actions stagger-child">
-          <a href="chat.html" class="btn btn-champagne">
+          <a href="chat.html?v=20260708" class="btn btn-champagne">
             申请受邀
             <svg class="icon icon-sm" aria-hidden="true"><use href="/assets/icons.svg#arrow-right"/></svg>
           </a>
-          <a href="detection.html" class="btn btn-secondary">先看一眼</a>
+          <a href="detection.html?v=20260708" class="btn btn-secondary">先看一眼</a>
         </div>
 
         <div class="lux-cta-fineprint stagger-child">
@@ -436,7 +399,7 @@
     <div class="container">
       <div class="footer-content">
         <div class="footer-brand">
-          <a href="index.html" class="navbar-brand">
+          <a href="index.html?v=20260708" class="navbar-brand">
             <span class="logo-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/>
@@ -452,10 +415,10 @@
         <div class="footer-links">
           <h4>Product</h4>
           <ul>
-            <li><a href="detection.html">SAR 检测</a></li>
-            <li><a href="chat.html">智能问答</a></li>
-            <li><a href="knowledge.html">知识库</a></li>
-            <li><a href="metrics.html">可观测性</a></li>
+            <li><a href="detection.html?v=20260708">SAR 检测</a></li>
+            <li><a href="chat.html?v=20260708">智能问答</a></li>
+            <li><a href="knowledge.html?v=20260708">知识库</a></li>
+            <li><a href="metrics.html?v=20260708">可观测性</a></li>
           </ul>
         </div>
         <div class="footer-links">
@@ -493,5 +456,125 @@
 
   <script src="js/auth.js"></script>
   <script src="js/main.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // ==================== 2. 视频预加载与交叉淡入淡出切换 ====================
+      const videos = [
+        {
+          id: "video-0",
+          url: "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260629_030107_874273ea-684a-4e90-bb96-8fdfde48d53d.mp4"
+        },
+        {
+          id: "video-1",
+          url: "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260629_032424_3c9c2a9d-807b-4482-80e6-dd6d9dfd4545.mp4"
+        },
+        {
+          id: "video-2",
+          url: "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260627_094019_4214ea73-b963-46a4-8327-61489192de99.mp4"
+        }
+      ];
+
+      // 预加载视频以确保瞬时播放
+      videos.forEach(v => {
+        const videoEl = document.getElementById(v.id);
+        if (!videoEl) return;
+
+        fetch(v.url)
+          .then(res => res.blob())
+          .then(blob => {
+            const blobUrl = URL.createObjectURL(blob);
+            videoEl.src = blobUrl;
+          })
+          .catch(err => {
+            console.warn("Failed to preload video blob, falling back to original URL: ", err);
+          });
+      });
+
+      // 切换逻辑
+      const switcherButtons = document.querySelectorAll(".role-link");
+      const pulsingDot = document.getElementById("status-pulsing-dot");
+      const giantTitle = document.getElementById("reveal-title");
+
+      switcherButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+          const slideIndex = parseInt(btn.getAttribute("data-slide"));
+
+          // 1) 激活切换器按钮
+          switcherButtons.forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+
+          // 2) 交叉淡入淡出视频背景
+          videos.forEach((v, index) => {
+            const videoEl = document.getElementById(v.id);
+            if (videoEl) {
+              if (index === slideIndex) {
+                videoEl.classList.add("active");
+              } else {
+                videoEl.classList.remove("active");
+              }
+            }
+          });
+
+          // 3) 调整呼吸灯与大字句点的颜色
+          if (slideIndex === 0) {
+            // Slide 1 -> 粉色
+            if (pulsingDot) {
+              pulsingDot.className = "status-dot status-dot-pink";
+            }
+            if (giantTitle) {
+              const period = giantTitle.querySelector(".logo-period");
+              if (period) {
+                period.className = "logo-period period-pink";
+              }
+            }
+          } else {
+            // Slide 2-3 -> 白色
+            if (pulsingDot) {
+              pulsingDot.className = "status-dot status-dot-white";
+            }
+            if (giantTitle) {
+              const period = giantTitle.querySelector(".logo-period");
+              if (period) {
+                period.className = "logo-period period-white";
+              }
+            }
+          }
+        });
+      });
+
+
+
+      // ==================== 4. Reveal Animations (IntersectionObserver) ====================
+      const observerOptions = {
+        threshold: 0.35
+      };
+
+      const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("active");
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      }, observerOptions);
+
+      const revealTitle = document.getElementById("reveal-title");
+      const revealDesc = document.getElementById("reveal-desc");
+      const revealCta = document.getElementById("reveal-cta-btn");
+
+      if (revealTitle) {
+        revealTitle.classList.add("reveal-up");
+        revealObserver.observe(revealTitle);
+      }
+      if (revealDesc) {
+        revealDesc.classList.add("reveal-right");
+        revealObserver.observe(revealDesc);
+      }
+      if (revealCta) {
+        revealCta.classList.add("reveal-right", "delay-btn");
+        revealObserver.observe(revealCta);
+      }
+    });
+  </script>
 </body>
 </html>

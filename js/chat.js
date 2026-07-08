@@ -25,7 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function highlightNav(page) {
   document.querySelectorAll('.navbar-nav a').forEach(a => {
-    if (a.getAttribute('href') === `${page}.html`) {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith(`${page}.html`)) {
       a.classList.add('active');
     }
   });
