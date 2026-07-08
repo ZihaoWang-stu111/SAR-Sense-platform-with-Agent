@@ -207,8 +207,14 @@ function initUpload() {
 
   fileInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) {
-      selectedFiles = Array.from(e.target.files);
+      const newFiles = Array.from(e.target.files);
+      newFiles.forEach(nf => {
+        if (!selectedFiles.some(sf => sf.name === nf.name && sf.size === nf.size)) {
+          selectedFiles.push(nf);
+        }
+      });
       showSelectedFiles(selectedFiles);
+      e.target.value = '';   // 清空 input，允许重复选同一文件触发 change
     }
   });
 
@@ -225,7 +231,12 @@ function initUpload() {
     e.preventDefault();
     uploadArea.classList.remove('dragover');
     if (e.dataTransfer.files.length > 0) {
-      selectedFiles = Array.from(e.dataTransfer.files);
+      const newFiles = Array.from(e.dataTransfer.files);
+      newFiles.forEach(nf => {
+        if (!selectedFiles.some(sf => sf.name === nf.name && sf.size === nf.size)) {
+          selectedFiles.push(nf);
+        }
+      });
       showSelectedFiles(selectedFiles);
     }
   });
@@ -240,10 +251,28 @@ function initUpload() {
   });
 
   function showSelectedFiles(files) {
-    const names = files.map(f => f.name).join('、');
-    document.getElementById('selectedFiles').textContent = names;
-    document.getElementById('selectedFilesArea').style.display = 'flex';
+    const container = document.getElementById('selectedFiles');
+    if (files.length === 0) {
+      container.innerHTML = '';
+      document.getElementById('selectedFilesArea').style.display = 'none';
+      ingestBtn.disabled = true;
+      return;
+    }
+    container.innerHTML = files.map((f, i) =>
+      `<span class="selected-file-item" style="display:block;margin-bottom:6px;">${escapeHtml(f.name)} <button class="remove-file-btn" data-idx="${i}" title="移除" style="margin-left:6px;color:#e74c3c;cursor:pointer;border:none;background:none;font-size:14px;">✕</button></span>`
+    ).join('');
+    const area = document.getElementById('selectedFilesArea');
+    area.style.display = 'flex';
+    area.style.flexDirection = 'column';   // 竖排:"已选择"在上,文件列表在下
+    area.style.alignItems = 'stretch';
     ingestBtn.disabled = false;
+    container.querySelectorAll('.remove-file-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx);
+        selectedFiles.splice(idx, 1);
+        showSelectedFiles(selectedFiles);
+      });
+    });
   }
 }
 
