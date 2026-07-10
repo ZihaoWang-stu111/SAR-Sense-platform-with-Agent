@@ -1,7 +1,8 @@
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from api.auth import get_current_user, require_admin
 from api.dependencies import get_metrics
 
 logger = logging.getLogger(__name__)
@@ -9,8 +10,8 @@ router = APIRouter(tags=["metrics"])
 
 
 @router.get("")
-async def get_metrics_data():
-    """Get observability metrics"""
+async def get_metrics_data(user: dict = Depends(get_current_user)):
+    """Get observability metrics（需登录：指标含全量工具调用记录，可能含其他用户查询片段）"""
     metrics = get_metrics()
     data = {
         'conversation_rounds': metrics.conversation_rounds,
@@ -26,8 +27,8 @@ async def get_metrics_data():
 
 
 @router.post("/reset")
-async def reset_metrics():
-    """Reset all metrics"""
+async def reset_metrics(admin: dict = Depends(require_admin)):
+    """Reset all metrics（限管理员：清空全量指标，影响可观测性）"""
     metrics = get_metrics()
     metrics.reset()
     return {'success': True, 'message': 'Metrics reset successfully'}

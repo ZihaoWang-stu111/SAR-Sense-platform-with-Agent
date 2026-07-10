@@ -108,7 +108,7 @@ function initTabs() {
 
 async function loadMetrics() {
   try {
-    const response = await fetch(`${API_BASE}/api/metrics`);
+    const response = await apiFetch(`${API_BASE}/api/metrics`);
     const data = await response.json();
 
     if (data.success) {
@@ -124,7 +124,7 @@ async function loadMetrics() {
 
 async function resetMetrics() {
   try {
-    await fetch(`${API_BASE}/api/metrics/reset`, { method: 'POST' });
+    await apiFetch(`${API_BASE}/api/metrics/reset`, { method: 'POST' });
     loadMetrics();
   } catch (error) {
     console.error('Failed to reset metrics:', error);
