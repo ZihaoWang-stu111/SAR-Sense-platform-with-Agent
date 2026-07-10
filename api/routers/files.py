@@ -61,11 +61,12 @@ async def extract_file(
             'upload_id': upload_id,
         }
 
-    # 文档：temp + 提取文本 + 清理
-    temp_dir = tempfile.gettempdir()
-    temp_path = os.path.join(temp_dir, safe_name)
-    with open(temp_path, "wb") as f:
+    # 文档：唯一临时文件 + 提取文本 + 清理
+    # NamedTemporaryFile 内部用 mkstemp，原子创建唯一文件名 + 防符号链接，避免多用户传同名文件互相覆盖；
+    # delete=False 让文件在 with 退出后仍可被 extract_file_content 按路径读（Windows 下 close 才解锁）
+    with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as f:
         f.write(content_bytes)
+        temp_path = f.name
     try:
         # 延迟导入：agent_tools 模块级会实例化 RagSummarizeService（触发 vector store + BM25 + BGE 加载），
         # 放函数内避免启动时同步阻塞；只在真正需要提取文档时才触发
