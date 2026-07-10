@@ -17,9 +17,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["files"])
 
 
-@router.post("/extract-file", dependencies=[Depends(get_current_user)])
+@router.post("/extract-file")
 async def extract_file(
     file: UploadFile = File(...),
+    user: dict = Depends(get_current_user),
 ):
     """提取上传文件内容 / 暂存上传图片。
 
@@ -54,7 +55,7 @@ async def extract_file(
         except Exception:
             raise HTTPException(status_code=400, detail='图片格式无效或损坏')
 
-        upload_id = save_upload(content_bytes, ext)
+        upload_id = save_upload(content_bytes, ext, user["id"])
         return {
             'success': True,
             'filename': file.filename,
@@ -86,14 +87,15 @@ async def extract_file(
     }
 
 
-@router.get("/image/{upload_id}", dependencies=[Depends(get_current_user)])
-async def get_upload_image(upload_id: str):
+@router.get("/image/{upload_id}")
+async def get_upload_image(upload_id: str, user: dict = Depends(get_current_user)):
     """按 upload_id 返回上传的图片字节。
 
-    鉴权后访问，防匿名枚举他人上传。detect_ships 工具画完检测图存 upload_store 后，
-    前端用此端点按 upload_id 拉图渲染成回答下方卡片。
+    鉴权 + 归属校验：upload_id 绑定 user_id，只能读自己上传的图片，
+    拿到他人 upload_id 也读不到（防越权读取）。detect_ships 工具画完检测图存
+    upload_store 后，前端用此端点按 upload_id 拉图渲染成回答下方卡片。
     """
-    path = get_upload_path(upload_id)
+    path = get_upload_path(upload_id, user["id"])
     if path is None:
         raise HTTPException(status_code=404, detail="文件不存在或已过期")
     return FileResponse(path)

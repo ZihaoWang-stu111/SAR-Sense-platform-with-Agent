@@ -426,15 +426,18 @@ def web_search(query: str, days: int = 0) -> str:
 
 
 @tool(description="对用户上传的SAR图像执行舰船目标检测，返回检测到的舰船数量、各目标置信度、平均置信度等结构化文本结果。适用于用户上传了SAR图像并要求进行检测分析的场景。入参 upload_id 为上传图片的唯一标识（非文件路径）。")
-def detect_ships(upload_id: str) -> str:
+def detect_ships(upload_id: str, runtime: ToolRuntime) -> str:
+    # user_id 从 runtime.context 注入（chat.py 传 user_context），用于校验 upload_id 归属：
+    # 只能检测自己上传的图片，拿到他人 upload_id 也读不到
+    user_id = runtime.context.get("user_id")
     try:
         from PIL import Image
 
         # upload_id 是不透明标识，不是路径——按 id 在受控上传目录内解析文件
-        # LLM 无路径可注入；解析失败说明上传不存在或已过期
-        image_path = get_upload_path(upload_id)
+        # LLM 无路径可注入；解析失败说明上传不存在、已过期或不属于当前用户
+        image_path = get_upload_path(upload_id, user_id)
         if image_path is None:
-            return f"找不到上传图片（upload_id={upload_id}），可能已过期或不存在。"
+            return f"找不到上传图片（upload_id={upload_id}），可能已过期或不属于当前用户。"
 
         # 复用 api.dependencies 的全局单例，避免每次调用都重新加载 YOLO 权重
         # （HTTP /api/detect 与本 Agent 工具共享同一份已加载模型）
@@ -493,7 +496,7 @@ def detect_ships(upload_id: str) -> str:
         # LLM 只看到短 id，不背 base64 巨串。
         buf = io.BytesIO()
         draw_img.save(buf, format="PNG")
-        viz_upload_id = save_upload(buf.getvalue(), ".png")
+        viz_upload_id = save_upload(buf.getvalue(), ".png", user_id)
 
         return (
             f"🔍 SAR舰船检测结果：\n"
