@@ -52,8 +52,13 @@ services:
       # MinerU PDF 解析服务（指向 mineru 服务；mineru 挂了 pdf_loader 自动回退 PyPDFLoader）
       MINERU_API_URL: http://mineru:8000
       MINERU_ENABLED: "true"
+      # Redis（限流 + 分布式锁，utils/traffic_control.py）
+      REDIS_URL: redis://redis:6379/0
+      TRAFFIC_CONTROL_ENABLED: "true"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     volumes:
       - app_uploads:/app/data/uploads      # 用户上传的图片/文件
@@ -97,6 +102,21 @@ services:
       retries: 10
       start_period: 60s
     restart: unless-stopped
+
+  # Redis：限流 + 分布式锁（utils/traffic_control.py）
+  # 本地开发可设 TRAFFIC_CONTROL_ENABLED=false 跳过（不依赖 Redis）
+  redis:
+    image: redis:7-alpine
+    container_name: sar-sense-redis
+    # 调试可开 6379 映射；纯容器间调用可注释掉
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 volumes:
   mysql_data:

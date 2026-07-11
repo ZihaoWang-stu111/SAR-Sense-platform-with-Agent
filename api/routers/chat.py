@@ -12,6 +12,7 @@ from config.db_conf import get_db
 from crud import conversations as conv_crud
 from crud.knowledge_acl import get_allowed_doc_ids
 from utils.conversation_builder import build_chat_pack
+from utils.traffic_control import rate_limit
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["chat"])
@@ -24,6 +25,7 @@ async def chat_stream(
     db: AsyncSession = Depends(get_db),
 ):
     """Streaming chat endpoint using SSE"""
+    await rate_limit(f"user:{user['id']}:chat", 6, 60)
     logger.info("Streaming chat request received")
     data = await request.json()
     message = data.get('message', '')

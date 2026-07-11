@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from PIL import Image
 
 from api.auth import get_current_user
+from utils.traffic_control import rate_limit
 from services.upload_store import (
     save_upload, get_upload_path, IMAGE_EXTS, IMAGE_MIMES, MAX_UPLOAD_BYTES, MAX_IMAGE_PIXELS,
 )
@@ -28,6 +29,7 @@ async def extract_file(
       返回不透明 upload_id（供 Agent 调 detect_ships），不返回任何服务端路径。
     - 文档：temp + 提取文本 + 用完即清，返回 content。
     """
+    await rate_limit(f"user:{user['id']}:extract", 10, 60)
     if not file.filename:
         raise HTTPException(status_code=400, detail='No file selected')
 

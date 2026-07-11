@@ -20,6 +20,7 @@ from schemas.knowledge import UpdateDocumentPermissionsRequest
 from utils.config_handler import chroma_conf
 from utils.path_tool import get_abs_path
 from utils.rbac import is_admin, validate_allowed_roles
+from utils.traffic_control import rate_limit, redis_lock
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["knowledge"])
@@ -83,6 +84,7 @@ async def upload_knowledge(
     admin: dict = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    await rate_limit(f"user:{admin['id']}:upload", 5, 60)
     if not files:
         raise HTTPException(status_code=400, detail="No files provided")
 
@@ -104,11 +106,15 @@ async def upload_knowledge(
         uploaded_paths.append(file_path)
 
     vector_store = get_vector_store()
-    # load_documents 内部跑 MinerU requests.post + embedding + BM25 重建，全同步阻塞，
-    # 丢线程池避免阻塞 FastAPI 事件循环（上传大 PDF 可达分钟级）
-    new_count, updated_count, skipped_count, removed_count = await run_in_threadpool(
-        vector_store.load_documents, uploaded_paths
-    )
+    # 入库分布式锁：同用户同时只允许 1 个入库（防 BM25 重建 / Chroma 写并发冲突）
+    # timeout=600 留余量（大 PDF 入库可达分钟级）；锁内 load_documents 丢线程池不阻塞事件循环
+    # 学习点：SET NX EX 加锁 + Lua 对比 token 释放，见 utils/traffic_control.py
+    async with redis_lock(f"lock:ingest:user:{admin['id']}", timeout=600):
+        # load_documents 内部跑 MinerU requests.post + embedding + BM25 重建，全同步阻塞，
+        # 丢线程池避免阻塞 FastAPI 事件循环（上传大 PDF 可达分钟级）
+        new_count, updated_count, skipped_count, removed_count = await run_in_threadpool(
+            vector_store.load_documents, uploaded_paths
+        )
 
     for filename in uploaded_files:
         entry = vector_store.manifest.get(filename)

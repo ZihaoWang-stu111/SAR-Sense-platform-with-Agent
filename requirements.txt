@@ -59,3 +59,6 @@ requests==2.34.2
 python-docx==1.2.0               # .docx 文档解析
 PyMuPDF==1.27.2.3                # PDF 解析（import fitz）
 rapidocr-onnxruntime==1.4.4      # 图片 OCR（onnxruntime 推理）
+
+# --- Redis（限流 + 分布式锁，utils/traffic_control.py）---
+redis==5.0.8                     # redis.asyncio 异步客户端

@@ -3,7 +3,7 @@
 POST /api/auth/register、POST /api/auth/login、GET /api/auth/me
 JWT 走 Authorization: Bearer <token> 头。
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +11,7 @@ from config.db_conf import get_db
 from crud.users import create_user, get_user_by_id, get_user_by_username
 from schemas.users import LoginRequest, RegisterRequest
 from utils.rbac import is_admin
+from utils.traffic_control import rate_limit
 from utils.security import (
     create_access_token,
     decode_token,
@@ -44,7 +45,9 @@ def require_admin(user: dict = Depends(get_current_user)) -> dict:
 
 
 @router.post("/register")
-async def register(creds: RegisterRequest, db: AsyncSession = Depends(get_db)):
+async def register(creds: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    ip = request.client.host if request.client else "unknown"
+    await rate_limit(f"ip:{ip}:register", 3, 60)
     exists = await get_user_by_username(db, creds.username)
     if exists:
         raise HTTPException(status_code=409, detail="用户名已存在")
@@ -58,7 +61,9 @@ async def register(creds: RegisterRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login")
-async def login(creds: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(creds: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    ip = request.client.host if request.client else "unknown"
+    await rate_limit(f"ip:{ip}:login", 5, 60)
     user = await get_user_by_username(db, creds.username)
     if user is None or not verify_password(creds.password, user.password):
         raise HTTPException(status_code=401, detail="用户名或密码错误")

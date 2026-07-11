@@ -9,17 +9,19 @@ from PIL import Image
 from api.auth import get_current_user
 from services.detection_service import detect_ships_from_bytes
 from services.upload_store import IMAGE_EXTS, IMAGE_MIMES, MAX_UPLOAD_BYTES, MAX_IMAGE_PIXELS
+from utils.traffic_control import rate_limit
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["detection"])
 
 
-@router.post("/detect", dependencies=[Depends(get_current_user)])
-async def detect_ships(image: UploadFile = File(...)):
+@router.post("/detect")
+async def detect_ships(image: UploadFile = File(...), user: dict = Depends(get_current_user)):
     """SAR ship detection endpoint
 
     上传安全：鉴权 + 10MB 大小限制 + 扩展名/MIME 白名单 + PIL magic bytes 校验 + 50MP 像素上限。
     """
+    await rate_limit(f"user:{user['id']}:detect", 5, 60)
     logger.info(f"Detection request received: {image.filename}")
 
     content = await image.read()
