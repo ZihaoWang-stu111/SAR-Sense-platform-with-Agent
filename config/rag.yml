@@ -1,4 +1,6 @@
-chat_model_name: qwen3-max
+chat_provider: ollama          # ollama / dashscope（默认 dashscope）
+chat_model_name: qwen3.5:4b     # Ollama 模型名（chat_provider=dashscope 时为 DashScope 模型名）
+ollama_base_url: http://localhost:11434
 embedding_model_name: text-embedding-v3
 # 本地开发用本地路径（秒加载）；容器里改成 BAAI/bge-reranker-base 或删掉（自动从 HF 下载）
 reranker_model_name: E:/models/Xorbits/bge-reranker-base
