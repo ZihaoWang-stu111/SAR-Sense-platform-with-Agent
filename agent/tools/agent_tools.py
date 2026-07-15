@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+import ipaddress
 
 from utils.logger_handler import logger
 from langchain_core.tools import tool
@@ -22,6 +23,17 @@ rag = RagSummarizeService()
 scene_ids = ["S001", "S002", "S003", "S004", "S005", "S006", "S007", "S008", "S009", "S010",]
 
 external_data = {}
+
+
+def _is_private_ip(ip: str) -> bool:
+    """判断是否内网/保留 IP（localhost、192.168.x、10.x、172.16-31.x、::1 等）。
+
+    内网 IP ip-api 查不到，get_user_location 会 fallback 查服务器出口 IP。
+    """
+    try:
+        return ipaddress.ip_address(ip).is_private
+    except (ValueError, TypeError):
+        return True   # 非法 IP 当作内网处理，走 fallback
 
 
 @tool(description="从本地知识库/已上传文件中检索参考资料。适用于SAR专业知识、论文、简历、人名、作者、文件内容查询；默认应先于联网搜索使用，除非用户明确要求联网/最新信息。")
@@ -112,9 +124,18 @@ def get_weather(city: str):
 
 
 @tool(description="获取用户当前真实的IP地理位置，返回城市、省份、国家等信息，以纯字符串形式返回")
-def get_user_location() -> str:
+def get_user_location(runtime: ToolRuntime) -> str:
+    # client_ip 由 chat.py 从 X-Forwarded-For / request.client.host 透传进 runtime.context
+    # cpolar 用户：XFF 最左是用户公网 IP -> 查用户城市
+    # 本地访问：127.0.0.1/内网 IP -> fallback 查服务器出口 IP（=开发者城市，不破坏本地体验）
+    client_ip = runtime.context.get("client_ip")
     try:
-        resp = requests.get("http://ip-api.com/json/?fields=city,regionName,country,lat,lon", timeout=5)
+        if client_ip and not _is_private_ip(client_ip):
+            url = f"http://ip-api.com/json/{client_ip}?fields=city,regionName,country,lat,lon"
+        else:
+            # 内网/localhost 查不到 -> 不传 IP，ip-api 查服务器出口 IP
+            url = "http://ip-api.com/json/?fields=city,regionName,country,lat,lon"
+        resp = requests.get(url, timeout=5)
         resp.raise_for_status()
         data = resp.json()
         city = data.get("city", "")

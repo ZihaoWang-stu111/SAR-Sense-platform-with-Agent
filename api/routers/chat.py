@@ -18,6 +18,20 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["chat"])
 
 
+def _client_ip(request: Request) -> str | None:
+    """取真实客户端 IP：反代后从 X-Forwarded-For 最左取，直连取 request.client.host。
+
+    cpolar/nginx 转发时 XFF=「用户真实IP, 节点IP」，最左是用户 IP。
+    本地直连无 XFF，request.client.host 是 127.0.0.1/内网 IP（工具会 fallback 查服务器 IP）。
+    """
+    xff = request.headers.get("X-Forwarded-For", "")
+    if xff:
+        ip = xff.split(",")[0].strip()
+        if ip and ip.lower() != "unknown":
+            return ip
+    return request.client.host if request.client else None
+
+
 @router.post("/chat/stream")
 async def chat_stream(
     request: Request,
@@ -46,6 +60,9 @@ async def chat_stream(
         "user_id": user["id"],
         "role": user.get("role", "guest"),
         "allowed_doc_ids": None if allowed_doc_ids is None else list(allowed_doc_ids),
+        # 客户端 IP（get_user_location 工具用）：经反代从 X-Forwarded-For 最左取真实用户 IP，
+        # 直连取 request.client.host；localhost/内网 IP 时工具会 fallback 查服务器出口 IP
+        "client_ip": _client_ip(request),
     }
 
     if conversation_id:
