@@ -13,34 +13,34 @@ NO_CACHE_HEADERS = {
 
 @router.get("/")
 async def index():
-    return FileResponse("index.html", headers=NO_CACHE_HEADERS)
+    return FileResponse("templates/index.html", headers=NO_CACHE_HEADERS)
 
 
 @router.get("/index.html")
 async def index_html():
-    return FileResponse("index.html", headers=NO_CACHE_HEADERS)
+    return FileResponse("templates/index.html", headers=NO_CACHE_HEADERS)
 
 
 @router.get("/detection.html")
 async def detection_page():
-    return FileResponse("detection.html", headers=NO_CACHE_HEADERS)
+    return FileResponse("templates/detection.html", headers=NO_CACHE_HEADERS)
 
 
 @router.get("/chat.html")
 async def chat_page():
-    return FileResponse("chat.html", headers=NO_CACHE_HEADERS)
+    return FileResponse("templates/chat.html", headers=NO_CACHE_HEADERS)
 
 
 @router.get("/knowledge.html")
 async def knowledge_page():
-    return FileResponse("knowledge.html", headers=NO_CACHE_HEADERS)
+    return FileResponse("templates/knowledge.html", headers=NO_CACHE_HEADERS)
 
 
 @router.get("/metrics.html")
 async def metrics_page():
-    return FileResponse("metrics.html", headers=NO_CACHE_HEADERS)
+    return FileResponse("templates/metrics.html", headers=NO_CACHE_HEADERS)
 
 
 @router.get("/login.html")
 async def login_page():
-    return FileResponse("login.html", headers=NO_CACHE_HEADERS)
+    return FileResponse("templates/login.html", headers=NO_CACHE_HEADERS)
