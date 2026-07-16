@@ -123,32 +123,20 @@ async def chat_stream(
                     event_type, event_data = event_queue.get_nowait()
 
                     if event_type == 'thought_step':
-                        data = json.dumps({
-                            'type': 'thought_step',
-                            'step': event_data
-                        }, ensure_ascii=False)
-                        yield f"data: {data}\n\n"
+                        data = json.dumps({'step': event_data}, ensure_ascii=False)
+                        yield f"event: thought_step\ndata: {data}\n\n"
                     elif event_type == 'chunk':
                         full_content += event_data   # 累积，finally 存库
-                        data = json.dumps({
-                            'type': 'chunk',
-                            'content': event_data
-                        }, ensure_ascii=False)
-                        yield f"data: {data}\n\n"
+                        data = json.dumps({'content': event_data}, ensure_ascii=False)
+                        yield f"event: chunk\ndata: {data}\n\n"
                     elif event_type == 'rag_result':
                         if event_data:
                             rag_results.append(event_data)
-                        data = json.dumps({
-                            'type': 'rag_result',
-                            'content': event_data
-                        }, ensure_ascii=False)
-                        yield f"data: {data}\n\n"
+                        data = json.dumps({'content': event_data}, ensure_ascii=False)
+                        yield f"event: rag_result\ndata: {data}\n\n"
                     elif event_type == 'error':
-                        data = json.dumps({
-                            'type': 'error',
-                            'message': event_data
-                        }, ensure_ascii=False)
-                        yield f"data: {data}\n\n"
+                        data = json.dumps({'message': event_data}, ensure_ascii=False)
+                        yield f"event: error\ndata: {data}\n\n"
                     elif event_type == 'done':
                         break
                 except Exception:
@@ -156,16 +144,12 @@ async def chat_stream(
 
                 await asyncio.sleep(0.05)
 
-            data = json.dumps({'type': 'done'})
-            yield f"data: {data}\n\n"
+            yield f"event: done\ndata: {json.dumps({})}\n\n"
 
         except Exception as e:
             traceback.print_exc()
-            data = json.dumps({
-                'type': 'error',
-                'message': str(e)
-            }, ensure_ascii=False)
-            yield f"data: {data}\n\n"
+            data = json.dumps({'message': str(e)}, ensure_ascii=False)
+            yield f"event: error\ndata: {data}\n\n"
 
         finally:
             metrics.end_conversation()

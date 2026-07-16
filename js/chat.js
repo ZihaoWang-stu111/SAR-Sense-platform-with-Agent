@@ -492,39 +492,48 @@ async function processStreamInBackground(reader, conversationId) {
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
+      // SSE 事件以空行分隔（兼容 \n\n 和 \r\n\r\n），按事件块解析
+      const events = buffer.split(/\r?\n\r?\n/);
+      buffer = events.pop();
 
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-
-            if (data.type === 'chunk') {
-              assistantMessage.content += data.content;
-
-              // 更新进度
-              const status = state.streamingStatus.get(conversationId);
-              if (status) {
-                status.progress = assistantMessage.content.length;
-              }
-            } else if (data.type === 'rag_result') {
-              if (!assistantMessage.rag_results) assistantMessage.rag_results = [];
-              assistantMessage.rag_results.push(data.content);
-            } else if (data.type === 'thought_step') {
-              assistantMessage.thoughtSteps.push(data.step);
-            } else if (data.type === 'done') {
-              assistantMessage.streamDone = true;
-
-              // assistant 由后端 generate() finally 存库，前端不再重复存（避免切页面 streamDone 没触发导致丢回答）
-              // 通知用户
-              notifyBackgroundCompletion(conversationId);
-            } else if (data.type === 'error') {
-              assistantMessage.content += `\n\n[错误: ${data.message}]`;
-            }
-          } catch (e) {
-            console.error('[Background] Parse error:', e);
+      for (const evtBlock of events) {
+        let eventType = 'message';
+        let dataStr = '';
+        for (const line of evtBlock.split(/\r?\n/)) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('event:')) {
+            eventType = trimmed.slice(6).trim();
+          } else if (trimmed.startsWith('data:')) {
+            dataStr = trimmed.slice(5).trim();
           }
+        }
+        try {
+          const data = dataStr ? JSON.parse(dataStr) : {};
+
+          if (eventType === 'chunk') {
+            assistantMessage.content += data.content;
+
+            // 更新进度
+            const status = state.streamingStatus.get(conversationId);
+            if (status) {
+              status.progress = assistantMessage.content.length;
+            }
+          } else if (eventType === 'rag_result') {
+            if (!assistantMessage.rag_results) assistantMessage.rag_results = [];
+            assistantMessage.rag_results.push(data.content);
+          } else if (eventType === 'thought_step') {
+            assistantMessage.thoughtSteps.push(data.step);
+          } else if (eventType === 'done') {
+            assistantMessage.streamDone = true;
+
+            // assistant 由后端 generate() finally 存库，前端不再重复存（避免切页面 streamDone 没触发导致丢回答）
+            // 通知用户
+            notifyBackgroundCompletion(conversationId);
+          } else if (eventType === 'error') {
+            assistantMessage.content += `\n\n[错误: ${data.message}]`;
+          }
+        } catch (e) {
+          console.error('[Background] Parse error:', e);
         }
       }
     }
@@ -587,27 +596,38 @@ async function sendMessageStreaming(message, displayMessage) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
+      // SSE 事件以空行分隔（兼容 \n\n 和 \r\n\r\n），按事件块解析
+      const events = buffer.split(/\r?\n\r?\n/);
+      buffer = events.pop();
 
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.type === 'chunk') {
-              assistantMessage.pendingChunks.push(data.content);
-            } else if (data.type === 'rag_result') {
-              if (!assistantMessage.rag_results) assistantMessage.rag_results = [];
-              assistantMessage.rag_results.push(data.content);
-            } else if (data.type === 'thought_step') {
-              assistantMessage.thoughtSteps.push(data.step);
-              updateThoughtChainRealtime(assistantMessage.thoughtSteps);
-            } else if (data.type === 'done') {
-              assistantMessage.streamDone = true;
-            } else if (data.type === 'error') {
-              assistantMessage.pendingChunks.push(`\n\n[错误: ${data.message}]`);
-            }
-          } catch (e) {}
+      for (const evtBlock of events) {
+        let eventType = 'message';
+        let dataStr = '';
+        for (const line of evtBlock.split(/\r?\n/)) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('event:')) {
+            eventType = trimmed.slice(6).trim();
+          } else if (trimmed.startsWith('data:')) {
+            dataStr = trimmed.slice(5).trim();
+          }
+        }
+        try {
+          const data = dataStr ? JSON.parse(dataStr) : {};
+          if (eventType === 'chunk') {
+            assistantMessage.pendingChunks.push(data.content);
+          } else if (eventType === 'rag_result') {
+            if (!assistantMessage.rag_results) assistantMessage.rag_results = [];
+            assistantMessage.rag_results.push(data.content);
+          } else if (eventType === 'thought_step') {
+            assistantMessage.thoughtSteps.push(data.step);
+            updateThoughtChainRealtime(assistantMessage.thoughtSteps);
+          } else if (eventType === 'done') {
+            assistantMessage.streamDone = true;
+          } else if (eventType === 'error') {
+            assistantMessage.pendingChunks.push(`\n\n[错误: ${data.message}]`);
+          }
+        } catch (e) {
+          console.error('[Stream] Parse error:', e, evtBlock);
         }
       }
     }
