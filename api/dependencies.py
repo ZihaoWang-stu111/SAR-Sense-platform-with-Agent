@@ -3,6 +3,7 @@
 _yolo_model = None
 _agent = None
 _metrics = None
+_metrics_store = None
 
 
 def get_yolo_model():
@@ -38,3 +39,12 @@ def get_metrics():
         from agent.metrics_collector import AgentMetrics
         _metrics = AgentMetrics()
     return _metrics
+
+
+def get_metrics_store():
+    """Lazy load the synchronous historical metrics store."""
+    global _metrics_store
+    if _metrics_store is None:
+        from services.metrics_store import MetricsStore
+        _metrics_store = MetricsStore()
+    return _metrics_store

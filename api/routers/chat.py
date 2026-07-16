@@ -125,7 +125,7 @@ async def chat_stream(
             """子线程：跑 agent + 累积 + 推 SSE + 调度存库。client 断了也跑完。"""
             nonlocal full_content
             metrics = get_metrics()
-            metrics.start_conversation()
+            started_at = metrics.start_conversation()
             try:
                 for chunk in agent.execute_stream(
                     messages, conversation_id, user_context=user_context, on_step=on_step
@@ -142,7 +142,7 @@ async def chat_stream(
                 loop.call_soon_threadsafe(sse_queue.put_nowait, ('error', str(e)))
             finally:
                 loop.call_soon_threadsafe(sse_queue.put_nowait, ('done', None))
-                metrics.end_conversation()
+                metrics.end_conversation(started_at, user_id=user["id"])
                 # 调度存库到 event loop——即使 SSE client 已断，agent 结果仍完整落库
                 asyncio.run_coroutine_threadsafe(persist(), loop)
 
