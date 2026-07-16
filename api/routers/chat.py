@@ -77,94 +77,106 @@ async def chat_stream(
         messages = messages_history[-10:] + [{"role": "user", "content": message}]
 
     async def generate():
-        """SSE generator for streaming response"""
+        """SSE generator：只把 agent 事件推给前端（消费视图）。
+
+        业务任务（跑 agent + 持久化）在独立子线程里，不绑 SSE client 生命周期——
+        client 断开（切页面/刷新/断网）时 generate 退出，子线程继续跑完并存完整回答。
+        SSE 退化为"可选的进度订阅视图"，符合"业务任务与传输层解耦"。
+        """
         import asyncio
         import threading
-        from queue import Queue
 
-        event_queue = Queue()
+        from config.db_conf import AsyncSessionLocal
 
-        metrics = get_metrics()
-        metrics.start_conversation()
+        loop = asyncio.get_running_loop()
+        # asyncio.Queue：SSE 侧 await get()，agent 子线程用 call_soon_threadsafe 跨线程 put。
+        sse_queue: asyncio.Queue = asyncio.Queue()
 
-        # 累积 assistant 回答 + 思维链，finally 存库
-        # （后端存，不依赖前端 streamDone；前端断开/切页面也存，回来不空）
+        # 累积器在子线程写、persist 读；SSE 只读 sse_queue，不碰这些。
         full_content = ""
-        rag_results = []
-        thought_steps_list = []
+        rag_results: list = []
+        thought_steps_list: list = []
 
-        # on_step 回调：agent 每产生一个思维链步骤就推到 event_queue + 累积，
-        # 由主循环 yield 给前端。状态走事件队列，不再用全局 dict。
         def on_step(step):
             thought_steps_list.append(step)
-            event_queue.put(('thought_step', step))
+            loop.call_soon_threadsafe(sse_queue.put_nowait, ('thought_step', step))
+
+        async def persist():
+            """独立 session 存库——不依赖 request 的 db（client 断后 request db 已关）。
+
+            由子线程 finally 经 run_coroutine_threadsafe 调度到 event loop 执行；
+            event loop 长期运行，与 client 是否在线无关。
+            """
+            if not conversation_id or not (full_content.strip() or rag_results):
+                return
+            try:
+                async with AsyncSessionLocal() as session:
+                    await conv_crud.append_message(
+                        session, conversation_id, user["id"], "assistant", full_content,
+                        thought_steps=thought_steps_list or None,
+                        rag_results=rag_results or None,
+                    )
+                    await session.commit()
+                logger.info(f"assistant 已落库（conv={conversation_id}, len={len(full_content)}）")
+            except Exception as e:
+                logger.warning(f"存 assistant 消息失败: {e}")
 
         def run_agent():
-            """Run agent in a separate thread"""
+            """子线程：跑 agent + 累积 + 推 SSE + 调度存库。client 断了也跑完。"""
+            nonlocal full_content
+            metrics = get_metrics()
+            metrics.start_conversation()
             try:
-                for chunk in agent.execute_stream(messages, conversation_id, user_context=user_context, on_step=on_step):
+                for chunk in agent.execute_stream(
+                    messages, conversation_id, user_context=user_context, on_step=on_step
+                ):
                     if isinstance(chunk, dict) and chunk.get("type") == "rag_result":
-                        event_queue.put(('rag_result', chunk.get("content", "")))
+                        content = chunk.get("content", "")
+                        if content:
+                            rag_results.append(content)
+                        loop.call_soon_threadsafe(sse_queue.put_nowait, ('rag_result', content))
                     elif isinstance(chunk, str) and chunk.strip():
-                        event_queue.put(('chunk', chunk))
+                        full_content += chunk
+                        loop.call_soon_threadsafe(sse_queue.put_nowait, ('chunk', chunk))
             except Exception as e:
-                event_queue.put(('error', str(e)))
+                loop.call_soon_threadsafe(sse_queue.put_nowait, ('error', str(e)))
             finally:
-                event_queue.put(('done', None))
+                loop.call_soon_threadsafe(sse_queue.put_nowait, ('done', None))
+                metrics.end_conversation()
+                # 调度存库到 event loop——即使 SSE client 已断，agent 结果仍完整落库
+                asyncio.run_coroutine_threadsafe(persist(), loop)
 
-        agent_thread = threading.Thread(target=run_agent)
+        agent_thread = threading.Thread(target=run_agent, daemon=True)
         agent_thread.start()
 
         try:
             logger.info("Starting agent stream...")
-
             while True:
-                try:
-                    event_type, event_data = event_queue.get_nowait()
-
-                    if event_type == 'thought_step':
-                        data = json.dumps({'step': event_data}, ensure_ascii=False)
-                        yield f"event: thought_step\ndata: {data}\n\n"
-                    elif event_type == 'chunk':
-                        full_content += event_data   # 累积，finally 存库
-                        data = json.dumps({'content': event_data}, ensure_ascii=False)
-                        yield f"event: chunk\ndata: {data}\n\n"
-                    elif event_type == 'rag_result':
-                        if event_data:
-                            rag_results.append(event_data)
-                        data = json.dumps({'content': event_data}, ensure_ascii=False)
-                        yield f"event: rag_result\ndata: {data}\n\n"
-                    elif event_type == 'error':
-                        data = json.dumps({'message': event_data}, ensure_ascii=False)
-                        yield f"event: error\ndata: {data}\n\n"
-                    elif event_type == 'done':
-                        break
-                except Exception:
-                    pass
-
-                await asyncio.sleep(0.05)
-
+                event_type, event_data = await sse_queue.get()
+                if event_type == 'done':
+                    break
+                if event_type == 'thought_step':
+                    data = json.dumps({'step': event_data}, ensure_ascii=False)
+                    yield f"event: thought_step\ndata: {data}\n\n"
+                elif event_type == 'chunk':
+                    data = json.dumps({'content': event_data}, ensure_ascii=False)
+                    yield f"event: chunk\ndata: {data}\n\n"
+                elif event_type == 'rag_result':
+                    data = json.dumps({'content': event_data}, ensure_ascii=False)
+                    yield f"event: rag_result\ndata: {data}\n\n"
+                elif event_type == 'error':
+                    data = json.dumps({'message': event_data}, ensure_ascii=False)
+                    yield f"event: error\ndata: {data}\n\n"
             yield f"event: done\ndata: {json.dumps({})}\n\n"
-
+        except asyncio.CancelledError:
+            # client 断开：generate 退出，agent 子线程继续跑完存库，回来 loadConversation 能看到完整回答
+            logger.info(f"SSE client 断开（conv={conversation_id}），agent 后台继续")
+            raise  # 传播取消（规范）；子线程独立，不受影响
         except Exception as e:
             traceback.print_exc()
             data = json.dumps({'message': str(e)}, ensure_ascii=False)
             yield f"event: error\ndata: {data}\n\n"
-
-        finally:
-            metrics.end_conversation()
-            # 后端存 assistant（前端断开/切页面也存，回来不空）
-            if conversation_id and (full_content.strip() or rag_results):
-                try:
-                    await conv_crud.append_message(
-                        db, conversation_id, user["id"], "assistant", full_content,
-                        thought_steps=thought_steps_list or None,
-                        rag_results=rag_results or None,
-                    )
-                    await db.commit()
-                except Exception as e:
-                    logger.warning(f"存 assistant 消息失败: {e}")
-            logger.info("Streaming response completed")
+        # 不在 generate 里存库——存库由子线程 persist 调度，不绑 client 生命周期
 
     return StreamingResponse(
         generate(),

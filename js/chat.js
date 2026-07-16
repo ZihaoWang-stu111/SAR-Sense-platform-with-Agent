@@ -10,7 +10,10 @@ const state = {
   // 多Reader管理（支持后台流式输出）
   activeReaders: new Map(),      // conversationId -> { reader, abortController, startTime }
   streamingStatus: new Map(),    // conversationId -> { isStreaming, progress }
-  backgroundMessages: new Map()  // conversationId -> messages[]
+  backgroundMessages: new Map(),  // conversationId -> messages[]
+
+  pollingTimer: null,             // 切回后等 assistant 落库的轮询定时器（整页跳转场景兜底）
+  pollingConversationId: null     // 正在轮询的会话；切到别的会话立即停
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -21,6 +24,14 @@ document.addEventListener('DOMContentLoaded', () => {
   initChat();
   loadConversations();
   highlightNav('chat');
+
+  // 切到其他页面（知识库/检测/指标）= 整页跳转，SSE 与 state 全销毁；
+  // 回来时按 localStorage 记住的上次会话自动恢复，能看到已落库的 assistant 回答
+  // （后端 generate 已解耦，切走时 agent 后台跑完，回答已存库）
+  const lastId = localStorage.getItem('lastConversationId');
+  if (lastId) {
+    loadConversation(lastId);
+  }
 });
 
 function highlightNav(page) {
@@ -154,6 +165,7 @@ function renderConversationList(conversations) {
 
 async function loadConversation(convId) {
   try {
+    stopPollingForAssistant();  // 切会话即停旧轮询
     const previousConvId = state.currentConversationId;
 
     // 不中断SSE，只是转入后台
@@ -178,6 +190,7 @@ async function loadConversation(convId) {
     if (data.success) {
       state.currentConversationId = convId;
       state.messages = data.conversation.messages || [];
+      localStorage.setItem('lastConversationId', convId);  // 记住：切走整页跳转后回来恢复
 
       // 如果新会话也在后台streaming，同步状态
       if (state.activeReaders.has(convId)) {
@@ -203,11 +216,64 @@ async function loadConversation(convId) {
         startTypewriterEffect();
       }
       loadConversations();
+
+      // 切回整页跳转场景兜底：最后一条是 user（assistant 还没落库，agent 后台在跑）
+      // 且无前台 SSE（前台 SSE 在收就不重复拉）-> 轮询等 assistant 冒出来
+      const lastMsg = state.messages[state.messages.length - 1];
+      if (lastMsg && lastMsg.role === 'user' && !state.streamingStatus.has(convId)) {
+        startPollingForAssistant(convId);
+      }
     }
   } catch (error) {
     console.error('Failed to load conversation:', error);
   }
 }
+
+// 切回整页跳转场景的兜底：agent 在后台跑、assistant 还没落库时，轮询直到出现
+function stopPollingForAssistant() {
+  if (state.pollingTimer) {
+    clearTimeout(state.pollingTimer);
+    state.pollingTimer = null;
+  }
+  state.pollingConversationId = null;
+}
+
+function startPollingForAssistant(convId) {
+  stopPollingForAssistant();  // 先清旧的，避免叠加
+  state.pollingConversationId = convId;
+  const deadline = Date.now() + 5 * 60 * 1000;  // 最多轮询 5 分钟（agent 通常 <1 分钟，留余量）
+
+  const poll = async () => {
+    // 切到别的会话/新建/删除 -> pollingConversationId 变，立即停
+    if (state.pollingConversationId !== convId) return;
+    // 用户在轮询期间发了新消息（前台 SSE 起来）-> 停轮询，交给前台 SSE
+    if (state.streamingStatus.has(convId)) { stopPollingForAssistant(); return; }
+    if (Date.now() > deadline) { stopPollingForAssistant(); return; }
+
+    try {
+      const resp = await apiFetch(`${API_BASE}/api/conversations/${convId}`);
+      const data = await resp.json();
+      if (data.success) {
+        const msgs = data.conversation.messages || [];
+        const last = msgs[msgs.length - 1];
+        if (last && last.role === 'assistant') {
+          // assistant 已落库，恢复并渲染
+          state.messages = msgs;
+          renderMessages();
+          loadConversations();  // 侧边栏 updated_at 也刷新
+          stopPollingForAssistant();
+          console.log(`[Poll] 会话 ${convId} 的 assistant 已落库，停止轮询`);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn(`[Poll] 拉取会话 ${convId} 失败，重试:`, e);
+    }
+    state.pollingTimer = setTimeout(poll, 2000);
+  };
+  state.pollingTimer = setTimeout(poll, 2000);
+}
+
 
 async function createConversation(firstMessage) {
   try {
@@ -219,6 +285,7 @@ async function createConversation(firstMessage) {
     const data = await response.json();
     if (data.success) {
       state.currentConversationId = data.conversation_id;
+      localStorage.setItem('lastConversationId', data.conversation_id);  // 新会话也记，切走整页跳转后能恢复
       state.messages = [];
       loadConversations();
       return data.conversation_id;
@@ -235,6 +302,8 @@ async function deleteConversation(convId) {
     if (state.currentConversationId === convId) {
       state.currentConversationId = null;
       state.messages = [];
+      localStorage.removeItem('lastConversationId');  // 当前会话被删：清除记忆
+      stopPollingForAssistant();  // 当前会话被删：停轮询
       renderMessages();
     }
     loadConversations();
@@ -327,6 +396,8 @@ function initChat() {
       state.currentConversationId = null;
       state.messages = [];
       state.attachedFile = null;
+      localStorage.removeItem('lastConversationId');  // 新对话：清除上次会话记忆
+      stopPollingForAssistant();  // 新对话：停掉切回轮询
       renderMessages();
       loadConversations();
       updateAttachmentIndicator();
