@@ -212,7 +212,12 @@ class MySQLParentDocstore:
             chunks = session.scalars(
                 select(ParentChunk).where(ParentChunk.parent_id.in_(parent_ids))
             ).all()
-            return {chunk.parent_id: self._as_record(chunk) for chunk in chunks}
+            records = {chunk.parent_id: self._as_record(chunk) for chunk in chunks}
+            return {
+                parent_id: records[parent_id]
+                for parent_id in parent_ids
+                if parent_id in records
+            }
 
     def delete_many(self, parent_ids: list[str]) -> int:
         if not parent_ids:

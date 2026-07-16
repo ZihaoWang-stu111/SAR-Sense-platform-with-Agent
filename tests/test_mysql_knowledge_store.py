@@ -172,6 +172,68 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
         self.assertFalse(self.store.delete("doc-1"))
         self.assertIsNone(self.store.get_by_doc_id("doc-1"))
 
+    def test_activate_document_atomically_upserts_complete_active_row(self):
+        self._begin_and_activate(
+            doc_id="doc-atomic",
+            filename="paper.pdf",
+            file_hash="old-hash",
+        )
+
+        activated = self.store.activate_document(
+            doc_id="doc-atomic",
+            filename="paper.pdf",
+            file_hash="new-hash",
+            storage_key=".knowledge_versions/v2/paper.pdf",
+            file_type="pdf",
+            chunk_method="parent_child_semantic",
+            chunk_ids=["new-child-1", "new-child-2", "new-child-3"],
+            chunk_count=3,
+            parent_count=2,
+            child_count=3,
+            allowed_roles=["business"],
+            updated_by=19,
+        )
+
+        self.assertEqual(activated.status, "active")
+        self.assertEqual(activated.file_hash, "new-hash")
+        self.assertEqual(activated.storage_key, ".knowledge_versions/v2/paper.pdf")
+        self.assertEqual(activated.chunk_ids, ["new-child-1", "new-child-2", "new-child-3"])
+        self.assertEqual(activated.chunk_count, 3)
+        self.assertEqual(activated.parent_count, 2)
+        self.assertEqual(activated.child_count, 3)
+        self.assertEqual(activated.allowed_roles, ["business"])
+        self.assertEqual(activated.updated_by, 19)
+        self.assertIsNotNone(activated.ingested_at)
+
+    def test_active_chunk_ids_excludes_processing_failed_and_deleting_rows(self):
+        self._begin_and_activate(
+            doc_id="active-doc",
+            filename="active.pdf",
+            file_hash="active-hash",
+        )
+        self.store.begin_ingestion(
+            doc_id="processing-doc",
+            filename="processing.pdf",
+            file_hash="processing-hash",
+        )
+        self.store.begin_ingestion(
+            doc_id="failed-doc",
+            filename="failed.pdf",
+            file_hash="failed-hash",
+        )
+        self.store.mark_failed("failed-doc", "failed")
+        self._begin_and_activate(
+            doc_id="deleting-doc",
+            filename="deleting.pdf",
+            file_hash="deleting-hash",
+        )
+        self.store.mark_deleting("deleting-doc")
+
+        self.assertEqual(
+            self.store.active_chunk_ids(),
+            {"active-doc:child:0", "active-doc:child:1"},
+        )
+
     def test_acl_updates_do_not_change_fingerprint(self):
         self._begin_and_activate()
         before = self.store.fingerprint()
@@ -197,8 +259,42 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
         )
         self.assertNotEqual(self.store.fingerprint(), before)
 
+    def test_fingerprint_tracks_active_document_technical_state(self):
+        self._begin_and_activate()
+        before = self.store.fingerprint()
+
+        with self.session_factory.begin() as session:
+            doc = session.scalar(
+                select(KnowledgeDocument).where(KnowledgeDocument.doc_id == "doc-1")
+            )
+            doc.chunk_ids = ["doc-1:child:0", "doc-1:child:replacement"]
+
+        after_chunk_identity_change = self.store.fingerprint()
+        self.assertNotEqual(after_chunk_identity_change, before)
+
+        with self.session_factory.begin() as session:
+            doc = session.scalar(
+                select(KnowledgeDocument).where(KnowledgeDocument.doc_id == "doc-1")
+            )
+            doc.filename = "renamed-paper.pdf"
+            doc.chunk_method = "semantic"
+            doc.parent_count = 2
+            doc.child_count = 3
+
+        self.assertNotEqual(self.store.fingerprint(), after_chunk_identity_change)
+
     def test_manifest_matches_legacy_shape_and_is_read_only(self):
         active = self._begin_and_activate()
+        active = self.store.mark_active(
+            "doc-1",
+            chunk_count=2,
+            chunk_ids=[
+                "doc-1:parent:000:child:000",
+                "doc-1:parent:000:child:001",
+            ],
+            parent_count=1,
+            child_count=2,
+        )
         self.parent_store.save(
             "doc-1:parent:000",
             "parent text",
@@ -206,6 +302,16 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
                 "doc_id": "doc-1",
                 "parent_id": "doc-1:parent:000",
                 "parent_index": 0,
+                "chunk_type": "parent",
+            },
+        )
+        self.parent_store.save(
+            "doc-1:old:parent:999",
+            "orphan parent from an old generation",
+            {
+                "doc_id": "doc-1",
+                "parent_id": "doc-1:old:parent:999",
+                "parent_index": 999,
                 "chunk_type": "parent",
             },
         )
@@ -217,7 +323,10 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
                 "doc_id": "doc-1",
                 "file_hash": "hash-1",
                 "chunk_count": 2,
-                "chunk_ids": ["doc-1:child:0", "doc-1:child:1"],
+                "chunk_ids": [
+                    "doc-1:parent:000:child:000",
+                    "doc-1:parent:000:child:001",
+                ],
                 "chunk_method": "parent_child_fixed",
                 "file_type": "pdf",
                 "ingested_at": active.ingested_at.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -234,7 +343,10 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
         self.assertEqual(fresh_manifest["paper.pdf"]["status"], "active")
         self.assertEqual(
             fresh_manifest["paper.pdf"]["chunk_ids"],
-            ["doc-1:child:0", "doc-1:child:1"],
+            [
+                "doc-1:parent:000:child:000",
+                "doc-1:parent:000:child:001",
+            ],
         )
 
     def test_parent_chunk_crud_get_many_and_batch_upsert(self):
@@ -279,10 +391,13 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
             }
         )
 
-        records = self.parent_store.get_many(
-            ["doc-1:parent:001", "missing", "doc-1:parent:000"]
-        )
+        requested_parent_ids = ["doc-1:parent:001", "missing", "doc-1:parent:000"]
+        records = self.parent_store.get_many(requested_parent_ids)
         self.assertEqual(set(records), {"doc-1:parent:000", "doc-1:parent:001"})
+        self.assertEqual(
+            list(records),
+            ["doc-1:parent:001", "doc-1:parent:000"],
+        )
         self.assertEqual(records["doc-1:parent:000"]["page_content"], "updated text")
         self.assertEqual(records["doc-1:parent:000"]["metadata"]["page"], 3)
         self.assertEqual(self.parent_store.count(), 3)

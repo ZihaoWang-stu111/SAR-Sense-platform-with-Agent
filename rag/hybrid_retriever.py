@@ -25,6 +25,7 @@ from utils.logger_handler import logger  # 复用你的日志模块
 class FilteredBM25Retriever(BaseRetriever):
     source: BM25Retriever
     allowed_doc_ids: set | None = None
+    active_chunk_ids: set | None = None
     k: int = 4
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -38,12 +39,18 @@ class FilteredBM25Retriever(BaseRetriever):
         allowed = self.allowed_doc_ids
         if allowed is not None and not allowed:
             return []
+        active = self.active_chunk_ids
+        if active is not None and not active:
+            return []
 
         processed_query = self.source.preprocess_func(query)
         scores = self.source.vectorizer.get_scores(processed_query)
         ranked = []
         for score, doc in zip(scores, self.source.docs):
-            if allowed is not None and (doc.metadata or {}).get("doc_id") not in allowed:
+            metadata = doc.metadata or {}
+            if allowed is not None and metadata.get("doc_id") not in allowed:
+                continue
+            if active is not None and metadata.get("chunk_id") not in active:
                 continue
             ranked.append((float(score), doc))
 
@@ -84,16 +91,43 @@ class DynamicHybridRetriever:
         "父子块", "语义分块", "混合检索",
     ]
 
-    def __init__(self, vector_store, k=3, manifest_path=None, bm25_cache_path=None):
+    def __init__(
+        self,
+        vector_store,
+        k=3,
+        manifest_path=None,
+        bm25_cache_path=None,
+        fingerprint_provider=None,
+        knowledge_store=None,
+        active_chunk_ids_provider=None,
+    ):
         self.vector_store = vector_store
         self.k = k
-        # BM25 索引持久化：重启 load pkl 而非重建，省几十秒。
-        # 指纹用 manifest.json 的 SHA-256（get_file_hash）：知识库变更 → manifest 变 → hash 不符 → 自动重建。
+        # BM25 cache uses the injected DB fingerprint when available.
+        # manifest_path remains a compatibility fallback for legacy callers.
         self.manifest_path = manifest_path
+        if fingerprint_provider is None and knowledge_store is not None:
+            fingerprint_provider = knowledge_store.fingerprint
+        self.fingerprint_provider = fingerprint_provider
+        if active_chunk_ids_provider is None and knowledge_store is not None:
+            active_chunk_ids_provider = knowledge_store.active_chunk_ids
+        self.active_chunk_ids_provider = active_chunk_ids_provider
         self.bm25_cache_path = bm25_cache_path
         self._bm25_lock = Lock()
         # 实例化时，直接在内存中炼制好 BM25 备用
         self.bm25_retriever = self._build_bm25()
+
+    def _get_current_fingerprint(self):
+        if self.fingerprint_provider is not None:
+            return self.fingerprint_provider()
+        if self.manifest_path:
+            return get_file_hash(self.manifest_path)
+        return None
+
+    def _get_active_chunk_ids(self):
+        if self.active_chunk_ids_provider is None:
+            return None
+        return set(self.active_chunk_ids_provider())
 
     @classmethod
     def _register_domain_terms(cls):
@@ -135,16 +169,16 @@ class DynamicHybridRetriever:
 
     def _build_bm25(self, force=False):
         """构建/加载 BM25 检索器。
-        force=False（默认）：load pkl 优先，pkl 存在且 manifest 指纹相符则直接 load（省几十秒重建）。
+        force=False（默认）：load pkl 优先，pkl 存在且知识库指纹相符则直接 load（省几十秒重建）。
         force=True：强制重建（知识库变更后），重建后覆盖 pkl。
         整个 load-or-rebuild 在 self._bm25_lock 内原子执行，防并发双重重建。
         """
         with self._bm25_lock:
-            current_hash = get_file_hash(self.manifest_path) if self.manifest_path else None
+            current_fingerprint = self._get_current_fingerprint()
 
             # load 优先：pkl 存在且指纹相符则直接用
-            if not force and self.bm25_cache_path and current_hash is not None:
-                cached = self._load_bm25_cache(current_hash)
+            if not force and self.bm25_cache_path and current_fingerprint is not None:
+                cached = self._load_bm25_cache(current_fingerprint)
                 if cached is not None:
                     logger.info("BM25 从 pkl 加载完成（跳过重建）")
                     return cached
@@ -154,19 +188,23 @@ class DynamicHybridRetriever:
             if bm25_retriever is None:
                 return None  # 知识库空
 
-            # 重建后持久化（带当前 manifest 指纹，供下次 load 比对）
-            if self.bm25_cache_path and current_hash is not None:
-                self._persist_bm25_cache(bm25_retriever, current_hash)
+            # 重建后持久化（带当前知识库指纹，供下次 load 比对）
+            if self.bm25_cache_path and current_fingerprint is not None:
+                self._persist_bm25_cache(bm25_retriever, current_fingerprint)
             return bm25_retriever
 
-    def _load_bm25_cache(self, current_hash):
+    def _load_bm25_cache(self, current_fingerprint):
         """load pkl：指纹相符且 preprocess_func 引用未漂移则返回 bm25，否则 None。"""
         if not os.path.exists(self.bm25_cache_path):
             return None
         try:
             with open(self.bm25_cache_path, "rb") as f:
                 data = pickle.load(f)
-            if data.get("manifest_hash") != current_hash:
+            cached_fingerprint = data.get(
+                "knowledge_fingerprint",
+                data.get("manifest_hash"),
+            )
+            if cached_fingerprint != current_fingerprint:
                 logger.info("BM25 pkl 指纹不符（知识库已变更），重建")
                 return None
             bm25 = data.get("bm25")
@@ -184,12 +222,18 @@ class DynamicHybridRetriever:
             logger.warning(f"BM25 pkl 加载失败，回退重建: {e}")
             return None
 
-    def _persist_bm25_cache(self, bm25_retriever, manifest_hash):
-        """pickle 持久化 BM25 索引 + manifest 指纹。"""
+    def _persist_bm25_cache(self, bm25_retriever, knowledge_fingerprint):
+        """pickle 持久化 BM25 索引 + 知识库指纹。"""
         try:
             os.makedirs(os.path.dirname(self.bm25_cache_path) or ".", exist_ok=True)
             with open(self.bm25_cache_path, "wb") as f:
-                pickle.dump({"bm25": bm25_retriever, "manifest_hash": manifest_hash}, f)
+                pickle.dump(
+                    {
+                        "bm25": bm25_retriever,
+                        "knowledge_fingerprint": knowledge_fingerprint,
+                    },
+                    f,
+                )
             logger.info("BM25 索引已持久化")
         except Exception as e:
             logger.warning(f"BM25 pkl 持久化失败（不影响运行）: {e}")
@@ -200,10 +244,19 @@ class DynamicHybridRetriever:
             logger.info("正在内存中构建 BM25 检索树...")
             all_data = self.vector_store.get(include=['documents', 'metadatas'])
 
+            active_chunk_ids = self._get_active_chunk_ids()
+            if active_chunk_ids is not None and not active_chunk_ids:
+                logger.info("No active knowledge chunks; BM25 build skipped")
+                return None
+
             docs = []
             for doc_content, meta in zip(all_data.get('documents', []), all_data.get('metadatas', [])):
-                if doc_content:
-                    docs.append(Document(page_content=doc_content, metadata=meta or {}))
+                metadata = meta or {}
+                if doc_content and (
+                    active_chunk_ids is None
+                    or metadata.get("chunk_id") in active_chunk_ids
+                ):
+                    docs.append(Document(page_content=doc_content, metadata=metadata))
 
             if not docs:
                 logger.warning("知识库为空，BM25 初始化跳过。")
@@ -273,13 +326,30 @@ class DynamicHybridRetriever:
             allowed_doc_ids = set(allowed_doc_ids)
             if not allowed_doc_ids:
                 return []
-        return self.get_retriever(query, allowed_doc_ids=allowed_doc_ids).invoke(query)
+        active_chunk_ids = self._get_active_chunk_ids()
+        if active_chunk_ids is not None and not active_chunk_ids:
+            return []
+        return self.get_retriever(
+            query,
+            allowed_doc_ids=allowed_doc_ids,
+            active_chunk_ids=active_chunk_ids,
+        ).invoke(query)
 
-    def get_retriever(self, query: str, allowed_doc_ids=None):
+    def get_retriever(self, query: str, allowed_doc_ids=None, active_chunk_ids=None):
         """根据当前 query，返回定制化权重的混合检索器"""
         search_kwargs = {"k": self.k}
+        if active_chunk_ids is None:
+            active_chunk_ids = self._get_active_chunk_ids()
+
+        filters = []
+        if active_chunk_ids is not None:
+            filters.append({"chunk_id": {"$in": sorted(active_chunk_ids)}})
         if allowed_doc_ids is not None:
-            search_kwargs["filter"] = {"doc_id": {"$in": list(allowed_doc_ids)}}
+            filters.append({"doc_id": {"$in": sorted(allowed_doc_ids)}})
+        if len(filters) == 1:
+            search_kwargs["filter"] = filters[0]
+        elif filters:
+            search_kwargs["filter"] = {"$and": filters}
         vector_retriever = self.vector_store.as_retriever(search_kwargs=search_kwargs)
 
         # 降级保护
@@ -291,10 +361,15 @@ class DynamicHybridRetriever:
 
 
         bm25_retriever = self.bm25_retriever
-        if allowed_doc_ids is not None:
+        if allowed_doc_ids is not None or active_chunk_ids is not None:
             bm25_retriever = FilteredBM25Retriever(
                 source=self.bm25_retriever,
-                allowed_doc_ids=set(allowed_doc_ids),
+                allowed_doc_ids=(
+                    None if allowed_doc_ids is None else set(allowed_doc_ids)
+                ),
+                active_chunk_ids=(
+                    None if active_chunk_ids is None else set(active_chunk_ids)
+                ),
                 k=self.k,
             )
 

@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import select
 
 from config.db_conf import SyncSessionLocal
-from models.knowledge import KnowledgeDocument, ParentChunk
+from models.knowledge import KnowledgeDocument
 
 
 class KnowledgeStore:
@@ -123,6 +123,72 @@ class KnowledgeStore:
                 session.rollback()
                 raise
 
+    def activate_document(
+        self,
+        *,
+        doc_id: str,
+        filename: str,
+        file_hash: str | None,
+        storage_key: str | None,
+        file_type: str | None,
+        chunk_method: str | None,
+        chunk_ids: list[str],
+        chunk_count: int,
+        parent_count: int | None,
+        child_count: int | None,
+        allowed_roles: list[str] | None,
+        updated_by: int | None,
+        ingested_at: datetime | None = None,
+    ) -> KnowledgeDocument:
+        """Atomically publish one complete active document generation."""
+        now = datetime.now()
+        with self.session_factory() as session:
+            try:
+                doc = session.scalar(
+                    select(KnowledgeDocument)
+                    .where(KnowledgeDocument.doc_id == doc_id)
+                    .with_for_update()
+                )
+                if doc is None:
+                    doc = KnowledgeDocument(doc_id=doc_id, filename=filename)
+                    session.add(doc)
+
+                doc.filename = filename
+                doc.file_hash = file_hash
+                doc.storage_key = storage_key
+                doc.file_type = file_type
+                doc.chunk_method = chunk_method
+                doc.chunk_ids = list(chunk_ids)
+                doc.chunk_count = chunk_count
+                doc.parent_count = parent_count
+                doc.child_count = child_count
+                doc.allowed_roles = list(allowed_roles or [])
+                doc.updated_by = updated_by
+                doc.status = "active"
+                doc.ingested_at = ingested_at or now
+                doc.error_message = None
+                doc.updated_at = now
+
+                session.commit()
+                session.refresh(doc)
+                return doc
+            except Exception:
+                session.rollback()
+                raise
+
+    def active_chunk_ids(self) -> set[str]:
+        with self.session_factory() as session:
+            chunk_id_lists = session.scalars(
+                select(KnowledgeDocument.chunk_ids).where(
+                    KnowledgeDocument.status == "active"
+                )
+            ).all()
+        return {
+            chunk_id
+            for chunk_ids in chunk_id_lists
+            for chunk_id in (chunk_ids or [])
+        }
+
     def mark_failed(self, doc_id: str, error_message: str) -> KnowledgeDocument:
         return self._set_status(doc_id, "failed", error_message=error_message)
 
@@ -184,16 +250,6 @@ class KnowledgeStore:
                     .order_by(KnowledgeDocument.filename)
                 ).all()
             )
-            parent_ids_by_doc: dict[str, list[str]] = {}
-            if docs:
-                parent_rows = session.execute(
-                    select(ParentChunk.doc_id, ParentChunk.parent_id)
-                    .where(ParentChunk.doc_id.in_([doc.doc_id for doc in docs]))
-                    .order_by(ParentChunk.doc_id, ParentChunk.parent_index)
-                ).all()
-                for parent_doc_id, parent_id in parent_rows:
-                    parent_ids_by_doc.setdefault(parent_doc_id, []).append(parent_id)
-
             manifest = {}
             for doc in docs:
                 entry = {
@@ -211,9 +267,18 @@ class KnowledgeStore:
                     "status": doc.status,
                 }
                 if doc.parent_count is not None:
+                    parent_ids = []
+                    seen_parent_ids = set()
+                    for chunk_id in doc.chunk_ids or []:
+                        if ":child:" not in chunk_id:
+                            continue
+                        parent_id = chunk_id.rsplit(":child:", 1)[0]
+                        if parent_id not in seen_parent_ids:
+                            seen_parent_ids.add(parent_id)
+                            parent_ids.append(parent_id)
                     entry.update(
                         {
-                            "parent_ids": parent_ids_by_doc.get(doc.doc_id, []),
+                            "parent_ids": parent_ids,
                             "parent_count": doc.parent_count,
                             "child_count": doc.child_count,
                         }
@@ -226,8 +291,15 @@ class KnowledgeStore:
             rows = session.execute(
                 select(
                     KnowledgeDocument.doc_id,
+                    KnowledgeDocument.filename,
                     KnowledgeDocument.file_hash,
+                    KnowledgeDocument.file_type,
+                    KnowledgeDocument.storage_key,
+                    KnowledgeDocument.chunk_method,
+                    KnowledgeDocument.chunk_ids,
                     KnowledgeDocument.chunk_count,
+                    KnowledgeDocument.parent_count,
+                    KnowledgeDocument.child_count,
                     KnowledgeDocument.ingested_at,
                 )
                 .where(KnowledgeDocument.status == "active")
@@ -235,13 +307,29 @@ class KnowledgeStore:
             ).all()
 
         payload = [
-            [
-                doc_id,
-                file_hash,
-                chunk_count,
-                ingested_at.isoformat(timespec="microseconds") if ingested_at else None,
-            ]
-            for doc_id, file_hash, chunk_count, ingested_at in rows
+            {
+                "doc_id": row.doc_id,
+                "filename": row.filename,
+                "file_hash": row.file_hash,
+                "file_type": row.file_type,
+                "storage_key": row.storage_key,
+                "chunk_method": row.chunk_method,
+                "chunk_ids": list(row.chunk_ids or []),
+                "chunk_count": row.chunk_count,
+                "parent_count": row.parent_count,
+                "child_count": row.child_count,
+                "ingested_at": (
+                    row.ingested_at.isoformat(timespec="microseconds")
+                    if row.ingested_at
+                    else None
+                ),
+            }
+            for row in rows
         ]
-        serialized = json.dumps(payload, ensure_ascii=True, separators=(",", ":"))
+        serialized = json.dumps(
+            payload,
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
