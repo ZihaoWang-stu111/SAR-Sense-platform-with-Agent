@@ -18,8 +18,8 @@ Knowledge file ACL is stored in MySQL table `knowledge_documents`.
 Historical files migrated from `manifest.json` default to admin-only:
 
 ```bash
-python -m utils.migrate_rag_acl
-python -m utils.migrate_rag_acl --check
+python -m utils.migrate_knowledge_mysql
+python -m utils.migrate_knowledge_mysql --check
 ```
 
 ## Request Flow
@@ -48,7 +48,7 @@ This avoids the unsafe pattern of “full-library top-k, then filter”, which c
 ```bash
 python -m compileall api agent rag crud schemas utils tests
 python -m unittest tests.test_rag_acl_retrieval -v
-python -m utils.migrate_rag_acl --check
+python -m utils.migrate_knowledge_mysql --check
 ```
 
 Manual checks:
