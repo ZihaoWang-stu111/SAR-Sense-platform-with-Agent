@@ -49,14 +49,14 @@ Port 5000. Entry point delegates to [api/app.py](api/app.py) (`create_app()`), w
   - `monitor_tool` (`@wrap_tool_call`): logs/metrics every tool call. **When the agent calls `fill_context_for_report`, it sets `runtime.context["report"] = True`** — this is the trigger for prompt switching, not `fetch_external_data`.
   - `log_before_model` (`@before_model`): pre-LLM hook for metrics
   - `report_prompt_switch` (`@dynamic_prompt`): on every model step, picks `report_prompt.txt` if `context["report"]` is True else `main_prompt.txt`. The flag is reset to False per user message.
-- **metrics_collector.py** — `AgentMetrics` singleton for tool calls, success rates, LLM calls, conversation rounds. In-memory stats (read by `/api/metrics`) + dual-writes each event to MySQL `metric_events` via synchronous pymysql. `start/end_conversation` are called **only** in [api/routers/chat.py](api/routers/chat.py)'s SSE generator, not in `execute_stream`. Not user-isolated yet (all events write `user_id=1`).
+- **metrics_collector.py** — `AgentMetrics` singleton keeps request-time counters in memory and persists every tool, LLM, and conversation-timing event with the authenticated `user_id`. `/api/metrics` reads global historical aggregates across all users from MySQL through `MetricsStore`, so dashboard totals survive process restarts. This dashboard is not user-isolated yet. `start/end_conversation` are called **only** in [api/routers/chat.py](api/routers/chat.py)'s SSE generator, not in `execute_stream`.
 
 ### RAG Layer ([rag/](rag/))
 
-- **vector_store.py** — ChromaDB singleton (`get_vector_store_service()`). Loads docs, applies semantic + parent-child chunking (controlled by [config/chroma.yml](config/chroma.yml)), embeds child chunks into Chroma, persists parent chunks to `parent_docstore.json`.
-- **hybrid_retriever.py** — `DynamicHybridRetriever`: vector + BM25 ensemble with dynamic weights. BM25 index is pickled to disk keyed by the manifest SHA-256 hash; on load it verifies both the manifest hash and the `preprocess_func` qualname to detect drift, rebuilding if either mismatches.
+- **vector_store.py** — ChromaDB singleton (`get_vector_store_service()`). Loads docs, applies semantic + parent-child chunking (controlled by [config/chroma.yml](config/chroma.yml)), embeds versioned child chunks into Chroma, and persists document metadata and parent chunks to MySQL. Uploads activate a complete new generation before cleaning up the old one.
+- **hybrid_retriever.py** — `DynamicHybridRetriever`: vector + BM25 ensemble with dynamic weights. Both routes filter by active MySQL chunk ids, so failed or superseded generations cannot be recalled. The BM25 pickle is keyed by a database-derived knowledge fingerprint plus the `preprocess_func` qualname.
 - **parent_child_retriever.py** — `ParentChildResolver.resolve(child_docs)`: dedup hit child blocks → fetch corresponding parent blocks, preserving rerank order.
-- **parent_docstore.py** — JSON-backed parent block store with a `threading.Lock` for thread-safe writes during ingestion.
+- **parent_docstore.py** — `MySQLParentDocstore` keeps the existing parent-store interface while reading and writing `parent_chunks` through SQLAlchemy; batched parent lookup avoids one query per hit. The old JSON class remains only for migration compatibility.
 - **reranker.py** — `BGERerankerService` (bge-reranker-base, CPU). Pure function by design: never mutates inputs, builds new `Document` instances with shallow-copied metadata + `rerank_score`. Default `score_threshold=0.3`; eval passes 0.0.
 - **rag_service.py** — `RagSummarizeService.retriever_docs(query)` flow: retrieve children (hybrid) → rerank on children → resolve to parents in rerank order (RR→PC).
 
@@ -64,21 +64,21 @@ Port 5000. Entry point delegates to [api/app.py](api/app.py) (`create_app()`), w
 
 Factory for `chat_model` (ChatTongyi, deepseek-v3.2) and `embeddings` (DashScopeEmbeddings, text-embedding-v4) — both DashScope. Configured via [config/rag.yml](config/rag.yml). Both are module-level singletons (eager init at import).
 
-### Storage Layer: MySQL + SQLAlchemy 2.0 async (users, conversations, metrics)
+### Storage Layer: MySQL + SQLAlchemy 2.0 (async request data + sync RAG/metrics)
 
-User accounts, conversation history, and metric events are stored in **MySQL `sar_sense` via async SQLAlchemy + aiomysql**. Chroma holds vectors; `data/` holds original files; `manifest.json`/`parent_docstore.json` remain the knowledge-base store (not migrated). The knowledge base is **shared across all users**; only conversations are user-isolated.
+MySQL `sar_sense` is the source of truth for users, conversations, knowledge metadata, parent chunks, ACL, and metric events. FastAPI request CRUD uses async SQLAlchemy + aiomysql; synchronous LangChain/RAG callbacks use SQLAlchemy + PyMySQL through `SyncSessionLocal`. Chroma holds child vectors and `data/.knowledge_versions/<uuid>/` holds immutable, versioned source files. Root `manifest.json` and `parent_docstore.json` are legacy migration inputs/backups and are no longer written at runtime.
 
 - **config/db_conf.py** — `async_engine`, `AsyncSessionLocal`, `get_db()` dependency (commit/rollback/close).
-- **models/** — shared `Base(DeclarativeBase)` + ORM models: `User`, `Conversation`, `ConversationMessage` (thought_steps as MySQL `JSON` column; `UNIQUE(conversation_id, message_index)`), `MetricEvent`.
+- **models/** — shared `Base(DeclarativeBase)` + ORM models for users, conversations/messages, `KnowledgeDocument`, `ParentChunk`, and `MetricEvent`.
 - **schemas/** — Pydantic request models (`LoginRequest`, `RegisterRequest`, `CreateConversationRequest`, `AppendMessageRequest`).
-- **crud/** — async CRUD functions taking `db: AsyncSession` as first arg. `crud/conversations.py` enforces user isolation (`WHERE user_id=?` on every read/write). `crud/metrics.py` is synchronous pymysql because LangChain middleware calls it from sync code.
+- **crud/** — request-facing async CRUD takes `db: AsyncSession`; `crud/conversations.py` enforces user isolation (`WHERE user_id=?` on every read/write). Synchronous knowledge and metrics work is centralized in `KnowledgeStore`, `MySQLParentDocstore`, and `MetricsStore` rather than direct driver calls in business code.
 
 ### Auth Layer (JWT + RBAC)
 
 - **utils/security.py** — `hash_password`/`verify_password` (bcrypt direct, no passlib) + `create_access_token`/`decode_token` (PyJWT, 7-day expiry).
-- **api/auth.py** — `get_current_user(token)` decodes JWT → `{id, username}` (no DB hit per request); `require_admin(user)` checks `username == "admin"` → 403.
+- **api/auth.py** — `get_current_user(token, db)` decodes the JWT, then reloads the current user from MySQL so role changes take effect on the next request. `require_admin(user)` checks `role == "admin"` and returns 403 otherwise.
 - **Frontend** ([js/auth.js](js/auth.js)) — token in `localStorage`, `apiFetch()` wrapper injects `Authorization: Bearer <token>`, 401 → redirect to login.
-- **RBAC**: knowledge base `upload`/`delete` are `Depends(require_admin)`; `list` is `Depends(get_current_user)`. Seed user: `admin`/`admin123`.
+- **RBAC**: knowledge upload/delete/ACL changes and user-role management require `admin`; list/download/retrieval enforce each document's `allowed_roles`. Seed user: `admin`/`admin123` with role `admin`.
 
 ### Detection ([Detct_prdc/](Detct_prdc/))
 
@@ -104,8 +104,8 @@ All loaded at import time by [utils/config_handler.py](utils/config_handler.py) 
 
 - **LLM Provider**: Alibaba Cloud DashScope (ChatTongyi / DashScopeEmbeddings)
 - **Vector DB**: ChromaDB, persisted locally in `chroma_db/`
-- **Parent docstore**: JSON file `parent_docstore.json` (threading.Lock for ingestion writes)
-- **Knowledge base dedup**: by SHA-256 (`manifest.json`), **not MD5**
+- **Parent docstore**: MySQL `parent_chunks`; `parent_docstore.json` is retained only as a migration backup
+- **Knowledge base metadata/dedup**: MySQL `knowledge_documents`, keyed by SHA-256-derived document identity, **not MD5**
 - **Detection Model**: YOLO via vendored ultralytics, loaded once via the `get_yolo_model()` lazy singleton in [api/dependencies.py](api/dependencies.py) (shared by `/api/detect` and the `detect_ships` agent tool)
 - **Agent Framework**: LangChain `create_agent` (langgraph-based), streaming via `agent.stream()`
 - **Conversation Storage**: MySQL `sar_sense` (async SQLAlchemy + aiomysql) — **not JSON files**
@@ -120,3 +120,6 @@ All loaded at import time by [utils/config_handler.py](utils/config_handler.py) 
 - **Thought-chain via callback, not global state**: `execute_stream(on_step=...)` pushes steps to the caller; `chat.py` relays them through an `event_queue` as `thought_step` events (event-driven SSE, not polling).
 - **Conversation isolation**: every conversation read/write in `crud/conversations.py` carries `user_id`; unauthorized access returns an empty dict (not 403) to avoid probing.
 - **Metrics counted once**: `start/end_conversation` live only in `chat.py`'s SSE generator, never in `execute_stream`.
+- **Knowledge updates are generation-based**: source files use immutable version paths; a new document generation becomes active atomically before obsolete Chroma/parent data is cleaned up.
+- **Cross-store cleanup is eventual**: MySQL, Chroma, and the filesystem do not share one transaction. A forced stop can leave inactive vectors, parent rows, or version files; active-id filtering prevents recall, but maintenance cleanup may still be required.
+- **Metrics reset scope**: MySQL deletion and in-memory reset share a process-wide lock. This is sufficient for the current single-worker deployment; multi-worker deployment requires a database or distributed lock.

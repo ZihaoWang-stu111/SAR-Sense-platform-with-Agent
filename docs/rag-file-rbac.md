@@ -15,12 +15,14 @@ Knowledge file ACL is stored in MySQL table `knowledge_documents`.
 - `allowed_roles = ["researcher"]`: visible to admin and researcher.
 - Admin is always allowed, even if the role list is empty.
 
-Historical files migrated from `manifest.json` default to admin-only:
+Legacy files imported from `manifest.json` default to admin-only. After the cutover, `manifest.json` and `parent_docstore.json` are migration backups only; MySQL is the runtime source of truth:
 
 ```bash
 python -m utils.migrate_knowledge_mysql
 python -m utils.migrate_knowledge_mysql --check
 ```
+
+Run migration while knowledge writes are stopped, after backing up MySQL, `chroma_db/`, `data/`, and both legacy JSON files. `--check` compares those static JSON snapshots with the current MySQL and Chroma state, so it is intended for the initial cutover verification only. Once runtime uploads or deletes begin and the JSON backups stop changing, this legacy comparison is expected to drift.
 
 ## Request Flow
 
@@ -40,14 +42,25 @@ The hybrid retrieval chain still uses LangChain `EnsembleRetriever`.
 - BM25 side: `FilteredBM25Retriever` wraps LangChain `BM25Retriever`, scores the full BM25 index, but only ranks documents whose `doc_id` is allowed.
 - Rerank side: rerank only receives already-authorized child chunks, then filters again defensively.
 - Parent-child side: `ParentChildResolver` checks `doc_id` again after parent lookup.
+- Generation side: vector and BM25 retrieval are restricted to active chunk ids from MySQL, so failed or superseded uploads cannot leak into results.
 
 This avoids the unsafe pattern of “full-library top-k, then filter”, which can hide authorized weak matches behind unauthorized strong matches.
+
+## Storage And Updates
+
+- `knowledge_documents` stores the active document generation, storage key, chunk ids, ACL, and ingestion status.
+- `parent_chunks` stores parent text and metadata; Chroma stores child vectors.
+- Uploaded source files use immutable version paths under `data/.knowledge_versions/<uuid>/`.
+- A successful update activates the complete new generation before old vectors, parent chunks, and source files are cleaned up.
+- Knowledge writes share the Redis knowledge lock so upload, delete, and permission changes do not race.
+- MySQL, Chroma, and the filesystem do not share one transaction. A forced stop can leave inactive vectors, parent rows, or version files; active-id filtering keeps them out of retrieval, while maintenance cleanup remains an operational task.
 
 ## Validation
 
 ```bash
 python -m compileall api agent rag crud schemas utils tests
 python -m unittest tests.test_rag_acl_retrieval -v
+# Initial cutover only; see the migration note above.
 python -m utils.migrate_knowledge_mysql --check
 ```
 
