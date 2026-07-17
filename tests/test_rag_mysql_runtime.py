@@ -11,7 +11,7 @@ from langchain_core.documents import Document
 from rag import vector_store as vector_module
 
 
-class FakeKnowledgeStore:
+class FakeKnowledgeRepository:
     def __init__(self, records=None, events=None):
         self.records = {record.doc_id: record for record in (records or [])}
         self.events = events if events is not None else []
@@ -241,10 +241,10 @@ def make_record(
     )
 
 
-def make_service(store, *, events=None, vector=None, parent_enabled=False):
+def make_service(repository, *, events=None, vector=None, parent_enabled=False):
     events = events if events is not None else []
     service = vector_module.VectorStoreService.__new__(vector_module.VectorStoreService)
-    service.knowledge_store = store
+    service.knowledge_repository = repository
     service.vector_store = vector or FakeVectorStore(events)
     service.hybrid_engine = FakeHybridEngine(events)
     service.parent_child_enabled = parent_enabled
@@ -258,8 +258,8 @@ def make_service(store, *, events=None, vector=None, parent_enabled=False):
 
 
 class VectorStoreMySQLRuntimeTest(unittest.TestCase):
-    def test_initialization_uses_mysql_stores_and_dynamic_manifest(self):
-        store = FakeKnowledgeStore()
+    def test_initialization_uses_mysql_repositories_and_dynamic_manifest(self):
+        repository = FakeKnowledgeRepository()
         parent_store = FakeParentDocstore()
         hybrid = SimpleNamespace()
         config = {
@@ -279,7 +279,11 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
         with (
             patch.object(vector_module, "chroma_conf", config),
             patch.object(vector_module, "Chroma", return_value=SimpleNamespace()),
-            patch.object(vector_module, "KnowledgeStore", return_value=store, create=True),
+            patch.object(
+                vector_module,
+                "KnowledgeRepository",
+                return_value=repository,
+            ),
             patch.object(
                 vector_module,
                 "MySQLParentDocstore",
@@ -291,11 +295,14 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
         ):
             service = vector_module.VectorStoreService()
 
-        self.assertIs(service.knowledge_store, store)
+        self.assertIs(service.knowledge_repository, repository)
         self.assertIs(service.parent_docstore, parent_store)
         retriever.assert_called_once()
         self.assertIsNone(retriever.call_args.kwargs["manifest_path"])
-        self.assertIs(retriever.call_args.kwargs["knowledge_store"], store)
+        self.assertIs(
+            retriever.call_args.kwargs["knowledge_repository"],
+            repository,
+        )
         self.assertEqual(
             retriever.call_args.kwargs["active_chunk_ids_provider"](),
             set(),
@@ -303,13 +310,13 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
         load_manifest.assert_not_called()
 
         self.assertEqual(service.manifest, {})
-        store.records["new-doc"] = make_record(doc_id="new-doc", filename="new.txt")
+        repository.records["new-doc"] = make_record(doc_id="new-doc", filename="new.txt")
         self.assertIn("new.txt", service.manifest)
 
     def test_new_ingestion_writes_acl_only_when_activating(self):
         events = []
-        store = FakeKnowledgeStore(events=events)
-        service = make_service(store, events=events)
+        repository = FakeKnowledgeRepository(events=events)
+        service = make_service(repository, events=events)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "paper.txt"
@@ -340,17 +347,17 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
             next(i for i, event in enumerate(events) if event[0] == "begin"),
             next(i for i, event in enumerate(events) if event[0] == "activate"),
         )
-        self.assertEqual(store.get_by_filename("paper.txt").status, "active")
+        self.assertEqual(repository.get_by_filename("paper.txt").status, "active")
 
     def test_batch_ingestion_contains_an_unexpected_failure_to_one_file(self):
-        class FailingLookupStore(FakeKnowledgeStore):
+        class FailingLookupRepository(FakeKnowledgeRepository):
             def get_by_filename(self, filename):
                 if filename == "bad.txt":
                     raise RuntimeError("database unavailable")
                 return super().get_by_filename(filename)
 
-        store = FailingLookupStore()
-        service = make_service(store)
+        repository = FailingLookupRepository()
+        service = make_service(repository)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             good = Path(tmpdir) / "good.txt"
@@ -382,11 +389,11 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
         self.assertEqual(result["files"][1]["error"], "database unavailable")
 
     def test_single_ingestion_contains_an_unexpected_preprocessing_failure(self):
-        class FailingLookupStore(FakeKnowledgeStore):
+        class FailingLookupRepository(FakeKnowledgeRepository):
             def get_by_filename(self, filename):
                 raise RuntimeError("database unavailable")
 
-        service = make_service(FailingLookupStore())
+        service = make_service(FailingLookupRepository())
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "bad.txt"
             path.write_text("bad", encoding="utf-8")
@@ -399,10 +406,10 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
 
     def test_failed_new_ingestion_marks_failed_and_cleans_staged_children_and_parents(self):
         events = []
-        store = FakeKnowledgeStore(events=events)
+        repository = FakeKnowledgeRepository(events=events)
         vector = FakeVectorStore(events, fail_add=True)
         service = make_service(
-            store,
+            repository,
             events=events,
             vector=vector,
             parent_enabled=True,
@@ -422,7 +429,7 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
                 result = service.load_documents([str(path)], allowed_roles=["analyst"])
 
         self.assertEqual(result, (0, 0, 0, 0))
-        record = store.get_by_filename("paper.txt")
+        record = repository.get_by_filename("paper.txt")
         self.assertEqual(record.status, "failed")
         staged_child_ids = next(event[1] for event in events if event[0] == "chroma_add")
         staged_parent_ids = next(event[1] for event in events if event[0] == "parent_save")
@@ -438,9 +445,9 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
             file_hash="old-hash",
             chunk_ids=["stable-doc:old:0", "stable-doc:old:1"],
         )
-        store = FakeKnowledgeStore([old], events)
+        repository = FakeKnowledgeRepository([old], events)
         vector = FakeVectorStore(events, fail_add=True)
-        service = make_service(store, events=events, vector=vector)
+        service = make_service(repository, events=events, vector=vector)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "paper.txt"
@@ -460,7 +467,7 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
                 )
 
         self.assertEqual(result, (0, 0, 0, 0))
-        restored = store.get_by_doc_id("stable-doc")
+        restored = repository.get_by_doc_id("stable-doc")
         self.assertEqual(restored.status, "active")
         self.assertEqual(restored.file_hash, "old-hash")
         self.assertEqual(restored.chunk_ids, ["stable-doc:old:0", "stable-doc:old:1"])
@@ -478,8 +485,8 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
             file_hash="old-hash",
             chunk_ids=["stable-doc:old:0"],
         )
-        store = FakeKnowledgeStore([old], events)
-        service = make_service(store, events=events)
+        repository = FakeKnowledgeRepository([old], events)
+        service = make_service(repository, events=events)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "paper.txt"
@@ -504,7 +511,7 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
         )
         self.assertLess(active_index, old_delete_index)
         self.assertNotEqual(
-            store.get_by_doc_id("stable-doc").chunk_ids,
+            repository.get_by_doc_id("stable-doc").chunk_ids,
             ["stable-doc:old:0"],
         )
 
@@ -516,13 +523,13 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
             file_hash="old-hash",
             chunk_ids=["stable-doc:old:0"],
         )
-        store = FakeKnowledgeStore([old], events)
+        repository = FakeKnowledgeRepository([old], events)
         vector = FakeVectorStore(
             events,
             fail_add=True,
             fail_delete_ids={"stable-doc:gen:eeeeeeeeeeee:0000"},
         )
-        service = make_service(store, events=events, vector=vector)
+        service = make_service(repository, events=events, vector=vector)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "paper.txt"
@@ -537,8 +544,8 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
             ):
                 service.load_documents([str(path)], allowed_roles=["business"])
 
-        self.assertEqual(store.active_chunk_ids(), {"stable-doc:old:0"})
-        self.assertEqual(store.get_by_doc_id("stable-doc").file_hash, "old-hash")
+        self.assertEqual(repository.active_chunk_ids(), {"stable-doc:old:0"})
+        self.assertEqual(repository.get_by_doc_id("stable-doc").file_hash, "old-hash")
         self.assertIn(
             ["stable-doc:gen:eeeeeeeeeeee:0000"],
             vector.delete_attempts,
@@ -552,9 +559,9 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
             file_hash="old-hash",
             chunk_ids=["stable-doc:old:0"],
         )
-        store = FakeKnowledgeStore([old], events)
+        repository = FakeKnowledgeRepository([old], events)
         vector = FakeVectorStore(events, fail_delete_ids={"stable-doc:old:0"})
-        service = make_service(store, events=events, vector=vector)
+        service = make_service(repository, events=events, vector=vector)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "paper.txt"
@@ -571,16 +578,16 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
 
         self.assertEqual(result, (0, 1, 0, 0))
         self.assertEqual(
-            store.active_chunk_ids(),
+            repository.active_chunk_ids(),
             {"stable-doc:gen:ffffffffffff:0000"},
         )
         self.assertIn(["stable-doc:old:0"], vector.delete_attempts)
 
     def test_return_details_reports_version_storage_and_per_file_failure(self):
         events = []
-        store = FakeKnowledgeStore(events=events)
+        repository = FakeKnowledgeRepository(events=events)
         vector = FakeVectorStore(events, fail_add=True)
-        service = make_service(store, events=events, vector=vector)
+        service = make_service(repository, events=events, vector=vector)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             data_dir = Path(tmpdir) / "data"
@@ -626,8 +633,8 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
             chunk_ids=["stable-doc:old:0"],
             storage_key=".knowledge_versions/version-1/paper.txt",
         )
-        store = FakeKnowledgeStore([record], events)
-        service = make_service(store, events=events)
+        repository = FakeKnowledgeRepository([record], events)
+        service = make_service(repository, events=events)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             data_dir = Path(tmpdir) / "data"
@@ -645,7 +652,7 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
                 result = service.load_document()
 
         self.assertEqual(result, (0, 0, 1, 0))
-        self.assertEqual(store.get_by_doc_id("stable-doc").status, "active")
+        self.assertEqual(repository.get_by_doc_id("stable-doc").status, "active")
         self.assertNotIn(("document_delete", "stable-doc"), events)
 
     def test_delete_failure_leaves_document_deleting_for_retry(self):
@@ -655,14 +662,14 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
             filename="paper.txt",
             chunk_ids=["child-1"],
         )
-        store = FakeKnowledgeStore([record], events)
+        repository = FakeKnowledgeRepository([record], events)
         vector = FakeVectorStore(events, fail_delete_ids={"child-1"})
-        service = make_service(store, events=events, vector=vector)
+        service = make_service(repository, events=events, vector=vector)
 
         with self.assertRaisesRegex(RuntimeError, "cleanup failed"):
             service.delete_document_by_doc_id("doc-delete")
 
-        self.assertEqual(store.get_by_doc_id("doc-delete").status, "deleting")
+        self.assertEqual(repository.get_by_doc_id("doc-delete").status, "deleting")
         self.assertFalse(any(event[0] == "document_delete" for event in events))
         self.assertNotIn(("bm25_rebuild",), events)
 
@@ -680,8 +687,8 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
                 parent_ids=["parent-1"],
                 storage_key="../outside.txt",
             )
-            store = FakeKnowledgeStore([record], events)
-            service = make_service(store, events=events, parent_enabled=True)
+            repository = FakeKnowledgeRepository([record], events)
+            service = make_service(repository, events=events, parent_enabled=True)
 
             with patch.object(
                 vector_module,
@@ -698,7 +705,7 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
         self.assertEqual(deleted, 2)
         self.assertEqual(service.vector_store.deleted_ids, ["child-1", "child-2"])
         self.assertEqual(service.parent_docstore.deleted_doc_ids, ["doc-delete"])
-        self.assertIsNone(store.get_by_doc_id("doc-delete"))
+        self.assertIsNone(repository.get_by_doc_id("doc-delete"))
         self.assertEqual(events.count(("bm25_rebuild",)), 1)
 
 

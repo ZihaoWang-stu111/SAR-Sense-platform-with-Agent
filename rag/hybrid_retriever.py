@@ -98,7 +98,7 @@ class DynamicHybridRetriever:
         manifest_path=None,
         bm25_cache_path=None,
         fingerprint_provider=None,
-        knowledge_store=None,
+        knowledge_repository=None,
         active_chunk_ids_provider=None,
     ):
         self.vector_store = vector_store
@@ -106,11 +106,11 @@ class DynamicHybridRetriever:
         # BM25 cache uses the injected DB fingerprint when available.
         # manifest_path remains a compatibility fallback for legacy callers.
         self.manifest_path = manifest_path
-        if fingerprint_provider is None and knowledge_store is not None:
-            fingerprint_provider = knowledge_store.fingerprint
+        if fingerprint_provider is None and knowledge_repository is not None:
+            fingerprint_provider = knowledge_repository.fingerprint
         self.fingerprint_provider = fingerprint_provider
-        if active_chunk_ids_provider is None and knowledge_store is not None:
-            active_chunk_ids_provider = knowledge_store.active_chunk_ids
+        if active_chunk_ids_provider is None and knowledge_repository is not None:
+            active_chunk_ids_provider = knowledge_repository.active_chunk_ids
         self.active_chunk_ids_provider = active_chunk_ids_provider
         self.bm25_cache_path = bm25_cache_path
         self._bm25_lock = Lock()

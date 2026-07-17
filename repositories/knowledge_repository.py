@@ -8,7 +8,7 @@ from config.db_conf import SyncSessionLocal
 from models.knowledge import KnowledgeDocument
 
 
-class KnowledgeStore:
+class KnowledgeRepository:
     """知识库元数据的同步数据库访问层。"""
 
     def __init__(self, session_factory=SyncSessionLocal):

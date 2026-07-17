@@ -11,7 +11,7 @@ from utils.file_handler import text_loader, pdf_loader, listdir_with_allowed_typ
     get_file_hash
 from rag.hybrid_retriever import DynamicHybridRetriever
 from rag.parent_docstore import MySQLParentDocstore
-from services.knowledge_store import KnowledgeStore
+from repositories.knowledge_repository import KnowledgeRepository
 
 _vector_store_service = None
 _vector_store_lock = Lock()
@@ -31,7 +31,7 @@ def get_vector_store_service():
 
 class VectorStoreService:
     def __init__(self):
-        self.knowledge_store = KnowledgeStore()
+        self.knowledge_repository = KnowledgeRepository()
         self.vector_store = Chroma(
             collection_name=chroma_conf["collection_name"],
             embedding_function=embed_model,
@@ -52,8 +52,8 @@ class VectorStoreService:
             k=retrieve_k,
             manifest_path=None,
             bm25_cache_path=get_abs_path(chroma_conf.get("bm25_cache_path", "runtime/bm25_index.pkl")),
-            knowledge_store=self.knowledge_store,
-            active_chunk_ids_provider=self.knowledge_store.active_chunk_ids,
+            knowledge_repository=self.knowledge_repository,
+            active_chunk_ids_provider=self.knowledge_repository.active_chunk_ids,
         )
 
         # 父子块检索配置
@@ -86,7 +86,7 @@ class VectorStoreService:
     @property
     def manifest(self):
         """Return a fresh legacy-compatible manifest generated from MySQL."""
-        return self.knowledge_store.as_manifest()
+        return self.knowledge_repository.as_manifest()
 
     def _build_spliter(self, chunk_size, chunk_overlap):
         return RecursiveCharacterTextSplitter(
@@ -447,14 +447,14 @@ class VectorStoreService:
         rebuild_bm25=True,
     ):
         chunk_ids = list(getattr(record, "chunk_ids", None) or [])
-        self.knowledge_store.mark_deleting(record.doc_id)
+        self.knowledge_repository.mark_deleting(record.doc_id)
         if chunk_ids:
             self.vector_store.delete(ids=chunk_ids)
         if self.parent_docstore:
             self.parent_docstore.delete_by_doc_id(record.doc_id)
         if delete_file:
             self._delete_original_file(record, file_path=file_path)
-        self.knowledge_store.delete(record.doc_id)
+        self.knowledge_repository.delete(record.doc_id)
         if rebuild_bm25:
             self.hybrid_engine.rebuild_bm25()
         return len(chunk_ids)
@@ -466,7 +466,7 @@ class VectorStoreService:
         file_path=None,
         _rebuild_bm25=True,
     ):
-        record = self.knowledge_store.get_by_filename(filename)
+        record = self.knowledge_repository.get_by_filename(filename)
         if record is None:
             logger.warning(f"Knowledge document not found: filename={filename}")
             return 0
@@ -484,7 +484,7 @@ class VectorStoreService:
         file_path=None,
         _rebuild_bm25=True,
     ):
-        record = self.knowledge_store.get_by_doc_id(doc_id)
+        record = self.knowledge_repository.get_by_doc_id(doc_id)
         if record is None:
             logger.warning(f"Knowledge document not found: doc_id={doc_id}")
             return 0
@@ -531,7 +531,7 @@ class VectorStoreService:
                 )
             )
             known_paths = {os.path.abspath(path) for path in allow_files_path}
-            for record in self.knowledge_store.list_active():
+            for record in self.knowledge_repository.list_active():
                 storage_key = getattr(record, "storage_key", None) or record.filename
                 candidate = os.path.abspath(
                     storage_key
@@ -586,8 +586,8 @@ class VectorStoreService:
                 )
                 continue
 
-            existing = self.knowledge_store.get_by_filename(filename)
-            duplicate = self.knowledge_store.get_by_hash(file_hash)
+            existing = self.knowledge_repository.get_by_filename(filename)
+            duplicate = self.knowledge_repository.get_by_hash(file_hash)
             if (
                 existing is not None
                 and existing.status == "active"
@@ -656,7 +656,7 @@ class VectorStoreService:
 
             try:
                 if previous is None:
-                    self.knowledge_store.begin_ingestion(
+                    self.knowledge_repository.begin_ingestion(
                         doc_id=doc_id,
                         filename=filename,
                         file_hash=file_hash,
@@ -725,7 +725,7 @@ class VectorStoreService:
                     enriched_chunks,
                     ids=staged_child_ids,
                 )
-                self.knowledge_store.activate_document(
+                self.knowledge_repository.activate_document(
                     doc_id=doc_id,
                     filename=filename,
                     file_hash=file_hash,
@@ -779,7 +779,7 @@ class VectorStoreService:
                 self._cleanup_staged_generation(staged_child_ids, staged_parent_ids)
                 if ingestion_started:
                     try:
-                        self.knowledge_store.mark_failed(doc_id, str(exc))
+                        self.knowledge_repository.mark_failed(doc_id, str(exc))
                     except Exception as mark_exc:
                         logger.warning(f"Failed to mark {filename} as failed: {mark_exc}")
                 file_details.append(
@@ -802,7 +802,7 @@ class VectorStoreService:
             current_filenames = {os.path.basename(path) for path in allow_files_path}
             stale_records = [
                 record
-                for record in self.knowledge_store.list_active()
+                for record in self.knowledge_repository.list_active()
                 if record.filename not in current_filenames
             ]
             for record in stale_records:

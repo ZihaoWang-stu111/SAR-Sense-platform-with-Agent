@@ -62,10 +62,10 @@ class DynamicHybridRetrieverTest(unittest.TestCase):
         provider.assert_called_once_with()
         load_cache.assert_called_once_with("db-fingerprint")
 
-    def test_knowledge_store_fingerprint_drives_cache_persistence(self):
+    def test_knowledge_repository_fingerprint_drives_cache_persistence(self):
         rebuilt_bm25 = object()
-        knowledge_store = Mock()
-        knowledge_store.fingerprint.return_value = "knowledge-v2"
+        knowledge_repository = Mock()
+        knowledge_repository.fingerprint.return_value = "knowledge-v2"
 
         with (
             patch.object(DynamicHybridRetriever, "_load_bm25_cache", return_value=None),
@@ -84,11 +84,11 @@ class DynamicHybridRetrieverTest(unittest.TestCase):
                 vector_store=object(),
                 bm25_cache_path="unused-cache.pkl",
                 manifest_path="legacy-manifest.json",
-                knowledge_store=knowledge_store,
+                knowledge_repository=knowledge_repository,
             )
 
         self.assertIs(retriever.bm25_retriever, rebuilt_bm25)
-        knowledge_store.fingerprint.assert_called_once_with()
+        knowledge_repository.fingerprint.assert_called_once_with()
         persist_cache.assert_called_once_with(rebuilt_bm25, "knowledge-v2")
 
     def test_empty_active_chunk_ids_short_circuits_both_retrieval_routes(self):

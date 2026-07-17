@@ -21,7 +21,7 @@ try:
     from models import Base
     from models.knowledge import KnowledgeDocument, ParentChunk
     from rag.parent_docstore import MySQLParentDocstore
-    from services.knowledge_store import KnowledgeStore
+    from repositories.knowledge_repository import KnowledgeRepository
 except (ImportError, AttributeError) as exc:
     _IMPORT_ERROR = exc
 
@@ -32,7 +32,7 @@ class PhaseOneComponentsTest(unittest.TestCase):
 
 
 @unittest.skipIf(_IMPORT_ERROR is not None, "Phase 1 components are not implemented yet")
-class MySQLKnowledgeStoreTest(unittest.TestCase):
+class MySQLKnowledgeRepositoryTest(unittest.TestCase):
     def setUp(self):
         self.engine = create_engine("sqlite+pysqlite:///:memory:")
         Base.metadata.create_all(self.engine)
@@ -40,7 +40,7 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
             bind=self.engine,
             expire_on_commit=False,
         )
-        self.store = KnowledgeStore(session_factory=self.session_factory)
+        self.repository = KnowledgeRepository(session_factory=self.session_factory)
         self.parent_store = MySQLParentDocstore(session_factory=self.session_factory)
 
     def tearDown(self):
@@ -48,7 +48,7 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
         self.engine.dispose()
 
     def _begin_and_activate(self, *, doc_id="doc-1", filename="paper.pdf", file_hash="hash-1"):
-        doc = self.store.begin_ingestion(
+        doc = self.repository.begin_ingestion(
             doc_id=doc_id,
             filename=filename,
             file_hash=file_hash,
@@ -59,7 +59,7 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
             updated_by=7,
         )
         self.assertEqual(doc.status, "processing")
-        return self.store.mark_active(
+        return self.repository.mark_active(
             doc_id,
             chunk_count=2,
             chunk_ids=[f"{doc_id}:child:0", f"{doc_id}:child:1"],
@@ -118,12 +118,12 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
         self.assertIn(("filename",), unique_columns)
         self.assertIn(("file_hash",), unique_columns)
 
-        self.store.begin_ingestion(doc_id="null-1", filename="one.txt", file_hash=None)
-        self.store.begin_ingestion(doc_id="null-2", filename="two.txt", file_hash=None)
-        self.assertIsNone(self.store.get_by_hash(None))
+        self.repository.begin_ingestion(doc_id="null-1", filename="one.txt", file_hash=None)
+        self.repository.begin_ingestion(doc_id="null-2", filename="two.txt", file_hash=None)
+        self.assertIsNone(self.repository.get_by_hash(None))
 
     def test_document_lifecycle_and_lookups(self):
-        processing = self.store.begin_ingestion(
+        processing = self.repository.begin_ingestion(
             doc_id="doc-1",
             filename="paper.pdf",
             file_hash="hash-1",
@@ -136,15 +136,15 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
         self.assertEqual(processing.status, "processing")
         self.assertEqual(processing.chunk_ids, [])
         self.assertIsNone(processing.ingested_at)
-        self.assertEqual(self.store.get_by_filename("paper.pdf").doc_id, "doc-1")
-        self.assertEqual(self.store.get_by_hash("hash-1").doc_id, "doc-1")
+        self.assertEqual(self.repository.get_by_filename("paper.pdf").doc_id, "doc-1")
+        self.assertEqual(self.repository.get_by_hash("hash-1").doc_id, "doc-1")
 
-        failed = self.store.mark_failed("doc-1", "embedding failed")
+        failed = self.repository.mark_failed("doc-1", "embedding failed")
         self.assertEqual(failed.status, "failed")
         self.assertEqual(failed.error_message, "embedding failed")
-        self.assertEqual(self.store.list_active(), [])
+        self.assertEqual(self.repository.list_active(), [])
 
-        processing_again = self.store.begin_ingestion(
+        processing_again = self.repository.begin_ingestion(
             doc_id="doc-1",
             filename="paper.pdf",
             file_hash="hash-1",
@@ -153,7 +153,7 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
         self.assertEqual(processing_again.status, "processing")
         self.assertIsNone(processing_again.error_message)
 
-        active = self.store.mark_active(
+        active = self.repository.mark_active(
             "doc-1",
             chunk_count=2,
             chunk_ids=["child-1", "child-2"],
@@ -164,13 +164,13 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
         self.assertEqual(active.status, "active")
         self.assertEqual(active.chunk_method, "semantic")
         self.assertIsInstance(active.ingested_at, datetime)
-        self.assertEqual([doc.doc_id for doc in self.store.list_active()], ["doc-1"])
+        self.assertEqual([doc.doc_id for doc in self.repository.list_active()], ["doc-1"])
 
-        deleting = self.store.mark_deleting("doc-1")
+        deleting = self.repository.mark_deleting("doc-1")
         self.assertEqual(deleting.status, "deleting")
-        self.assertTrue(self.store.delete("doc-1"))
-        self.assertFalse(self.store.delete("doc-1"))
-        self.assertIsNone(self.store.get_by_doc_id("doc-1"))
+        self.assertTrue(self.repository.delete("doc-1"))
+        self.assertFalse(self.repository.delete("doc-1"))
+        self.assertIsNone(self.repository.get_by_doc_id("doc-1"))
 
     def test_activate_document_atomically_upserts_complete_active_row(self):
         self._begin_and_activate(
@@ -179,7 +179,7 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
             file_hash="old-hash",
         )
 
-        activated = self.store.activate_document(
+        activated = self.repository.activate_document(
             doc_id="doc-atomic",
             filename="paper.pdf",
             file_hash="new-hash",
@@ -211,32 +211,32 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
             filename="active.pdf",
             file_hash="active-hash",
         )
-        self.store.begin_ingestion(
+        self.repository.begin_ingestion(
             doc_id="processing-doc",
             filename="processing.pdf",
             file_hash="processing-hash",
         )
-        self.store.begin_ingestion(
+        self.repository.begin_ingestion(
             doc_id="failed-doc",
             filename="failed.pdf",
             file_hash="failed-hash",
         )
-        self.store.mark_failed("failed-doc", "failed")
+        self.repository.mark_failed("failed-doc", "failed")
         self._begin_and_activate(
             doc_id="deleting-doc",
             filename="deleting.pdf",
             file_hash="deleting-hash",
         )
-        self.store.mark_deleting("deleting-doc")
+        self.repository.mark_deleting("deleting-doc")
 
         self.assertEqual(
-            self.store.active_chunk_ids(),
+            self.repository.active_chunk_ids(),
             {"active-doc:child:0", "active-doc:child:1"},
         )
 
     def test_acl_updates_do_not_change_fingerprint(self):
         self._begin_and_activate()
-        before = self.store.fingerprint()
+        before = self.repository.fingerprint()
 
         with self.session_factory.begin() as session:
             doc = session.scalar(
@@ -246,22 +246,22 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
             doc.updated_by = 99
             doc.updated_at = doc.updated_at + timedelta(days=1)
 
-        self.assertEqual(self.store.fingerprint(), before)
+        self.assertEqual(self.repository.fingerprint(), before)
 
-        self.store.begin_ingestion(doc_id="failed", filename="failed.txt", file_hash="failed-hash")
-        self.store.mark_failed("failed", "parse error")
-        self.assertEqual(self.store.fingerprint(), before)
+        self.repository.begin_ingestion(doc_id="failed", filename="failed.txt", file_hash="failed-hash")
+        self.repository.mark_failed("failed", "parse error")
+        self.assertEqual(self.repository.fingerprint(), before)
 
-        self.store.mark_active(
+        self.repository.mark_active(
             "doc-1",
             chunk_count=3,
             chunk_ids=["child-1", "child-2", "child-3"],
         )
-        self.assertNotEqual(self.store.fingerprint(), before)
+        self.assertNotEqual(self.repository.fingerprint(), before)
 
     def test_fingerprint_tracks_active_document_technical_state(self):
         self._begin_and_activate()
-        before = self.store.fingerprint()
+        before = self.repository.fingerprint()
 
         with self.session_factory.begin() as session:
             doc = session.scalar(
@@ -269,7 +269,7 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
             )
             doc.chunk_ids = ["doc-1:child:0", "doc-1:child:replacement"]
 
-        after_chunk_identity_change = self.store.fingerprint()
+        after_chunk_identity_change = self.repository.fingerprint()
         self.assertNotEqual(after_chunk_identity_change, before)
 
         with self.session_factory.begin() as session:
@@ -281,11 +281,11 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
             doc.parent_count = 2
             doc.child_count = 3
 
-        self.assertNotEqual(self.store.fingerprint(), after_chunk_identity_change)
+        self.assertNotEqual(self.repository.fingerprint(), after_chunk_identity_change)
 
     def test_manifest_matches_legacy_shape_and_is_read_only(self):
         active = self._begin_and_activate()
-        active = self.store.mark_active(
+        active = self.repository.mark_active(
             "doc-1",
             chunk_count=2,
             chunk_ids=[
@@ -316,7 +316,7 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
             },
         )
 
-        manifest = self.store.as_manifest()
+        manifest = self.repository.as_manifest()
         self.assertEqual(
             manifest["paper.pdf"],
             {
@@ -339,7 +339,7 @@ class MySQLKnowledgeStoreTest(unittest.TestCase):
 
         manifest["paper.pdf"]["chunk_ids"].append("mutated")
         manifest["paper.pdf"]["status"] = "failed"
-        fresh_manifest = self.store.as_manifest()
+        fresh_manifest = self.repository.as_manifest()
         self.assertEqual(fresh_manifest["paper.pdf"]["status"], "active")
         self.assertEqual(
             fresh_manifest["paper.pdf"]["chunk_ids"],
