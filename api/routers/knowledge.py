@@ -17,7 +17,12 @@ from crud.knowledge_acl import (
     list_visible_documents,
     update_allowed_roles,
 )
-from schemas.knowledge import UpdateDocumentPermissionsRequest
+from schemas.knowledge import (
+    KnowledgeDocumentResponse,
+    KnowledgeFilesResponse,
+    UpdateDocumentPermissionsRequest,
+    UpdateDocumentPermissionsResponse,
+)
 from utils.config_handler import chroma_conf
 from utils.path_tool import get_abs_path
 from utils.rbac import is_admin, validate_allowed_roles
@@ -52,27 +57,14 @@ def _parse_allowed_roles(visibility_mode: str, raw_roles) -> list[str]:
     return roles
 
 
-def _document_payload(document, can_manage: bool) -> dict:
-    payload = {
-        "name": document.filename,
-        "doc_id": document.doc_id,
-        "file_type": document.file_type,
-        "chunk_count": document.chunk_count,
-        "parent_count": document.parent_count,
-        "child_count": document.child_count,
-        "chunk_method": document.chunk_method,
-        "status": document.status,
-        "ingested_at": (
-            document.ingested_at.strftime("%Y-%m-%dT%H:%M:%S")
-            if document.ingested_at
-            else None
-        ),
-        "file_hash": document.file_hash,
-        "can_manage": can_manage,
-    }
-    if can_manage:
-        payload["allowed_roles"] = document.allowed_roles or []
-    return payload
+def _to_document_response(document, can_manage: bool) -> KnowledgeDocumentResponse:
+    response = KnowledgeDocumentResponse.model_validate(document)
+    return response.model_copy(
+        update={
+            "can_manage": can_manage,
+            "allowed_roles": list(document.allowed_roles or []) if can_manage else None,
+        }
+    )
 
 
 def _document_file_path(document) -> str | None:
@@ -267,30 +259,35 @@ async def upload_knowledge(
     }
 
 
-@router.get("/files")
+@router.get(
+    "/files",
+    response_model=KnowledgeFilesResponse,
+)
 async def list_knowledge_files(
     user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-):
+) -> KnowledgeFilesResponse:
     can_manage = is_admin(user)
     visible_docs = await list_visible_documents(db, user.get("role", "guest"))
-    files = [_document_payload(document, can_manage) for document in visible_docs]
+    files = [_to_document_response(document, can_manage) for document in visible_docs]
 
-    return {
-        "success": True,
-        "files": files,
-        "total_files": len(files),
-        "total_chunks": sum(file.get("chunk_count") or 0 for file in files),
-    }
+    return KnowledgeFilesResponse(
+        files=files,
+        total_files=len(files),
+        total_chunks=sum(file.chunk_count or 0 for file in files),
+    )
 
 
-@router.patch("/files/{doc_id}/permissions")
+@router.patch(
+    "/files/{doc_id}/permissions",
+    response_model=UpdateDocumentPermissionsResponse,
+)
 async def update_knowledge_file_permissions(
     doc_id: str,
     payload: UpdateDocumentPermissionsRequest,
     admin: dict = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
-):
+) -> UpdateDocumentPermissionsResponse:
     roles = _parse_allowed_roles(payload.visibility_mode, payload.allowed_roles)
     async with redis_lock(KNOWLEDGE_WRITE_LOCK_KEY, timeout=60):
         doc = await update_allowed_roles(db, doc_id, roles, updated_by=admin.get("id"))
@@ -298,7 +295,10 @@ async def update_knowledge_file_permissions(
             raise HTTPException(status_code=404, detail="Document not found")
         await db.commit()
         await db.refresh(doc)
-    return {"success": True, "doc_id": doc.doc_id, "allowed_roles": doc.allowed_roles or []}
+    return UpdateDocumentPermissionsResponse(
+        doc_id=doc.doc_id,
+        allowed_roles=doc.allowed_roles or [],
+    )
 
 
 @router.get("/files/{doc_id}/download")

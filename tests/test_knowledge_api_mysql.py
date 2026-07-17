@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from fastapi import HTTPException
+from pydantic import BaseModel
 
 from api.routers import knowledge
 
@@ -67,10 +68,69 @@ class KnowledgeAPIWithMySQLTest(unittest.IsolatedAsyncioTestCase):
                 db=SimpleNamespace(),
             )
 
-        self.assertEqual(response["total_files"], 1)
-        self.assertEqual(response["total_chunks"], 4)
-        self.assertEqual(response["files"][0]["doc_id"], "doc-1")
-        self.assertNotIn("allowed_roles", response["files"][0])
+        self.assertIsInstance(response, BaseModel)
+        payload = response.model_dump(mode="json")
+        self.assertEqual(payload["total_files"], 1)
+        self.assertEqual(payload["total_chunks"], 4)
+        self.assertEqual(payload["files"][0]["doc_id"], "doc-1")
+        self.assertEqual(payload["files"][0]["name"], "paper.pdf")
+        self.assertEqual(payload["files"][0]["ingested_at"], "2026-01-02T03:04:05")
+        self.assertNotIn("allowed_roles", payload["files"][0])
+
+    async def test_admin_list_includes_document_roles(self):
+        with patch.object(
+            knowledge,
+            "list_visible_documents",
+            AsyncMock(return_value=[make_doc()]),
+        ):
+            response = await knowledge.list_knowledge_files(
+                user={"id": 1, "role": "admin", "username": "admin"},
+                db=SimpleNamespace(),
+            )
+
+        payload = response.model_dump(mode="json")
+        self.assertTrue(payload["files"][0]["can_manage"])
+        self.assertEqual(payload["files"][0]["allowed_roles"], ["researcher"])
+
+    async def test_list_only_hides_roles_without_dropping_other_null_fields(self):
+        with patch.object(
+            knowledge,
+            "list_visible_documents",
+            AsyncMock(
+                return_value=[
+                    make_doc(
+                        parent_count=None,
+                        child_count=None,
+                        chunk_method=None,
+                        ingested_at=None,
+                        file_hash=None,
+                    )
+                ]
+            ),
+        ):
+            response = await knowledge.list_knowledge_files(
+                user={"id": 8, "role": "researcher", "username": "reader"},
+                db=SimpleNamespace(),
+            )
+
+        document = response.model_dump(mode="json")["files"][0]
+        self.assertNotIn("allowed_roles", document)
+        self.assertIsNone(document["parent_count"])
+        self.assertIsNone(document["child_count"])
+        self.assertIsNone(document["chunk_method"])
+        self.assertIsNone(document["ingested_at"])
+        self.assertIsNone(document["file_hash"])
+
+    def test_orm_response_routes_declare_pydantic_models(self):
+        routes = {
+            route.path: route
+            for route in knowledge.router.routes
+            if hasattr(route, "response_model")
+        }
+
+        self.assertIsNotNone(routes["/files"].response_model)
+        self.assertFalse(routes["/files"].response_model_exclude_none)
+        self.assertIsNotNone(routes["/files/{doc_id}/permissions"].response_model)
 
     async def test_upload_passes_acl_to_runtime_under_one_global_lock(self):
         calls = []
@@ -359,7 +419,10 @@ class KnowledgeAPIWithMySQLTest(unittest.IsolatedAsyncioTestCase):
                 db=db,
             )
 
-        self.assertEqual(response["allowed_roles"], ["business"])
+        self.assertIsInstance(response, BaseModel)
+        payload = response.model_dump(mode="json")
+        self.assertEqual(payload["doc_id"], "doc-1")
+        self.assertEqual(payload["allowed_roles"], ["business"])
         self.assertEqual(self.lock_keys, [(knowledge.KNOWLEDGE_WRITE_LOCK_KEY, 60)])
         db.commit.assert_awaited_once_with()
         db.refresh.assert_awaited_once_with(updated)
