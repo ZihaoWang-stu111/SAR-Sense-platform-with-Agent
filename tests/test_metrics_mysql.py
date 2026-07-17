@@ -24,25 +24,32 @@ from fastapi.responses import StreamingResponse
 
 _IMPORT_ERROR = None
 try:
-    from services.metrics_store import MetricsStore
+    from repositories.metrics_repository import MetricsRepository
 except (ImportError, AttributeError) as exc:
     _IMPORT_ERROR = exc
 
 
 class PhaseFourComponentsTest(unittest.TestCase):
-    def test_metrics_store_is_available(self):
-        self.assertIsNone(_IMPORT_ERROR, f"Phase 4 MetricsStore is missing: {_IMPORT_ERROR}")
+    def test_metrics_repository_is_available(self):
+        self.assertIsNone(
+            _IMPORT_ERROR,
+            f"Phase 4 MetricsRepository is missing: {_IMPORT_ERROR}",
+        )
+
+    def test_legacy_metrics_crud_module_is_removed(self):
+        crud_module = Path(__file__).resolve().parents[1] / "crud" / "metrics.py"
+        self.assertFalse(crud_module.exists(), f"Legacy metrics CRUD still exists: {crud_module}")
 
 
-@unittest.skipIf(_IMPORT_ERROR is not None, "Phase 4 MetricsStore is not implemented yet")
-class MetricsStoreTest(unittest.TestCase):
+@unittest.skipIf(_IMPORT_ERROR is not None, "Phase 4 MetricsRepository is not implemented yet")
+class MetricsRepositoryTest(unittest.TestCase):
     def setUp(self):
         self.tempdir = tempfile.TemporaryDirectory()
         database_path = Path(self.tempdir.name) / "metrics.sqlite3"
         self.engine = create_engine(f"sqlite+pysqlite:///{database_path}")
         Base.metadata.create_all(self.engine)
         self.session_factory = sessionmaker(bind=self.engine, expire_on_commit=False)
-        self.store = MetricsStore(session_factory=self.session_factory)
+        self.repository = MetricsRepository(session_factory=self.session_factory)
 
     def tearDown(self):
         Base.metadata.drop_all(self.engine)
@@ -53,8 +60,8 @@ class MetricsStoreTest(unittest.TestCase):
         with self.session_factory.begin() as session:
             session.add(MetricEvent(created_at=created_at, **values))
 
-    def test_history_survives_a_new_store_instance(self):
-        self.store.record_event(
+    def test_history_survives_a_new_repository_instance(self):
+        self.repository.record_event(
             user_id=42,
             event_type="tool_call",
             tool_name="detect_ships",
@@ -62,8 +69,8 @@ class MetricsStoreTest(unittest.TestCase):
             duration_ms=125.0,
         )
 
-        restarted_store = MetricsStore(session_factory=self.session_factory)
-        metrics = restarted_store.aggregate()
+        restarted_repository = MetricsRepository(session_factory=self.session_factory)
+        metrics = restarted_repository.aggregate()
 
         self.assertEqual(metrics["total_tool_calls"], 1)
         with self.session_factory() as session:
@@ -123,7 +130,7 @@ class MetricsStoreTest(unittest.TestCase):
         with self.session_factory.begin() as session:
             session.add_all(MetricEvent(user_id=7, **event) for event in events)
 
-        metrics = self.store.aggregate(limit=2)
+        metrics = self.repository.aggregate(limit=2)
 
         self.assertEqual(
             set(metrics),
@@ -185,7 +192,7 @@ class MetricsStoreTest(unittest.TestCase):
 
     def test_empty_aggregate_preserves_legacy_defaults(self):
         self.assertEqual(
-            self.store.aggregate(),
+            self.repository.aggregate(),
             {
                 "conversation_rounds": 0,
                 "total_tool_calls": 0,
@@ -217,7 +224,9 @@ class MetricsStoreTest(unittest.TestCase):
             created_at=now + timedelta(seconds=1),
         )
 
-        tool_names = [item["tool_name"] for item in self.store.aggregate()["tool_stats"]]
+        tool_names = [
+            item["tool_name"] for item in self.repository.aggregate()["tool_stats"]
+        ]
 
         self.assertEqual(tool_names, ["z_first", "a_second"])
 
@@ -240,19 +249,19 @@ class MetricsStoreTest(unittest.TestCase):
             created_at=created_at,
         )
 
-        recent = self.store.aggregate()["recent_records"]
+        recent = self.repository.aggregate()["recent_records"]
 
         self.assertEqual(
             [record["tool_name"] for record in recent],
             ["second", "first"],
         )
 
-    def test_reset_and_write_are_atomic_across_store_instances(self):
+    def test_reset_and_write_are_atomic_across_repositories(self):
         self.assertIn(
             "memory_reset_callback",
-            inspect.signature(self.store.reset).parameters,
+            inspect.signature(self.repository.reset).parameters,
         )
-        writer_store = MetricsStore(session_factory=self.session_factory)
+        writer_repository = MetricsRepository(session_factory=self.session_factory)
         metrics = AgentMetrics()
         metrics.reset()
         callback_started = threading.Event()
@@ -280,7 +289,7 @@ class MetricsStoreTest(unittest.TestCase):
             )
             writer_finished.set()
 
-        with patch("crud.metrics._metrics_store", writer_store):
+        with patch.object(metrics, "_repository", writer_repository):
             metrics.record_tool_call(
                 tool_name="old",
                 user_id=1,
@@ -288,7 +297,7 @@ class MetricsStoreTest(unittest.TestCase):
                 duration_ms=1.0,
             )
             with ThreadPoolExecutor(max_workers=2) as executor:
-                reset_future = executor.submit(self.store.reset, reset_memory)
+                reset_future = executor.submit(self.repository.reset, reset_memory)
                 write_future = executor.submit(write_new_event)
                 reset_future.result(timeout=5)
                 write_future.result(timeout=5)
@@ -303,24 +312,24 @@ class MetricsStoreTest(unittest.TestCase):
     def test_reset_does_not_call_memory_callback_when_delete_fails(self):
         self.assertIn(
             "memory_reset_callback",
-            inspect.signature(self.store.reset).parameters,
+            inspect.signature(self.repository.reset).parameters,
         )
         failing_session_factory = MagicMock()
         failing_session_factory.begin.return_value.__enter__.side_effect = RuntimeError(
             "delete failed"
         )
-        store = MetricsStore(session_factory=failing_session_factory)
+        repository = MetricsRepository(session_factory=failing_session_factory)
         memory_reset = MagicMock()
 
         with self.assertRaisesRegex(RuntimeError, "delete failed"):
-            store.reset(memory_reset)
+            repository.reset(memory_reset)
 
         memory_reset.assert_not_called()
 
     def test_delete_all_commits_the_reset(self):
-        self.store.record_event(user_id=3, event_type="llm_call")
+        self.repository.record_event(user_id=3, event_type="llm_call")
 
-        deleted = self.store.delete_all()
+        deleted = self.repository.delete_all()
 
         self.assertEqual(deleted, 1)
         with self.session_factory() as session:
@@ -338,7 +347,7 @@ class AgentMetricsPersistenceTest(unittest.TestCase):
 
     def test_record_methods_persist_the_real_user_id(self):
         with (
-            patch("agent.metrics_collector.insert_metric_event") as insert_event,
+            patch.object(self.metrics._repository, "record_event") as record_event,
             patch("agent.metrics_collector.time.monotonic", side_effect=[10.0, 11.5]),
         ):
             self.metrics.record_tool_call("web_search", True, 12.5, user_id=21)
@@ -347,7 +356,7 @@ class AgentMetricsPersistenceTest(unittest.TestCase):
             self.metrics.end_conversation(started_at, user_id=23)
 
         self.assertEqual(
-            insert_event.call_args_list,
+            record_event.call_args_list,
             [
                 call(
                     event_type="tool_call",
@@ -367,7 +376,7 @@ class AgentMetricsPersistenceTest(unittest.TestCase):
 
     def test_interleaved_conversation_timers_do_not_overwrite_each_other(self):
         with (
-            patch("agent.metrics_collector.insert_metric_event") as insert_event,
+            patch.object(self.metrics._repository, "record_event") as record_event,
             patch(
                 "agent.metrics_collector.time.monotonic",
                 side_effect=[10.0, 20.0, 30.0, 50.0],
@@ -383,7 +392,7 @@ class AgentMetricsPersistenceTest(unittest.TestCase):
         self.assertEqual(self.metrics.conversation_rounds, 2)
         self.assertEqual(self.metrics.total_response_time_ms, 50000.0)
         self.assertEqual(
-            insert_event.call_args_list,
+            record_event.call_args_list,
             [
                 call(
                     event_type="conversation_timing",
@@ -408,7 +417,7 @@ class AgentMetricsPersistenceTest(unittest.TestCase):
                 persisted.append(
                     {
                         **event,
-                        "shared_lock_owned": MetricsStore._lock._is_owned(),
+                        "shared_lock_owned": MetricsRepository._lock._is_owned(),
                         "memory_lock_owned": self.metrics._lock._is_owned(),
                     }
                 )
@@ -425,7 +434,11 @@ class AgentMetricsPersistenceTest(unittest.TestCase):
             self.metrics.record_llm_call(user_id=user_id)
             self.metrics.end_conversation(started_at, user_id=user_id)
 
-        with patch("agent.metrics_collector.insert_metric_event", side_effect=capture_event):
+        with patch.object(
+            self.metrics._repository,
+            "record_event",
+            side_effect=capture_event,
+        ):
             with ThreadPoolExecutor(max_workers=2) as executor:
                 futures = [
                     executor.submit(run_conversation, user_id)
@@ -442,6 +455,21 @@ class AgentMetricsPersistenceTest(unittest.TestCase):
         self.assertEqual({event["user_id"] for event in persisted}, {41, 42})
         self.assertTrue(all(event["shared_lock_owned"] for event in persisted))
         self.assertTrue(all(event["memory_lock_owned"] for event in persisted))
+
+    def test_persistence_failure_does_not_interrupt_memory_updates(self):
+        with (
+            patch.object(
+                self.metrics._repository,
+                "record_event",
+                side_effect=RuntimeError("database unavailable"),
+            ),
+            patch("agent.metrics_collector.logger.warning") as warning,
+        ):
+            self.metrics.record_llm_call(user_id=51)
+
+        self.assertEqual(self.metrics.llm_call_count, 1)
+        warning.assert_called_once()
+        self.assertIn("database unavailable", warning.call_args.args[0])
 
 
 class MetricsMiddlewareTest(unittest.TestCase):
@@ -516,23 +544,23 @@ class ReactAgentRuntimeContextTest(unittest.TestCase):
 
 
 class MetricsAPITest(unittest.IsolatedAsyncioTestCase):
-    async def test_metrics_store_dependency_is_a_lazy_singleton(self):
-        original = getattr(dependencies, "_metrics_store", None)
-        dependencies._metrics_store = None
-        fake_store = object()
+    async def test_metrics_repository_dependency_is_a_lazy_singleton(self):
+        original = dependencies._metrics_repository
+        dependencies._metrics_repository = None
+        fake_repository = object()
         try:
             with patch(
-                "services.metrics_store.MetricsStore",
-                return_value=fake_store,
-            ) as store_class:
-                first = dependencies.get_metrics_store()
-                second = dependencies.get_metrics_store()
+                "repositories.metrics_repository.MetricsRepository",
+                return_value=fake_repository,
+            ) as repository_class:
+                first = dependencies.get_metrics_repository()
+                second = dependencies.get_metrics_repository()
         finally:
-            dependencies._metrics_store = original
+            dependencies._metrics_repository = original
 
-        self.assertIs(first, fake_store)
-        self.assertIs(second, fake_store)
-        store_class.assert_called_once_with()
+        self.assertIs(first, fake_repository)
+        self.assertIs(second, fake_repository)
+        repository_class.assert_called_once_with()
 
     async def test_get_returns_the_existing_json_contract_from_mysql_history(self):
         aggregate = {
@@ -545,7 +573,7 @@ class MetricsAPITest(unittest.IsolatedAsyncioTestCase):
             "tool_stats": [{"tool_name": "web_search"}],
             "recent_records": [{"tool_name": "web_search"}],
         }
-        store = SimpleNamespace(aggregate=MagicMock(return_value=aggregate))
+        repository = SimpleNamespace(aggregate=MagicMock(return_value=aggregate))
 
         async def inline_threadpool(func, *args, **kwargs):
             return func(*args, **kwargs)
@@ -553,7 +581,11 @@ class MetricsAPITest(unittest.IsolatedAsyncioTestCase):
         threadpool = AsyncMock(side_effect=inline_threadpool)
 
         with (
-            patch.object(metrics_api, "get_metrics_store", return_value=store, create=True),
+            patch.object(
+                metrics_api,
+                "get_metrics_repository",
+                return_value=repository,
+            ),
             patch.object(
                 metrics_api,
                 "run_in_threadpool",
@@ -570,12 +602,12 @@ class MetricsAPITest(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertEqual(response, {"success": True, "metrics": aggregate})
-        store.aggregate.assert_called_once_with()
-        threadpool.assert_awaited_once_with(store.aggregate)
+        repository.aggregate.assert_called_once_with()
+        threadpool.assert_awaited_once_with(repository.aggregate)
 
     async def test_reset_deletes_database_before_clearing_memory(self):
         order = []
-        store = SimpleNamespace(
+        repository = SimpleNamespace(
             reset=MagicMock(
                 side_effect=lambda callback: (order.append("db"), callback())
             ),
@@ -589,7 +621,11 @@ class MetricsAPITest(unittest.IsolatedAsyncioTestCase):
         threadpool = AsyncMock(side_effect=inline_threadpool)
 
         with (
-            patch.object(metrics_api, "get_metrics_store", return_value=store, create=True),
+            patch.object(
+                metrics_api,
+                "get_metrics_repository",
+                return_value=repository,
+            ),
             patch.object(metrics_api, "get_metrics", return_value=memory),
             patch.object(
                 metrics_api,
@@ -602,15 +638,15 @@ class MetricsAPITest(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertEqual(order, ["db", "memory"])
-        threadpool.assert_awaited_once_with(store.reset, memory.reset)
-        store.delete_all.assert_not_called()
+        threadpool.assert_awaited_once_with(repository.reset, memory.reset)
+        repository.delete_all.assert_not_called()
         self.assertEqual(
             response,
             {"success": True, "message": "Metrics reset successfully"},
         )
 
     async def test_reset_keeps_memory_when_database_delete_fails(self):
-        store = SimpleNamespace(
+        repository = SimpleNamespace(
             reset=MagicMock(side_effect=RuntimeError("database unavailable")),
             delete_all=MagicMock(side_effect=RuntimeError("wrong reset method")),
         )
@@ -622,7 +658,11 @@ class MetricsAPITest(unittest.IsolatedAsyncioTestCase):
         threadpool = AsyncMock(side_effect=inline_threadpool)
 
         with (
-            patch.object(metrics_api, "get_metrics_store", return_value=store, create=True),
+            patch.object(
+                metrics_api,
+                "get_metrics_repository",
+                return_value=repository,
+            ),
             patch.object(metrics_api, "get_metrics", return_value=memory),
             patch.object(
                 metrics_api,
@@ -634,8 +674,8 @@ class MetricsAPITest(unittest.IsolatedAsyncioTestCase):
                 await metrics_api.reset_metrics(admin={"id": 1, "username": "admin"})
 
         memory.reset.assert_not_called()
-        threadpool.assert_awaited_once_with(store.reset, memory.reset)
-        store.delete_all.assert_not_called()
+        threadpool.assert_awaited_once_with(repository.reset, memory.reset)
+        repository.delete_all.assert_not_called()
 
     def test_auth_dependencies_remain_unchanged(self):
         get_default = inspect.signature(metrics_api.get_metrics_data).parameters[

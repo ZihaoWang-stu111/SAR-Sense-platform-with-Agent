@@ -5,8 +5,8 @@ import time
 from collections import defaultdict
 from datetime import datetime
 
-from crud.metrics import insert_metric_event
-from services.metrics_store import MetricsStore
+from repositories.metrics_repository import MetricsRepository
+from utils.logger_handler import logger
 
 
 class AgentMetrics:
@@ -20,6 +20,7 @@ class AgentMetrics:
                     instance = super().__new__(cls)
                     instance._lock = threading.RLock()
                     instance._legacy_timer = threading.local()
+                    instance._repository = MetricsRepository()
                     instance._reset()
                     cls._instance = instance
         return cls._instance
@@ -37,8 +38,16 @@ class AgentMetrics:
         if hasattr(self._legacy_timer, "started_at"):
             del self._legacy_timer.started_at
 
+    def _persist_event(self, **event) -> None:
+        try:
+            self._repository.record_event(**event)
+        except Exception as exc:
+            logger.warning(
+                f"[metrics] failed to write MySQL event (memory unaffected): {exc}"
+            )
+
     def start_conversation(self) -> float:
-        with MetricsStore._lock:
+        with MetricsRepository._lock:
             with self._lock:
                 started_at = time.monotonic()
                 self.conversation_rounds += 1
@@ -50,7 +59,7 @@ class AgentMetrics:
         started_at: float | None = None,
         user_id: int = 1,
     ) -> float | None:
-        with MetricsStore._lock:
+        with MetricsRepository._lock:
             with self._lock:
                 if started_at is None:
                     started_at = getattr(self._legacy_timer, "started_at", None)
@@ -62,7 +71,7 @@ class AgentMetrics:
                 if getattr(self._legacy_timer, "started_at", None) == started_at:
                     del self._legacy_timer.started_at
 
-                insert_metric_event(
+                self._persist_event(
                     event_type="conversation_timing",
                     duration_ms=duration_ms,
                     user_id=user_id,
@@ -76,7 +85,7 @@ class AgentMetrics:
         duration_ms: float,
         user_id: int = 1,
     ) -> None:
-        with MetricsStore._lock:
+        with MetricsRepository._lock:
             with self._lock:
                 record = {
                     "tool_name": tool_name,
@@ -92,7 +101,7 @@ class AgentMetrics:
                 self.tool_durations[tool_name].append(duration_ms)
                 self.tool_call_records.append(record)
 
-                insert_metric_event(
+                self._persist_event(
                     event_type="tool_call",
                     tool_name=tool_name,
                     success=success,
@@ -101,10 +110,10 @@ class AgentMetrics:
                 )
 
     def record_llm_call(self, user_id: int = 1) -> None:
-        with MetricsStore._lock:
+        with MetricsRepository._lock:
             with self._lock:
                 self.llm_call_count += 1
-                insert_metric_event(event_type="llm_call", user_id=user_id)
+                self._persist_event(event_type="llm_call", user_id=user_id)
 
     def reset(self) -> None:
         self._reset()

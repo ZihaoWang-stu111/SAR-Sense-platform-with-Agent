@@ -6,7 +6,7 @@ from config.db_conf import SyncSessionLocal
 from models.metrics import MetricEvent
 
 
-class MetricsStore:
+class MetricsRepository:
     """Synchronous persistence and historical aggregation for agent metrics."""
 
     _lock = threading.RLock()

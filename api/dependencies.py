@@ -3,7 +3,7 @@
 _yolo_model = None
 _agent = None
 _metrics = None
-_metrics_store = None
+_metrics_repository = None
 
 
 def get_yolo_model():
@@ -41,10 +41,10 @@ def get_metrics():
     return _metrics
 
 
-def get_metrics_store():
-    """Lazy load the synchronous historical metrics store."""
-    global _metrics_store
-    if _metrics_store is None:
-        from services.metrics_store import MetricsStore
-        _metrics_store = MetricsStore()
-    return _metrics_store
+def get_metrics_repository():
+    """Lazy load the synchronous historical metrics repository."""
+    global _metrics_repository
+    if _metrics_repository is None:
+        from repositories.metrics_repository import MetricsRepository
+        _metrics_repository = MetricsRepository()
+    return _metrics_repository
