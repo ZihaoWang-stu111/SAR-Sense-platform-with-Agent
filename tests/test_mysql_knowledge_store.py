@@ -20,8 +20,8 @@ try:
     )
     from models import Base
     from models.knowledge import KnowledgeDocument, ParentChunk
-    from rag.parent_docstore import MySQLParentDocstore
     from repositories.knowledge_repository import KnowledgeRepository
+    from repositories.parent_chunk_repository import ParentChunkRepository
 except (ImportError, AttributeError) as exc:
     _IMPORT_ERROR = exc
 
@@ -41,7 +41,9 @@ class MySQLKnowledgeRepositoryTest(unittest.TestCase):
             expire_on_commit=False,
         )
         self.repository = KnowledgeRepository(session_factory=self.session_factory)
-        self.parent_store = MySQLParentDocstore(session_factory=self.session_factory)
+        self.parent_repository = ParentChunkRepository(
+            session_factory=self.session_factory
+        )
 
     def tearDown(self):
         Base.metadata.drop_all(self.engine)
@@ -295,7 +297,7 @@ class MySQLKnowledgeRepositoryTest(unittest.TestCase):
             parent_count=1,
             child_count=2,
         )
-        self.parent_store.save(
+        self.parent_repository.save(
             "doc-1:parent:000",
             "parent text",
             {
@@ -305,7 +307,7 @@ class MySQLKnowledgeRepositoryTest(unittest.TestCase):
                 "chunk_type": "parent",
             },
         )
-        self.parent_store.save(
+        self.parent_repository.save(
             "doc-1:old:parent:999",
             "orphan parent from an old generation",
             {
@@ -350,18 +352,18 @@ class MySQLKnowledgeRepositoryTest(unittest.TestCase):
         )
 
     def test_parent_chunk_crud_get_many_and_batch_upsert(self):
-        self.parent_store.save(
+        self.parent_repository.save(
             "doc-1:parent:000",
             "old text",
             {"doc_id": "doc-1", "parent_id": "doc-1:parent:000", "parent_index": 0},
         )
-        self.assertEqual(self.parent_store.count(), 1)
+        self.assertEqual(self.parent_repository.count(), 1)
         self.assertEqual(
-            self.parent_store.get("doc-1:parent:000")["page_content"],
+            self.parent_repository.get("doc-1:parent:000")["page_content"],
             "old text",
         )
 
-        self.parent_store.save_batch(
+        self.parent_repository.save_batch(
             {
                 "doc-1:parent:000": {
                     "page_content": "updated text",
@@ -392,7 +394,7 @@ class MySQLKnowledgeRepositoryTest(unittest.TestCase):
         )
 
         requested_parent_ids = ["doc-1:parent:001", "missing", "doc-1:parent:000"]
-        records = self.parent_store.get_many(requested_parent_ids)
+        records = self.parent_repository.get_many(requested_parent_ids)
         self.assertEqual(set(records), {"doc-1:parent:000", "doc-1:parent:001"})
         self.assertEqual(
             list(records),
@@ -400,12 +402,15 @@ class MySQLKnowledgeRepositoryTest(unittest.TestCase):
         )
         self.assertEqual(records["doc-1:parent:000"]["page_content"], "updated text")
         self.assertEqual(records["doc-1:parent:000"]["metadata"]["page"], 3)
-        self.assertEqual(self.parent_store.count(), 3)
+        self.assertEqual(self.parent_repository.count(), 3)
 
-        self.assertEqual(self.parent_store.delete_many(["doc-1:parent:001", "missing"]), 1)
-        self.assertEqual(self.parent_store.delete_by_doc_id("doc-1"), 1)
-        self.assertEqual(self.parent_store.count(), 1)
-        self.assertEqual(self.parent_store.get_many([]), {})
+        self.assertEqual(
+            self.parent_repository.delete_many(["doc-1:parent:001", "missing"]),
+            1,
+        )
+        self.assertEqual(self.parent_repository.delete_by_doc_id("doc-1"), 1)
+        self.assertEqual(self.parent_repository.count(), 1)
+        self.assertEqual(self.parent_repository.get_many([]), {})
 
 
 if __name__ == "__main__":

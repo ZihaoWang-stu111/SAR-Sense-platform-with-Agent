@@ -10,8 +10,8 @@ from utils.logger_handler import logger
 from utils.file_handler import text_loader, pdf_loader, listdir_with_allowed_type, \
     get_file_hash
 from rag.hybrid_retriever import DynamicHybridRetriever
-from rag.parent_docstore import MySQLParentDocstore
 from repositories.knowledge_repository import KnowledgeRepository
+from repositories.parent_chunk_repository import ParentChunkRepository
 
 _vector_store_service = None
 _vector_store_lock = Lock()
@@ -60,7 +60,7 @@ class VectorStoreService:
         self.parent_child_enabled = chroma_conf.get("parent_child_enabled", False)
         self.parent_docstore = None
         if self.parent_child_enabled:
-            self.parent_docstore = MySQLParentDocstore()
+            self.parent_docstore = ParentChunkRepository()
             self.child_splitter = self._build_spliter(
                 chunk_size=chroma_conf.get("child_chunk_size", 120),
                 chunk_overlap=chroma_conf.get("child_chunk_overlap", 30),

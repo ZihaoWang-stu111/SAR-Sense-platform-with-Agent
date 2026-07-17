@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from langchain_core.documents import Document
 
+from rag import parent_docstore as parent_docstore_module
 from rag import vector_store as vector_module
 
 
@@ -286,9 +287,8 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
             ),
             patch.object(
                 vector_module,
-                "MySQLParentDocstore",
+                "ParentChunkRepository",
                 return_value=parent_store,
-                create=True,
             ),
             patch.object(vector_module, "DynamicHybridRetriever", return_value=hybrid) as retriever,
             patch.object(vector_module, "load_manifest", create=True) as load_manifest,
@@ -297,6 +297,7 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
 
         self.assertIs(service.knowledge_repository, repository)
         self.assertIs(service.parent_docstore, parent_store)
+        self.assertFalse(hasattr(parent_docstore_module, "MySQLParentDocstore"))
         retriever.assert_called_once()
         self.assertIsNone(retriever.call_args.kwargs["manifest_path"])
         self.assertIs(
