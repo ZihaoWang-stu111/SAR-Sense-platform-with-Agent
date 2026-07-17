@@ -690,7 +690,7 @@ class MetricsAPITest(unittest.IsolatedAsyncioTestCase):
 
 
 class ChatMetricsIntegrationTest(unittest.IsolatedAsyncioTestCase):
-    async def test_stream_passes_and_persists_the_authenticated_user_id(self):
+    async def test_stream_forwards_authenticated_user_id_to_metrics(self):
         agent_calls = []
         ended = threading.Event()
 

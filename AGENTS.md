@@ -2,7 +2,7 @@
 
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
-> **Note**: This file is kept in sync with the current codebase. The Streamlit frontend has been archived (see [legacy/](legacy/)); FastAPI is the sole active entry point. For the authoritative and more detailed reference, see [CLAUDE.md](CLAUDE.md).
+> **Note**: This file is kept in sync with the current codebase. The Streamlit frontend has been archived (see [legacy/](legacy/)); FastAPI is the sole active entry point.
 
 ## Project Overview
 
@@ -49,14 +49,15 @@ Port 5000. Entry point delegates to [api/app.py](api/app.py) (`create_app()`), w
   - `monitor_tool` (`@wrap_tool_call`): logs/metrics every tool call. **When the agent calls `fill_context_for_report`, it sets `runtime.context["report"] = True`** — this is the trigger for prompt switching, not `fetch_external_data`.
   - `log_before_model` (`@before_model`): pre-LLM hook for metrics
   - `report_prompt_switch` (`@dynamic_prompt`): on every model step, picks `report_prompt.txt` if `context["report"]` is True else `main_prompt.txt`. The flag is reset to False per user message.
-- **metrics_collector.py** — `AgentMetrics` singleton keeps request-time counters in memory and persists every tool, LLM, and conversation-timing event with the authenticated `user_id`. `/api/metrics` reads global historical aggregates across all users from MySQL through `MetricsStore`, so dashboard totals survive process restarts. This dashboard is not user-isolated yet. `start/end_conversation` are called **only** in [api/routers/chat.py](api/routers/chat.py)'s SSE generator, not in `execute_stream`.
+- **metrics_collector.py** — `AgentMetrics` singleton keeps request-time counters in memory and persists every tool, LLM, and conversation-timing event with the authenticated `user_id` through `MetricsRepository`. `/api/metrics` reads global historical aggregates across all users from MySQL through the same Repository, so dashboard totals survive process restarts. This dashboard is not user-isolated yet. `start/end_conversation` are called **only** in [api/routers/chat.py](api/routers/chat.py)'s SSE generator, not in `execute_stream`.
 
 ### RAG Layer ([rag/](rag/))
 
 - **vector_store.py** — ChromaDB singleton (`get_vector_store_service()`). Loads docs, applies semantic + parent-child chunking (controlled by [config/chroma.yml](config/chroma.yml)), embeds versioned child chunks into Chroma, and persists document metadata and parent chunks to MySQL. Uploads activate a complete new generation before cleaning up the old one.
 - **hybrid_retriever.py** — `DynamicHybridRetriever`: vector + BM25 ensemble with dynamic weights. Both routes filter by active MySQL chunk ids, so failed or superseded generations cannot be recalled. The BM25 pickle is keyed by a database-derived knowledge fingerprint plus the `preprocess_func` qualname.
 - **parent_child_retriever.py** — `ParentChildResolver.resolve(child_docs)`: dedup hit child blocks → fetch corresponding parent blocks, preserving rerank order.
-- **parent_docstore.py** — `MySQLParentDocstore` keeps the existing parent-store interface while reading and writing `parent_chunks` through SQLAlchemy; batched parent lookup avoids one query per hit. The old JSON class remains only for migration compatibility.
+- **parent_docstore.py** — retains the legacy JSON `ParentDocstore` only for migration compatibility; it is not the runtime parent-chunk persistence layer.
+- **repositories/parent_chunk_repository.py** — `ParentChunkRepository` owns runtime SQLAlchemy persistence and batched lookup for `parent_chunks`, avoiding one query per hit.
 - **reranker.py** — `BGERerankerService` (bge-reranker-base, CPU). Pure function by design: never mutates inputs, builds new `Document` instances with shallow-copied metadata + `rerank_score`. Default `score_threshold=0.3`; eval passes 0.0.
 - **rag_service.py** — `RagSummarizeService.retriever_docs(query)` flow: retrieve children (hybrid) → rerank on children → resolve to parents in rerank order (RR→PC).
 
@@ -66,12 +67,13 @@ Factory for `chat_model` (ChatTongyi, deepseek-v3.2) and `embeddings` (DashScope
 
 ### Storage Layer: MySQL + SQLAlchemy 2.0 (async request data + sync RAG/metrics)
 
-MySQL `sar_sense` is the source of truth for users, conversations, knowledge metadata, parent chunks, ACL, and metric events. FastAPI request CRUD uses async SQLAlchemy + aiomysql; synchronous LangChain/RAG callbacks use SQLAlchemy + PyMySQL through `SyncSessionLocal`. Chroma holds child vectors and `data/.knowledge_versions/<uuid>/` holds immutable, versioned source files. Root `manifest.json` and `parent_docstore.json` are legacy migration inputs/backups and are no longer written at runtime.
+MySQL `sar_sense` is the source of truth for users, conversations, knowledge metadata, parent chunks, ACL, and metric events. FastAPI request CRUD uses async SQLAlchemy + aiomysql; synchronous LangChain/RAG persistence is isolated in `repositories/` and uses SQLAlchemy + PyMySQL through `SyncSessionLocal`. Chroma holds child vectors and `data/.knowledge_versions/<uuid>/` holds immutable, versioned source files. Root `manifest.json` and `parent_docstore.json` are legacy migration inputs/backups and are no longer written at runtime.
 
 - **config/db_conf.py** — `async_engine`, `AsyncSessionLocal`, `get_db()` dependency (commit/rollback/close).
 - **models/** — shared `Base(DeclarativeBase)` + ORM models for users, conversations/messages, `KnowledgeDocument`, `ParentChunk`, and `MetricEvent`.
 - **schemas/** — Pydantic request models (`LoginRequest`, `RegisterRequest`, `CreateConversationRequest`, `AppendMessageRequest`).
-- **crud/** — request-facing async CRUD takes `db: AsyncSession`; `crud/conversations.py` enforces user isolation (`WHERE user_id=?` on every read/write). Synchronous knowledge and metrics work is centralized in `KnowledgeStore`, `MySQLParentDocstore`, and `MetricsStore` rather than direct driver calls in business code.
+- **repositories/** — synchronous persistence boundary for LangChain/RAG and metrics: `KnowledgeRepository` owns knowledge metadata and ingestion generations, `ParentChunkRepository` owns parent chunks, and `MetricsRepository` owns metric-event persistence and historical aggregation.
+- **crud/** — only request-facing async CRUD taking `db: AsyncSession`; `crud/conversations.py` enforces user isolation (`WHERE user_id=?` on every read/write).
 
 ### Auth Layer (JWT + RBAC)
 
