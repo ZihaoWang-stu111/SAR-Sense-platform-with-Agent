@@ -28,7 +28,7 @@ class MigrationError(RuntimeError):
 
 
 class ChromaDocumentCountProvider:
-    """Read per-document Chroma counts without opening Chroma in write mode."""
+    """以只读方式读取每个文档的 Chroma 数量，不开启写入模式。"""
 
     _COUNT_SQL = """
         SELECT m.string_value, COUNT(*)
@@ -569,7 +569,7 @@ _REQUIRED_INDEXES = {
     for table in (KnowledgeDocument.__table__, ParentChunk.__table__)
 }
 
-# Kept as a compatibility view for callers that only need unique index columns.
+# 为只需要唯一索引列信息的调用方保留的兼容视图。
 _MYSQL_UNIQUE_INDEXES = {
     table_name: {
         index_name: definition["column_names"][0]
@@ -714,10 +714,10 @@ def _execute_schema_ddl(connection, statement: str) -> None:
 
 
 def ensure_mysql_schema(sync_engine) -> None:
-    """Bring the knowledge schema forward after a read-only full preflight.
+    """完成只读全面预检查后，推进知识库表结构。
 
-    MySQL implicitly commits DDL per statement, so this cannot be one rollbackable
-    transaction. Each ALTER/CREATE is guarded by inspection and is safe to rerun.
+    MySQL 会按语句隐式提交 DDL，因此这里无法使用可整体回滚的事务。
+    每个 ALTER/CREATE 都会先检查，重复执行也是安全的。
     """
     table_names, columns_by_table, indexes_by_table = _preflight_schema(sync_engine)
     try:

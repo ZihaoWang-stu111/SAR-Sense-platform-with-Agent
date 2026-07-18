@@ -1,4 +1,4 @@
-"""Thread-safe in-memory agent metrics with best-effort SQL persistence."""
+"""线程安全的内存 Agent 指标，并尽力持久化到 SQL 数据库。"""
 
 import threading
 import time

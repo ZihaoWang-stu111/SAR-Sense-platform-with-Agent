@@ -91,38 +91,6 @@ class KnowledgeRepository:
                 session.rollback()
                 raise
 
-    def mark_active(
-        self,
-        doc_id: str,
-        *,
-        chunk_count: int,
-        chunk_ids: list[str],
-        chunk_method: str | None = None,
-        parent_count: int | None = None,
-        child_count: int | None = None,
-        ingested_at: datetime | None = None,
-    ) -> KnowledgeDocument:
-        now = datetime.now()
-        with self.session_factory() as session:
-            try:
-                doc = self._require_document(session, doc_id)
-                doc.chunk_count = chunk_count
-                doc.chunk_ids = list(chunk_ids)
-                if chunk_method is not None:
-                    doc.chunk_method = chunk_method
-                doc.parent_count = parent_count
-                doc.child_count = child_count
-                doc.status = "active"
-                doc.ingested_at = ingested_at or now
-                doc.error_message = None
-                doc.updated_at = now
-                session.commit()
-                session.refresh(doc)
-                return doc
-            except Exception:
-                session.rollback()
-                raise
-
     def activate_document(
         self,
         *,
@@ -140,7 +108,7 @@ class KnowledgeRepository:
         updated_by: int | None,
         ingested_at: datetime | None = None,
     ) -> KnowledgeDocument:
-        """Atomically publish one complete active document generation."""
+        """以一次事务发布一个完整的 active 文档版本。"""
         now = datetime.now()
         with self.session_factory() as session:
             try:

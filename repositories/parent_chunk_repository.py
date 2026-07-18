@@ -8,7 +8,7 @@ from models.knowledge import ParentChunk
 
 
 class ParentChunkRepository:
-    """SQLAlchemy-backed parent chunk store with MySQL and SQLite upsert support."""
+    """基于 SQLAlchemy 的父块存储，支持 MySQL 和 SQLite upsert。"""
 
     def __init__(self, session_factory=None):
         if session_factory is None:

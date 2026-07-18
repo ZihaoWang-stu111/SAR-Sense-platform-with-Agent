@@ -103,8 +103,8 @@ class DynamicHybridRetriever:
     ):
         self.vector_store = vector_store
         self.k = k
-        # BM25 cache uses the injected DB fingerprint when available.
-        # manifest_path remains a compatibility fallback for legacy callers.
+        # 优先使用注入的数据库指纹判断 BM25 缓存是否有效。
+        # manifest_path 仅作为旧调用方的兼容回退路径。
         self.manifest_path = manifest_path
         if fingerprint_provider is None and knowledge_repository is not None:
             fingerprint_provider = knowledge_repository.fingerprint
@@ -210,8 +210,8 @@ class DynamicHybridRetriever:
             bm25 = data.get("bm25")
             if bm25 is None:
                 return None
-            # 防反序列化后分词函数引用漂移，用错分词器
-            # 用 __qualname__ 字符串比较：pickle round-trip 后 bound method 身份变，但底层函数 qualname 不变
+            # 防止反序列化后分词函数引用漂移，避免使用错误的分词器。
+            # 比较 __qualname__ 字符串：pickle 往返序列化后绑定方法身份会变化，但底层函数名称不变。
             actual_func = getattr(bm25.preprocess_func, "__func__", bm25.preprocess_func)
             if getattr(actual_func, "__qualname__", "") != "DynamicHybridRetriever._preprocess_for_bm25":
                 logger.warning("BM25 pkl 的 preprocess_func 引用漂移，重建")

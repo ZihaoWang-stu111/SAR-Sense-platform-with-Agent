@@ -7,7 +7,7 @@ from models.metrics import MetricEvent
 
 
 class MetricsRepository:
-    """Synchronous persistence and historical aggregation for agent metrics."""
+    """负责 Agent 指标的同步持久化和历史聚合。"""
 
     _lock = threading.RLock()
 

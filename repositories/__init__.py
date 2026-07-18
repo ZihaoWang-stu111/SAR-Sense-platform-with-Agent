@@ -1,1 +1,1 @@
-"""Synchronous repository implementations."""
+"""同步 Repository 实现。"""

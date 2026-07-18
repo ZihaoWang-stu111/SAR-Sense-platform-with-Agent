@@ -61,12 +61,19 @@ class MySQLKnowledgeRepositoryTest(unittest.TestCase):
             updated_by=7,
         )
         self.assertEqual(doc.status, "processing")
-        return self.repository.mark_active(
-            doc_id,
+        return self.repository.activate_document(
+            doc_id=doc_id,
+            filename=filename,
+            file_hash=file_hash,
+            storage_key=f"knowledge/{filename}",
+            file_type="pdf",
+            chunk_method="parent_child_fixed",
             chunk_count=2,
             chunk_ids=[f"{doc_id}:child:0", f"{doc_id}:child:1"],
             parent_count=1,
             child_count=2,
+            allowed_roles=["admin", "analyst"],
+            updated_by=7,
         )
 
     def test_sync_database_configuration_matches_async_environment(self):
@@ -155,13 +162,19 @@ class MySQLKnowledgeRepositoryTest(unittest.TestCase):
         self.assertEqual(processing_again.status, "processing")
         self.assertIsNone(processing_again.error_message)
 
-        active = self.repository.mark_active(
-            "doc-1",
+        active = self.repository.activate_document(
+            doc_id="doc-1",
+            filename="paper.pdf",
+            file_hash="hash-1",
+            storage_key="knowledge/paper.pdf",
+            file_type="pdf",
             chunk_count=2,
             chunk_ids=["child-1", "child-2"],
             chunk_method="semantic",
             parent_count=1,
             child_count=2,
+            allowed_roles=[],
+            updated_by=None,
         )
         self.assertEqual(active.status, "active")
         self.assertEqual(active.chunk_method, "semantic")
@@ -254,10 +267,19 @@ class MySQLKnowledgeRepositoryTest(unittest.TestCase):
         self.repository.mark_failed("failed", "parse error")
         self.assertEqual(self.repository.fingerprint(), before)
 
-        self.repository.mark_active(
-            "doc-1",
+        self.repository.activate_document(
+            doc_id="doc-1",
+            filename="paper.pdf",
+            file_hash="hash-1",
+            storage_key="knowledge/paper.pdf",
+            file_type="pdf",
+            chunk_method="parent_child_fixed",
             chunk_count=3,
             chunk_ids=["child-1", "child-2", "child-3"],
+            parent_count=1,
+            child_count=3,
+            allowed_roles=["admin", "analyst"],
+            updated_by=7,
         )
         self.assertNotEqual(self.repository.fingerprint(), before)
 
@@ -287,8 +309,13 @@ class MySQLKnowledgeRepositoryTest(unittest.TestCase):
 
     def test_manifest_matches_legacy_shape_and_is_read_only(self):
         active = self._begin_and_activate()
-        active = self.repository.mark_active(
-            "doc-1",
+        active = self.repository.activate_document(
+            doc_id="doc-1",
+            filename="paper.pdf",
+            file_hash="hash-1",
+            storage_key="knowledge/paper.pdf",
+            file_type="pdf",
+            chunk_method="parent_child_fixed",
             chunk_count=2,
             chunk_ids=[
                 "doc-1:parent:000:child:000",
@@ -296,6 +323,8 @@ class MySQLKnowledgeRepositoryTest(unittest.TestCase):
             ],
             parent_count=1,
             child_count=2,
+            allowed_roles=["admin", "analyst"],
+            updated_by=7,
         )
         self.parent_repository.save(
             "doc-1:parent:000",

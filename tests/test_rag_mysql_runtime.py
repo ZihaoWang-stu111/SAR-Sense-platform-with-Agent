@@ -67,19 +67,6 @@ class FakeKnowledgeRepository:
         record.error_message = None
         return record
 
-    def mark_active(self, doc_id, **kwargs):
-        self.events.append(("active", doc_id, kwargs.copy()))
-        record = self.records[doc_id]
-        record.chunk_ids = list(kwargs["chunk_ids"])
-        record.chunk_count = kwargs["chunk_count"]
-        record.chunk_method = kwargs.get("chunk_method", record.chunk_method)
-        record.parent_count = kwargs.get("parent_count")
-        record.child_count = kwargs.get("child_count")
-        record.ingested_at = kwargs.get("ingested_at") or datetime.now()
-        record.status = "active"
-        record.error_message = None
-        return record
-
     def activate_document(self, **kwargs):
         self.events.append(("activate", kwargs.copy()))
         record = self.records.get(kwargs["doc_id"])

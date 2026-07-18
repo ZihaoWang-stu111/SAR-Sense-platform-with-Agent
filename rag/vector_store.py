@@ -18,7 +18,7 @@ _vector_store_lock = Lock()
 
 
 def get_vector_store_service():
-    """Return the shared VectorStoreService instance used by RAG and knowledge management."""
+    """返回 RAG 和知识库管理共用的 VectorStoreService 实例。"""
     global _vector_store_service
 
     if _vector_store_service is None:
@@ -76,7 +76,7 @@ class VectorStoreService:
         self.semantic_max_size_en = chroma_conf.get("semantic_max_chunk_size_en", 1500)
         self.semantic_cjk_ratio = chroma_conf.get("semantic_cjk_ratio_threshold", 0.2)
 
-        # Manifest 注册表（替代原 md5.text）
+        # 知识库清单注册表（替代原 md5.text）
     def get_retriever(self, query: str):
         return self.hybrid_engine.get_retriyever(query)
 
@@ -85,7 +85,7 @@ class VectorStoreService:
 
     @property
     def manifest(self):
-        """Return a fresh legacy-compatible manifest generated from MySQL."""
+        """返回由 MySQL 生成的、兼容旧调用方的最新知识库清单。"""
         return self.knowledge_repository.as_manifest()
 
     def _build_spliter(self, chunk_size, chunk_overlap):
@@ -260,9 +260,9 @@ class VectorStoreService:
 
     def _structured_split(self, documents, doc_id):
         """MinerU content_list 重组后的结构感知分块。
-        - text → 攒一批喂原 _semantic_split（只切正文，不碰 table/equation）
-        - table/equation → 原子保留，整块作 parent，page_content 带 caption
-        - table 生成 table_id 便于溯源
+        - 文本块 → 攒一批交给原 _semantic_split（只切正文，不处理表格/公式）
+        - 表格/公式 → 原子保留，整块作为 parent，page_content 带 caption
+        - 表格生成 table_id 便于溯源
         不做跨页合并/大表切分/章节栈（YAGNI，召回不行再加）。"""
         text_buffer = []
         parents = []
@@ -348,7 +348,7 @@ class VectorStoreService:
                 "metadata": parent_meta,
             }
 
-            # table/equation 是原子块，不进字符切分，整块作 child（child_splitter 的 "" 兜底会切碎 HTML）
+            # 表格和公式是原子块，不进行字符切分，整块作为 child（child_splitter 的空字符串兜底会切碎 HTML）
             if parent.metadata.get("chunk_type") in ("table", "equation"):
                 children = [parent]
             else:
@@ -502,7 +502,7 @@ class VectorStoreService:
         updated_by=None,
         return_details=False,
     ):
-        """Ingest files using MySQL metadata and generation-safe replacement."""
+        """使用 MySQL 元数据和安全的版本替换流程完成文件入库。"""
 
         def get_file_documents(read_path):
             if read_path.lower().endswith(".txt"):
