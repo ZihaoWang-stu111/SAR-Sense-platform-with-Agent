@@ -64,22 +64,17 @@ class VectorStoreService:
         return self.knowledge_repository.as_manifest()
 
     @staticmethod
-    def _snapshot_document(record, manifest_entry):
+    def _snapshot_document(record):
+        chunk_ids = list(getattr(record, "chunk_ids", None) or [])
+        parent_ids = list(dict.fromkeys(
+            chunk_id.rsplit(":child:", 1)[0]
+            for chunk_id in chunk_ids
+            if ":child:" in chunk_id
+        ))
         return {
-            "doc_id": record.doc_id,
-            "filename": record.filename,
-            "file_hash": record.file_hash,
+            "chunk_ids": chunk_ids,
+            "parent_ids": parent_ids,
             "storage_key": getattr(record, "storage_key", None),
-            "file_type": getattr(record, "file_type", None),
-            "chunk_method": getattr(record, "chunk_method", None),
-            "chunk_ids": list(getattr(record, "chunk_ids", None) or []),
-            "chunk_count": getattr(record, "chunk_count", 0) or 0,
-            "parent_ids": list((manifest_entry or {}).get("parent_ids") or []),
-            "parent_count": getattr(record, "parent_count", None),
-            "child_count": getattr(record, "child_count", None),
-            "allowed_roles": list(getattr(record, "allowed_roles", None) or []),
-            "updated_by": getattr(record, "updated_by", None),
-            "ingested_at": getattr(record, "ingested_at", None),
         }
 
     def _cleanup_staged_generation(self, child_ids, parent_ids):
@@ -93,12 +88,6 @@ class VectorStoreService:
                 self.parent_docstore.delete_many(parent_ids)
             except Exception as exc:
                 logger.warning(f"Maintenance orphan in staged parent chunks: {exc}")
-
-    @staticmethod
-    def _initial_chunk_method(parent_child_enabled, semantic_enabled):
-        if parent_child_enabled:
-            return "parent_child_semantic" if semantic_enabled else "parent_child_fixed"
-        return "semantic" if semantic_enabled else "fixed"
 
     def _delete_original_file(self, record, file_path=None):
         data_dir = os.path.abspath(get_abs_path(chroma_conf["data_path"]))
@@ -315,10 +304,7 @@ class VectorStoreService:
             doc_id = existing.doc_id if existing is not None else file_hash[:16]
             previous = None
             if existing is not None and existing.status == "active":
-                previous = self._snapshot_document(
-                    existing,
-                    self.manifest.get(filename),
-                )
+                previous = self._snapshot_document(existing)
 
             roles = (
                 list(allowed_roles)

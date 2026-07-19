@@ -24,7 +24,7 @@ def main():
 
     rag = RagSummarizeService()
     query = "SAR舰船检测是什么"
-    children = vs.get_retriever(query).invoke(query)
+    children = vs.retrieve(query)
     print("children retrieved:", len(children))
     print("first child parent_id:", children[0].metadata.get("parent_id") if children else None)
 

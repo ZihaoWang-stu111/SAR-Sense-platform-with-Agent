@@ -320,6 +320,32 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
         repository.records["new-doc"] = make_record(doc_id="new-doc", filename="new.txt")
         self.assertIn("new.txt", service.manifest)
 
+    def test_snapshot_keeps_only_cleanup_fields_and_derives_parent_ids(self):
+        record = make_record(
+            doc_id="stable-doc",
+            filename="paper.txt",
+            storage_key=".knowledge_versions/v1/paper.txt",
+            chunk_ids=[
+                "stable-doc:gen:hash:parent:000:child:000",
+                "stable-doc:gen:hash:parent:000:child:001",
+                "stable-doc:gen:hash:parent:001:child:000",
+            ],
+        )
+
+        snapshot = vector_module.VectorStoreService._snapshot_document(record)
+
+        self.assertEqual(
+            snapshot,
+            {
+                "chunk_ids": record.chunk_ids,
+                "parent_ids": [
+                    "stable-doc:gen:hash:parent:000",
+                    "stable-doc:gen:hash:parent:001",
+                ],
+                "storage_key": ".knowledge_versions/v1/paper.txt",
+            },
+        )
+
     def test_new_ingestion_writes_acl_only_when_activating(self):
         events = []
         repository = FakeKnowledgeRepository(events=events)
