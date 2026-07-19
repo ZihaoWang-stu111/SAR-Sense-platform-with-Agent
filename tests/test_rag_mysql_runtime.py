@@ -237,11 +237,21 @@ def make_service(repository, *, events=None, vector=None, parent_enabled=False):
     service.hybrid_engine = FakeHybridEngine(events)
     service.parent_child_enabled = parent_enabled
     service.parent_docstore = FakeParentDocstore(events) if parent_enabled else None
-    service.child_splitter = FakeSplitter()
-    service.pdf_splitter = FakeSplitter()
-    service.txt_splitter = FakeSplitter()
-    service.default_splitter = FakeSplitter()
-    service.semantic_enabled = False
+    service.chunker = vector_module.DocumentChunker(
+        {
+            "chunk_size": 100,
+            "chunk_overlap": 10,
+            "separators": ["\n"],
+            "child_chunk_size": 50,
+            "child_chunk_overlap": 5,
+            "semantic_chunking_enabled": False,
+        },
+        SimpleNamespace(),
+    )
+    service.chunker.child_splitter = FakeSplitter()
+    service.chunker.pdf_splitter = FakeSplitter()
+    service.chunker.txt_splitter = FakeSplitter()
+    service.chunker.default_splitter = FakeSplitter()
     return service
 
 
@@ -250,6 +260,7 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
         repository = FakeKnowledgeRepository()
         parent_store = FakeParentDocstore()
         hybrid = SimpleNamespace()
+        chunker = SimpleNamespace()
         config = {
             "collection_name": "test",
             "persist_directory": "unused-chroma",
@@ -277,6 +288,12 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
                 "ParentChunkRepository",
                 return_value=parent_store,
             ),
+            patch.object(
+                vector_module,
+                "DocumentChunker",
+                return_value=chunker,
+                create=True,
+            ) as chunker_factory,
             patch.object(vector_module, "DynamicHybridRetriever", return_value=hybrid) as retriever,
             patch.object(vector_module, "load_manifest", create=True) as load_manifest,
         ):
@@ -284,6 +301,8 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
 
         self.assertIs(service.knowledge_repository, repository)
         self.assertIs(service.parent_docstore, parent_store)
+        self.assertIs(service.chunker, chunker)
+        chunker_factory.assert_called_once_with(config, vector_module.embed_model)
         self.assertFalse(hasattr(parent_docstore_module, "MySQLParentDocstore"))
         retriever.assert_called_once()
         self.assertIsNone(retriever.call_args.kwargs["manifest_path"])
