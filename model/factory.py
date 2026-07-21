@@ -30,9 +30,32 @@ class ChatModelFactory(BaseModelFactory):
         return ChatTongyi(model=rag_conf["chat_model_name"])
 
 
+class _BatchedDashScopeEmbeddings(DashScopeEmbeddings):
+    """对 batch 受限模型按 embed_batch_size 分批嵌入。
+
+    DashScopeEmbeddings 对未登记在内部 BATCH_SIZE 的模型默认按 25 条一批，
+    而 qwen3.7-text-embedding 限制单批 ≤ 20，直接用会 400。外层先按
+    embed_batch_size 切片，每批再走父类 embed_documents（其内部仍按模型
+    BATCH_SIZE 再切），保证单次 API 调用不超过模型限制。
+    """
+
+    embed_batch_size: int = 20
+
+    def embed_documents(self, texts):
+        embeddings = []
+        for i in range(0, len(texts), self.embed_batch_size):
+            embeddings.extend(
+                super().embed_documents(texts[i : i + self.embed_batch_size])
+            )
+        return embeddings
+
+
 class EmbeddingsFactory(BaseModelFactory):
     def generator(self) -> Optional[Embeddings | BaseChatModel]:
-        return DashScopeEmbeddings(model=rag_conf["embedding_model_name"])
+        return _BatchedDashScopeEmbeddings(
+            model=rag_conf["embedding_model_name"],
+            embed_batch_size=rag_conf.get("embedding_batch_size", 20),
+        )
 
 
 chat_model = ChatModelFactory().generator()
