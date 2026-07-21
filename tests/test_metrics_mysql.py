@@ -725,14 +725,13 @@ class ChatMetricsIntegrationTest(unittest.IsolatedAsyncioTestCase):
                 ended.set()
 
         fake_metrics = FakeMetrics()
+        # 请求体解析已由 FastAPI + ChatStreamRequest 负责，直接构造 payload
+        payload = chat_api.ChatStreamRequest(
+            message="hello",
+            messages=[],
+            conversation_id=None,
+        )
         request = SimpleNamespace(
-            json=AsyncMock(
-                return_value={
-                    "message": "hello",
-                    "messages": [],
-                    "conversation_id": None,
-                }
-            ),
             headers={},
             client=SimpleNamespace(host="127.0.0.1"),
         )
@@ -745,6 +744,7 @@ class ChatMetricsIntegrationTest(unittest.IsolatedAsyncioTestCase):
             patch.object(chat_api, "rate_limit", new=AsyncMock()),
         ):
             response = await chat_api.chat_stream(
+                payload=payload,
                 request=request,
                 user=user,
                 db=SimpleNamespace(),

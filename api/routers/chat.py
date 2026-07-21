@@ -2,7 +2,7 @@ import json
 import logging
 import traceback
 
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, Request, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +11,7 @@ from api.auth import get_current_user
 from config.db_conf import get_db
 from crud import conversations as conv_crud
 from crud.knowledge_acl import get_allowed_doc_ids
+from schemas.conversations import ChatStreamRequest
 from utils.conversation_builder import build_chat_pack
 from utils.traffic_control import rate_limit
 
@@ -34,6 +35,7 @@ def _client_ip(request: Request) -> str | None:
 
 @router.post("/chat/stream")
 async def chat_stream(
+    payload: ChatStreamRequest,
     request: Request,
     user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -41,14 +43,10 @@ async def chat_stream(
     """Streaming chat endpoint using SSE"""
     await rate_limit(f"user:{user['id']}:chat", 6, 60)
     logger.info("Streaming chat request received")
-    data = await request.json()
-    message = data.get('message', '')
-    display_message = data.get('display_message', message)
-    messages_history = data.get('messages', [])
-    conversation_id = data.get('conversation_id')
-
-    if not message:
-        raise HTTPException(status_code=400, detail='No message provided')
+    # 空 message 由 ChatStreamRequest(min_length=1) 校验拦截（422），无需手工 400
+    message = payload.message
+    display_message = payload.display_message or payload.message
+    conversation_id = payload.conversation_id
 
     logger.info(f"Processing streaming message: {message[:50]}...")
 
@@ -74,7 +72,8 @@ async def chat_stream(
         if messages and messages[-1].get("role") == "user":
             messages[-1] = {"role": "user", "content": message}
     else:
-        messages = messages_history[-10:] + [{"role": "user", "content": message}]
+        history = [m.model_dump() for m in payload.messages[-10:]]
+        messages = history + [{"role": "user", "content": message}]
 
     async def generate():
         """SSE generator：只把 agent 事件推给前端（消费视图）。
