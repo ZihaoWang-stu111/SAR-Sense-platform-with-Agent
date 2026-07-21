@@ -10,6 +10,7 @@ class DocumentChunker:
     """负责普通、语义、MinerU 结构化及父子块分块。"""
 
     def __init__(self, config: dict, embedding_model):
+        """读取分块配置，并初始化普通块、父块和子块使用的 splitter。"""
         self.config = config
         self.embedding_model = embedding_model
         default_size = config["chunk_size"]
@@ -36,6 +37,7 @@ class DocumentChunker:
         self.semantic_cjk_ratio = config.get("semantic_cjk_ratio_threshold", 0.2)
 
     def initial_chunk_method(self, parent_child_enabled: bool) -> str:
+        """根据当前配置返回预计使用的分块方式，便于入库记录状态。"""
         if parent_child_enabled:
             return "parent_child_semantic" if self.semantic_enabled else "parent_child_fixed"
         return "semantic" if self.semantic_enabled else "fixed"
@@ -50,6 +52,8 @@ class DocumentChunker:
         file_type,
         id_namespace,
     ):
+        """父子块关闭时的备用路径：生成普通块并直接写入 Chroma。"""
+        # 语义分块失败或被关闭时，退回按文件类型选择固定分块器。
         chunks = self._semantic_split(documents) if self.semantic_enabled else None
         chunk_method = "semantic"
         if chunks is None:
@@ -77,6 +81,7 @@ class DocumentChunker:
         file_type,
         id_namespace,
     ):
+        """先生成父块，再把父块转换为可召回的子块和父块记录。"""
         parent_docs = None
         is_mineru_structured = bool(
             documents and documents[0].metadata.get("mineru_structured")
@@ -88,9 +93,11 @@ class DocumentChunker:
             parent_docs = self._semantic_split(documents)
             chunk_method = "parent_child_semantic"
         else:
+            # 未启用语义分块时，下面统一退回固定长度父块。
             chunk_method = "parent_child_fixed"
 
         if parent_docs is None:
+            # 语义 embedding 失败时也走固定分块，保证入库仍可完成。
             parent_docs = self._get_splitter(file_path).split_documents(documents)
             chunk_method = "parent_child_fixed"
         if not parent_docs:
@@ -107,6 +114,7 @@ class DocumentChunker:
         return chunks, child_ids, parent_ids, parent_records, chunk_method
 
     def _build_splitter(self, chunk_size, chunk_overlap):
+        """根据块大小、重叠长度和分隔符创建固定分块器。"""
         return RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
@@ -115,6 +123,7 @@ class DocumentChunker:
         )
 
     def _get_splitter(self, read_path: str) -> RecursiveCharacterTextSplitter:
+        """语义分块不可用时，按文件类型选择固定分块器。"""
         if read_path.endswith(".txt"):
             return self.txt_splitter
         if read_path.endswith(".pdf"):
@@ -123,6 +132,7 @@ class DocumentChunker:
 
     @staticmethod
     def _cosine_sim(a, b):
+        """计算两个 embedding 向量的余弦相似度。"""
         dot = sum(x * y for x, y in zip(a, b))
         norm_a = sum(x * x for x in a) ** 0.5
         norm_b = sum(x * x for x in b) ** 0.5
@@ -132,12 +142,14 @@ class DocumentChunker:
 
     @staticmethod
     def _cjk_ratio(text):
+        """计算文本中 CJK 字符在中文和拉丁字母中的占比。"""
         cjk = sum(1 for char in text if "\u4e00" <= char <= "\u9fff")
         latin = sum(1 for char in text if char.isascii() and char.isalpha())
         base = cjk + latin
         return cjk / base if base else 1.0
 
     def _semantic_split(self, documents):
+        """根据相邻句子的 embedding 相似度寻找语义断点并合并成块。"""
         joined = "".join(document.page_content for document in documents)
         if self._cjk_ratio(joined) < self.semantic_cjk_ratio:
             min_size = self.semantic_min_size_en
@@ -241,6 +253,7 @@ class DocumentChunker:
         file_type,
         id_namespace=None,
     ):
+        """为普通分块补齐 metadata，并生成可写入 Chroma 的 chunk ID。"""
         filename = os.path.basename(file_path)
         enriched_chunks = []
         chunk_ids = []
@@ -268,15 +281,18 @@ class DocumentChunker:
         return enriched_chunks, chunk_ids
 
     def _structured_split(self, documents, doc_id):
+        """按 MinerU 类型拆分正文、表格和公式，形成结构化父块。"""
         text_buffer = []
         parents = []
         table_sequence = 0
 
         def flush_text():
+            """将缓存的连续正文切块、标记后追加到父块列表。"""
             if not text_buffer:
                 return
             chunks = self._semantic_split(list(text_buffer))
             if chunks is None:
+                # 正文语义分块失败时，使用 PDF 固定分块器兜底。
                 chunks = self.pdf_splitter.split_documents(list(text_buffer))
             for chunk in chunks:
                 metadata = dict(chunk.metadata or {})
@@ -324,6 +340,7 @@ class DocumentChunker:
         file_type,
         id_namespace=None,
     ):
+        """为每个父块生成父块记录、子块 Document 以及对应 ID。"""
         filename = os.path.basename(file_path)
         child_chunks = []
         child_ids = []
