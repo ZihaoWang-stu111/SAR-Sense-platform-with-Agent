@@ -33,7 +33,7 @@ langchain-classic==1.0.7
 langchain-protocol==0.0.15
 
 # --- 向量库 / 检索 ---
-chromadb==1.5.9
+chromadb==1.4.1                    # 1.4.x 无 compaction，规避 1.5.x HNSW 索引损坏后写入失败
 rank-bm25==0.2.2
 jieba==0.42.1                    # 中文分词（BM25 预处理）
 
