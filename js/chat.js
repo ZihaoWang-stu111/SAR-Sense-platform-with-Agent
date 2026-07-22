@@ -835,13 +835,11 @@ function updateLastMessage(isFinal = false) {
   const existingThoughtChain = contentDiv.querySelector('.thought-chain');
 
   let html = renderMarkdown(buildAssistantDisplayContent(assistantMessage));
-  if (isFinal) {
-    html = renderWithCitations(html);
-  }
   const currentConvId = state.currentConversationId;
-  if (!isFinal && state.streamingStatus.has(currentConvId)) {
-    html += '<span class="streaming-cursor"></span>';
-  }
+  // 流式期也调 renderWithCitations：把 RAG answer 折叠进 🔎 检索材料，避免大段占屏把
+  // 最终回答挤到底部。streamingCursor 由 renderWithCitations 插到 mainBody 末尾。
+  const isStreaming = !isFinal && state.streamingStatus.has(currentConvId);
+  html = renderWithCitations(html, isStreaming);
 
   if (existingThoughtChain) {
     contentDiv.innerHTML = html;
@@ -1019,12 +1017,11 @@ function renderMessages() {
 
     let displayContent = msg.role === 'assistant' ? buildAssistantDisplayContent(msg) : msg.content;
     let html = renderMarkdown(displayContent);
-    if (msg.role === 'assistant') {
-      html = renderWithCitations(html);
-    }
     const currentConvId = state.currentConversationId;
-    if (msg.role === 'assistant' && index === state.messages.length - 1 && state.streamingStatus.has(currentConvId)) {
-      html += '<span class="streaming-cursor"></span>';
+    const isStreamingMsg = msg.role === 'assistant' && index === state.messages.length - 1 && state.streamingStatus.has(currentConvId);
+    if (msg.role === 'assistant') {
+      // 流式期最后一条消息传 streamingCursor，光标插到 mainBody 末尾（与 updateLastMessage 一致）
+      html = renderWithCitations(html, isStreamingMsg);
     }
     contentDiv.innerHTML = html;
 
@@ -1237,14 +1234,16 @@ function parseTableRow(line) {
 }
 
 // ==================== Citation Rendering ====================
-function renderWithCitations(html) {
+function renderWithCitations(html, streamingCursor = false) {
   // 只处理 assistant 消息中有引用标记的文本
-  if (!html || !html.includes('参考来源')) return html;
+  // streamingCursor: 流式期传 true，把打字机光标插到 mainBody 末尾（content 打字机处）
+  const cursor = streamingCursor ? '<span class="streaming-cursor"></span>' : '';
+  if (!html || !html.includes('参考来源')) return html + cursor;
 
   try {
     // 容错中文冒号、英文冒号、全角冒号，允许前后空格
     const matches = [...html.matchAll(/参考来源\s*[：:︰]\s*/g)];
-    if (matches.length === 0) return html;
+    if (matches.length === 0) return html + cursor;
 
     // 调试：打印原始 HTML 和匹配到的"参考来源"数量
     console.log('[renderWithCitations] 匹配到', matches.length, '个"参考来源"');
@@ -1252,18 +1251,18 @@ function renderWithCitations(html) {
 
     // 单次 RAG：保持原有逻辑
     if (matches.length === 1) {
-      return renderSingleRagCitation(html, matches[0]);
+      return renderSingleRagCitation(html, matches[0], cursor);
     }
 
     // 多次 RAG：新逻辑
-    return renderMultipleRagCitations(html, matches);
+    return renderMultipleRagCitations(html, matches, cursor);
   } catch (e) {
     console.error('[renderWithCitations] 解析失败，显示原始内容', e);
-    return html; // 优雅降级：出错时返回原始 HTML
+    return html + cursor; // 优雅降级：出错时返回原始 HTML
   }
 }
 
-function renderSingleRagCitation(html, match) {
+function renderSingleRagCitation(html, match, cursor = '') {
   // 现有的单次 RAG 逻辑
   const splitIdx = match.index + match[0].length;
   let body = html.substring(0, match.index).trim();
@@ -1312,7 +1311,7 @@ function renderSingleRagCitation(html, match) {
     return decorated;
   };
 
-  const mainBody = decorateCitationBody(trailingBody || body);
+  const mainBody = decorateCitationBody(trailingBody || body) + cursor;
   const toolBody = trailingBody ? decorateCitationBody(body) : '';
 
   // 生成来源卡片
@@ -1337,7 +1336,7 @@ function renderSingleRagCitation(html, match) {
   return `<div class="message-with-citations">${mainBody}${toolPanel}${sourcePanel}</div>`;
 }
 
-function renderMultipleRagCitations(html, matches) {
+function renderMultipleRagCitations(html, matches, cursor = '') {
   console.log('[renderMultipleRagCitations] 开始解析，参考来源数量:', matches.length);
 
   let sourceGroups = [];  // 按 RAG 调用分组的来源
@@ -1402,7 +1401,7 @@ function renderMultipleRagCitations(html, matches) {
   const toolBodies = sourceGroups.map(g => g.toolBody).filter(text => text && text.trim());
   const shouldFoldTools = Boolean(finalBody);
   const mainBodyRaw = shouldFoldTools ? finalBody : toolBodies.join('<br><br>');
-  const bodyWithHighlight = decorateCitationBody(mainBodyRaw);
+  const bodyWithHighlight = decorateCitationBody(mainBodyRaw) + cursor;
 
   console.log('[renderMultipleRagCitations] 最终正文长度:', mainBodyRaw.length);
 
