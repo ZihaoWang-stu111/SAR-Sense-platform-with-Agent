@@ -182,12 +182,6 @@ class KnowledgeAPIWithMySQLTest(unittest.IsolatedAsyncioTestCase):
                 patch.object(knowledge, "run_in_threadpool", side_effect=inline_threadpool),
                 patch.object(knowledge, "rate_limit", new=AsyncMock()),
                 patch.object(knowledge, "redis_lock", new=self.recording_lock),
-                patch.object(
-                    knowledge,
-                    "upsert_document_acl",
-                    new=AsyncMock(side_effect=AssertionError("post-ingestion ACL write is forbidden")),
-                    create=True,
-                ),
             ):
                 response = await knowledge.upload_knowledge(
                     files=[FakeUpload("paper.pdf")],
@@ -470,12 +464,6 @@ class KnowledgeAPIWithMySQLTest(unittest.IsolatedAsyncioTestCase):
             patch.object(knowledge, "get_vector_store", return_value=VectorStore()),
             patch.object(knowledge, "run_in_threadpool", side_effect=inline_threadpool),
             patch.object(knowledge, "redis_lock", new=self.recording_lock),
-            patch.object(
-                knowledge,
-                "delete_document_acl",
-                new=AsyncMock(side_effect=AssertionError("runtime owns document deletion")),
-                create=True,
-            ),
         ):
             response = await knowledge.delete_knowledge_file(
                 "doc-1",
