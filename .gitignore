@@ -47,6 +47,9 @@ mcp-learning/
 Thumbs.db
 .DS_Store
 
+# 临时测试脚本/目录（不进仓库）
+_tmp*
+
 # 个人简历 / Word 文档（不入仓库）
 *.docx
 *.docx.bak
