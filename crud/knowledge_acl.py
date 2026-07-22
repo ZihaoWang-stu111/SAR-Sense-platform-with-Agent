@@ -7,42 +7,6 @@ from models.knowledge import KnowledgeDocument
 from utils.rbac import ROLE_ADMIN, validate_allowed_roles
 
 
-async def upsert_document_acl(
-    db: AsyncSession,
-    *,
-    doc_id: str,
-    filename: str,
-    file_hash: str | None = None,
-    file_type: str | None = None,
-    chunk_count: int = 0,
-    parent_count: int | None = None,
-    child_count: int | None = None,
-    allowed_roles: list[str] | None = None,
-    status: str = "active",
-    updated_by: int | None = None,
-) -> KnowledgeDocument:
-    roles = validate_allowed_roles(allowed_roles)
-    result = await db.execute(select(KnowledgeDocument).where(KnowledgeDocument.doc_id == doc_id))
-    doc = result.scalar_one_or_none()
-    if doc is None:
-        doc = KnowledgeDocument(doc_id=doc_id, created_at=datetime.now())
-        db.add(doc)
-
-    doc.filename = filename
-    doc.file_hash = file_hash
-    doc.file_type = file_type
-    doc.chunk_count = chunk_count or 0
-    doc.parent_count = parent_count
-    doc.child_count = child_count
-    doc.allowed_roles = roles
-    doc.status = status
-    doc.updated_by = updated_by
-    doc.updated_at = datetime.now()
-    await db.flush()
-    await db.refresh(doc)
-    return doc
-
-
 async def get_document_acl(db: AsyncSession, doc_id: str) -> KnowledgeDocument | None:
     result = await db.execute(select(KnowledgeDocument).where(KnowledgeDocument.doc_id == doc_id))
     return result.scalar_one_or_none()
@@ -82,12 +46,3 @@ async def update_allowed_roles(
     await db.flush()
     await db.refresh(doc)
     return doc
-
-
-async def delete_document_acl(db: AsyncSession, doc_id: str) -> bool:
-    doc = await get_document_acl(db, doc_id)
-    if doc is None:
-        return False
-    await db.delete(doc)
-    await db.flush()
-    return True
