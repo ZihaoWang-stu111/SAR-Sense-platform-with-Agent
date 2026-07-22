@@ -570,20 +570,12 @@ def extract_file_content(file_path: str) -> str:
             return f"📄 文件「{filename}」(PDF, {len(pages)}页) 文本内容：\n\n{content}"
 
         elif ext in (".png", ".jpg", ".jpeg", ".bmp", ".webp"):
-            from rapidocr_onnxruntime import RapidOCR
-            engine = RapidOCR()
-            result, _ = engine(file_path)
-            if not result:
+            from services.file_extraction_service import extract_image_text
+
+            content = extract_image_text(file_path)
+            if not content:
                 return f"📄 图片「{filename}」未识别到文字内容。"
-            lines = []
-            for box, text, conf in result:
-                if conf is None:
-                    conf = 1.0
-                lines.append(text)
-            content = "\n".join(lines)
-            if len(content) > 3000:
-                content = content[:3000] + f"\n\n... (OCR共识别{len(lines)}段文字，已截断前3000字符)"
-            return f"📄 图片「{filename}」OCR识别结果（共{len(lines)}段文字）：\n\n{content}"
+            return f"📄 图片「{filename}」OCR识别结果：\n\n{content}"
 
         elif ext == ".docx":
             from docx import Document

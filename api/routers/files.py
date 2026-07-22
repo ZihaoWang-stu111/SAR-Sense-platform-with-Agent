@@ -13,6 +13,7 @@ from utils.traffic_control import rate_limit
 from services.upload_store import (
     save_upload, get_upload_path, IMAGE_EXTS, IMAGE_MIMES, MAX_UPLOAD_BYTES, MAX_IMAGE_PIXELS,
 )
+from services.file_extraction_service import extract_image_text
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["files"])
@@ -25,8 +26,8 @@ async def extract_file(
 ):
     """提取上传文件内容 / 暂存上传图片。
 
-    - 图片：经 MIME + magic bytes + 像素上限校验后存到 data/uploads，
-      返回不透明 upload_id（供 Agent 调 detect_ships），不返回任何服务端路径。
+    - 图片：校验并存入 data/uploads，在线程池完成 OCR，同时返回 content 和
+      不透明 upload_id；前者供 LLM 直接分析文字，后者供 detect_ships 使用。
     - 文档：temp + 提取文本 + 用完即清，返回 content。
     """
     await rate_limit(f"user:{user['id']}:extract", 10, 60)
@@ -58,10 +59,16 @@ async def extract_file(
             raise HTTPException(status_code=400, detail='图片格式无效或损坏')
 
         upload_id = save_upload(content_bytes, ext, user["id"])
+        image_path = get_upload_path(upload_id, user["id"])
+        if image_path is None:
+            logger.error(f"Failed to resolve saved upload: {upload_id}")
+            raise HTTPException(status_code=500, detail="图片保存失败")
+        ocr_content = await run_in_threadpool(extract_image_text, image_path)
         return {
             'success': True,
             'filename': file.filename,
             'upload_id': upload_id,
+            'content': ocr_content,
         }
 
     # 文档：唯一临时文件 + 提取文本 + 清理

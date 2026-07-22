@@ -500,12 +500,18 @@ async function sendMessage() {
   }
 
   let fullMessage = message;
-  if (attachmentContent) {
+  if (attachmentUploadId) {
+    // 图片同时携带 OCR 文本和 upload_id：文字问题直接回答，明确要求检测时再调用 detect_ships。
+    const ocrSection = attachmentContent
+      ? `OCR识别结果：\n${attachmentContent}`
+      : 'OCR未识别到可用文字。';
+    const imageRequest = message || (attachmentContent
+      ? '请分析图片中识别出的文字内容'
+      : '图片中未识别到文字，请询问我是否需要进行SAR舰船检测');
+    fullMessage = `[用户上传了图片「${attachmentName}」]\n\n${ocrSection}\n\n图片上传标识：${attachmentUploadId}。仅当用户明确要求舰船检测时，才使用 detect_ships 工具（传入 upload_id）。\n\n${imageRequest}`;
+  } else if (attachmentContent) {
     // 文档：已提取文本，直接给 Agent 分析（不传服务端路径）
     fullMessage = `[用户上传了附件「${attachmentName}」，内容如下]\n\n${attachmentContent}\n\n${message || '请分析'}`;
-  } else if (attachmentUploadId) {
-    // 图片：只传不透明 upload_id（非路径），Agent 调 detect_ships 时按 id 解析
-    fullMessage = `[用户上传了SAR图像「${attachmentName}」，上传标识：${attachmentUploadId}，可使用 detect_ships 工具（传入 upload_id）进行舰船检测]\n\n${message || '请检测并分析'}`;
   }
 
   const userMessage = { role: 'user', content: message || '请分析附件内容' };
