@@ -541,6 +541,30 @@ async function extractFileContent(file) {
   }
 }
 
+const TOOL_LOADING_STATUS = Object.freeze({
+  rag_summarize: '正在检索知识库...',
+  web_search: '正在搜索网络...',
+  detect_ships: '正在检测图像...',
+  extract_file_content: '正在解析文件...'
+});
+
+function getLoadingStatusForStep(step) {
+  if (!step) return null;
+  if (step.step_type === 'tool_call') {
+    return TOOL_LOADING_STATUS[step.tool_name] || '正在调用工具...';
+  }
+  if (step.step_type === 'tool_result') {
+    return '正在整理结果...';
+  }
+  if (step.step_type === 'final_answer') {
+    return '正在生成回答...';
+  }
+  if (step.step_type === 'thinking') {
+    return '正在思考...';
+  }
+  return null;
+}
+
 // 后台流式处理
 async function processStreamInBackground(reader, conversationId) {
   const decoder = new TextDecoder();
@@ -554,7 +578,8 @@ async function processStreamInBackground(reader, conversationId) {
     thoughtSteps: [],
     streamDone: false,
     pendingChunks: [],
-    isTyping: false
+    isTyping: false,
+    loadingStatus: '正在等待处理...'
   };
 
   // 缓存到后台消息中
@@ -587,7 +612,10 @@ async function processStreamInBackground(reader, conversationId) {
         try {
           const data = dataStr ? JSON.parse(dataStr) : {};
 
-          if (eventType === 'chunk') {
+          if (eventType === 'status') {
+            assistantMessage.loadingStatus = data.content || '正在思考...';
+          } else if (eventType === 'chunk') {
+            assistantMessage.loadingStatus = null;
             assistantMessage.content += data.content;
 
             // 更新进度
@@ -596,17 +624,22 @@ async function processStreamInBackground(reader, conversationId) {
               status.progress = assistantMessage.content.length;
             }
           } else if (eventType === 'rag_result') {
+            assistantMessage.loadingStatus = '正在生成回答...';
             if (!assistantMessage.rag_results) assistantMessage.rag_results = [];
             assistantMessage.rag_results.push(data.content);
           } else if (eventType === 'thought_step') {
             assistantMessage.thoughtSteps.push(data.step);
+            const nextStatus = getLoadingStatusForStep(data.step);
+            if (nextStatus) assistantMessage.loadingStatus = nextStatus;
           } else if (eventType === 'done') {
             assistantMessage.streamDone = true;
+            assistantMessage.loadingStatus = null;
 
             // assistant 由后端 generate() finally 存库，前端不再重复存（避免切页面 streamDone 没触发导致丢回答）
             // 通知用户
             notifyBackgroundCompletion(conversationId);
           } else if (eventType === 'error') {
+            assistantMessage.loadingStatus = null;
             assistantMessage.content += `\n\n[错误: ${data.message}]`;
           }
         } catch (e) {
@@ -617,6 +650,7 @@ async function processStreamInBackground(reader, conversationId) {
   } catch (error) {
     if (error.name !== 'AbortError') {
       console.error(`[Background] 会话 ${conversationId} 错误:`, error);
+      assistantMessage.loadingStatus = null;
       assistantMessage.content += '\n\n[⚠️ 连接中断]';
     }
   } finally {
@@ -640,7 +674,15 @@ async function sendMessageStreaming(message, displayMessage) {
     progress: 0
   });
 
-  const assistantMessage = { role: 'assistant', content: '', rag_results: [], thoughtSteps: [], pendingChunks: [], isTyping: false };
+  const assistantMessage = {
+    role: 'assistant',
+    content: '',
+    rag_results: [],
+    thoughtSteps: [],
+    pendingChunks: [],
+    isTyping: false,
+    loadingStatus: '正在等待处理...'
+  };
   state.messages.push(assistantMessage);
   renderMessages();
 
@@ -690,17 +732,29 @@ async function sendMessageStreaming(message, displayMessage) {
         }
         try {
           const data = dataStr ? JSON.parse(dataStr) : {};
-          if (eventType === 'chunk') {
+          if (eventType === 'status') {
+            assistantMessage.loadingStatus = data.content || '正在思考...';
+            updateLastMessage(false);
+          } else if (eventType === 'chunk') {
             assistantMessage.pendingChunks.push(data.content);
           } else if (eventType === 'rag_result') {
+            assistantMessage.loadingStatus = '正在生成回答...';
             if (!assistantMessage.rag_results) assistantMessage.rag_results = [];
             assistantMessage.rag_results.push(data.content);
+            updateLastMessage(false);
           } else if (eventType === 'thought_step') {
             assistantMessage.thoughtSteps.push(data.step);
+            const nextStatus = getLoadingStatusForStep(data.step);
+            if (nextStatus) assistantMessage.loadingStatus = nextStatus;
+            updateLastMessage(false);
             updateThoughtChainRealtime(assistantMessage.thoughtSteps);
           } else if (eventType === 'done') {
             assistantMessage.streamDone = true;
+            if (assistantMessage.pendingChunks.length === 0 && !assistantMessage.isTyping) {
+              assistantMessage.loadingStatus = null;
+            }
           } else if (eventType === 'error') {
+            assistantMessage.loadingStatus = null;
             assistantMessage.pendingChunks.push(`\n\n[错误: ${data.message}]`);
           }
         } catch (e) {
@@ -737,6 +791,7 @@ async function sendMessageStreaming(message, displayMessage) {
       console.log('[Stream] 用户取消');
     } else {
       console.error('Streaming error:', error);
+      assistantMessage.loadingStatus = null;
       assistantMessage.content += '\n\n[连接错误，请重试]';
       updateLastMessage(true);
     }
@@ -768,6 +823,9 @@ async function processTypewriterQueue() {
       const msg = state.messages[i];
       if (msg.role === 'assistant' && msg.pendingChunks && msg.pendingChunks.length > 0) {
         const chunk = msg.pendingChunks.shift();
+        if (chunk && msg.loadingStatus) {
+          msg.loadingStatus = null;
+        }
         msg.isTyping = true;
         for (let j = 0; j < chunk.length; j++) {
           msg.content += chunk[j];
