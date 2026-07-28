@@ -1,7 +1,11 @@
 """Shared singleton getters for API route handlers."""
 
+import threading
+
 _yolo_model = None
 _agent = None
+_agent_executor = None
+_agent_executor_lock = threading.Lock()
 _metrics = None
 _metrics_repository = None
 
@@ -24,6 +28,27 @@ def get_agent():
         from agent.react_agent import ReactAgent
         _agent = ReactAgent()
     return _agent
+
+
+def get_agent_executor():
+    """返回全应用共用的有界 Agent 线程执行器。"""
+    global _agent_executor
+    if _agent_executor is None:
+        with _agent_executor_lock:
+            if _agent_executor is None:
+                from services.agent_executor import AgentExecutor
+                _agent_executor = AgentExecutor()
+    return _agent_executor
+
+
+def shutdown_agent_executor(*, wait: bool = True) -> None:
+    """停止接收 Agent 任务，并按需等待已提交任务完成。"""
+    global _agent_executor
+    with _agent_executor_lock:
+        executor = _agent_executor
+        _agent_executor = None
+    if executor is not None:
+        executor.shutdown(wait=wait)
 
 
 def get_vector_store():

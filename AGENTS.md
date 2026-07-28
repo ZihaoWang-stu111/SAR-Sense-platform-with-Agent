@@ -120,6 +120,7 @@ All loaded at import time by [utils/config_handler.py](utils/config_handler.py) 
 - **Tool monitoring is decoupled**: tool functions don't know about logging/metrics — `@wrap_tool_call` middleware does it transparently.
 - **RAG concurrency safety**: the reranker NEVER writes to its input Documents. BM25 returns shared long-lived Document objects from its index — mutating their `.metadata` in-place would race across concurrent queries. The reranker copies into fresh Documents instead.
 - **Thought-chain via callback, not global state**: `execute_stream(on_step=...)` pushes steps to the caller; `chat.py` relays them through an `event_queue` as `thought_step` events (event-driven SSE, not polling).
+- **Agent concurrency is bounded**: synchronous Agent runs are submitted to one shared `AgentExecutor` thread pool instead of creating an unbounded thread per request. SSE still consumes request-local `asyncio.Queue` events, so client disconnects do not cancel the background Agent run.
 - **Conversation isolation**: every conversation read/write in `crud/conversations.py` carries `user_id`; unauthorized access returns an empty dict (not 403) to avoid probing.
 - **Metrics counted once**: `start/end_conversation` live only in `chat.py`'s SSE generator, never in `execute_stream`.
 - **Knowledge updates are generation-based**: source files use immutable version paths; a new document generation becomes active atomically before obsolete Chroma/parent data is cleaned up.

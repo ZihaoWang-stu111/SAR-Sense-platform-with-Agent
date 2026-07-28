@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import threading
 
@@ -5,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from api.dependencies import get_agent, get_metrics
+from api.dependencies import get_agent, get_metrics, shutdown_agent_executor
 from api.auth import router as auth_router
 from api.routers import (
     admin,
@@ -97,6 +98,12 @@ def create_app() -> FastAPI:
             logger.info("Pre-loading complete")
 
         threading.Thread(target=preload, daemon=True).start()
+
+    async def shutdown_event():
+        """等待已提交的 Agent 任务收尾，再关闭共享线程池。"""
+        await asyncio.to_thread(shutdown_agent_executor, wait=True)
+
+    app.add_event_handler("shutdown", shutdown_event)
 
     app.include_router(pages.router)
     app.include_router(auth_router)

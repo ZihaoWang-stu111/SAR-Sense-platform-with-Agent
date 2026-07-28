@@ -6,7 +6,7 @@ from fastapi import APIRouter, Request, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_agent, get_metrics
+from api.dependencies import get_agent, get_agent_executor, get_metrics
 from api.auth import get_current_user
 from config.db_conf import get_db
 from crud import conversations as conv_crud
@@ -78,20 +78,18 @@ async def chat_stream(
     async def generate():
         """SSE generator：只把 agent 事件推给前端（消费视图）。
 
-        业务任务（跑 agent + 持久化）在独立子线程里，不绑 SSE client 生命周期——
-        client 断开（切页面/刷新/断网）时 generate 退出，子线程继续跑完并存完整回答。
+        业务任务（跑 agent + 持久化）在共享执行器的工作线程里，不绑 SSE client 生命周期——
+        client 断开（切页面/刷新/断网）时 generate 退出，任务继续跑完并存完整回答。
         SSE 退化为"可选的进度订阅视图"，符合"业务任务与传输层解耦"。
         """
         import asyncio
-        import threading
-
         from config.db_conf import AsyncSessionLocal
 
         loop = asyncio.get_running_loop()
-        # asyncio.Queue：SSE 侧 await get()，agent 子线程用 call_soon_threadsafe 跨线程 put。
+        # asyncio.Queue：SSE 侧 await get()，执行器工作线程用 call_soon_threadsafe 跨线程 put。
         sse_queue: asyncio.Queue = asyncio.Queue()
 
-        # 累积器在子线程写、persist 读；SSE 只读 sse_queue，不碰这些。
+        # 累积器在执行器任务中写、persist 读；SSE 只读 sse_queue，不碰这些。
         full_content = ""
         rag_results: list = []
         thought_steps_list: list = []
@@ -103,7 +101,7 @@ async def chat_stream(
         async def persist():
             """独立 session 存库——不依赖 request 的 db（client 断后 request db 已关）。
 
-            由子线程 finally 经 run_coroutine_threadsafe 调度到 event loop 执行；
+            由执行器任务的 finally 经 run_coroutine_threadsafe 调度到 event loop 执行；
             event loop 长期运行，与 client 是否在线无关。
             """
             if not conversation_id or not (full_content.strip() or rag_results):
@@ -121,7 +119,7 @@ async def chat_stream(
                 logger.warning(f"存 assistant 消息失败: {e}")
 
         def run_agent():
-            """子线程：跑 agent + 累积 + 推 SSE + 调度存库。client 断了也跑完。"""
+            """执行器任务：跑 agent + 累积 + 推 SSE + 调度存库。client 断了也跑完。"""
             nonlocal full_content
             metrics = get_metrics()
             started_at = metrics.start_conversation()
@@ -145,8 +143,7 @@ async def chat_stream(
                 # 调度存库到 event loop——即使 SSE client 已断，agent 结果仍完整落库
                 asyncio.run_coroutine_threadsafe(persist(), loop)
 
-        agent_thread = threading.Thread(target=run_agent, daemon=True)
-        agent_thread.start()
+        get_agent_executor().submit(run_agent)
 
         try:
             logger.info("Starting agent stream...")
@@ -168,14 +165,14 @@ async def chat_stream(
                     yield f"event: error\ndata: {data}\n\n"
             yield f"event: done\ndata: {json.dumps({})}\n\n"
         except asyncio.CancelledError:
-            # client 断开：generate 退出，agent 子线程继续跑完存库，回来 loadConversation 能看到完整回答
+            # client 断开：generate 退出，执行器任务继续跑完存库，回来 loadConversation 能看到完整回答
             logger.info(f"SSE client 断开（conv={conversation_id}），agent 后台继续")
-            raise  # 传播取消（规范）；子线程独立，不受影响
+            raise  # 传播取消（规范）；执行器任务独立，不受影响
         except Exception as e:
             traceback.print_exc()
             data = json.dumps({'message': str(e)}, ensure_ascii=False)
             yield f"event: error\ndata: {data}\n\n"
-        # 不在 generate 里存库——存库由子线程 persist 调度，不绑 client 生命周期
+        # 不在 generate 里存库——由执行器任务调度 persist，不绑定 client 生命周期
 
     return StreamingResponse(
         generate(),
