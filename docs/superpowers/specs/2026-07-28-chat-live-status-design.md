@@ -66,16 +66,16 @@ loadingStatus = null，移除转圈，显示正文
 在 `js/chat.js` 中：
 
 - 新建 assistant 消息时增加临时 `loadingStatus`。
-- 解析 `status` SSE 事件。
+- 前台流和切换会话后的后台流都解析 `status` SSE 事件。
 - 根据 `thought_step.step_type` 和 `tool_name` 更新状态。
-- 收到第一段非空 `chunk` 时清空 `loadingStatus`。
+- 打字机写入第一段非空 `chunk` 的第一个字符时清空 `loadingStatus`。
 - 收到 `done`、`error` 或请求异常时清空 `loadingStatus`。
 - 渲染空 assistant 消息时输出加载状态行；正文出现后不再渲染该状态。
 
-在 `css/style.css` 中：
+在 `css/style_v2.css` 中：
 
-- 增加固定尺寸的圆环 spinner。
-- 增加低干扰的状态文字样式。
+- 复用并收紧现有 `.message-status` 和 `.spinner`，形成固定尺寸的圆环加载行。
+- 增加低干扰的 assistant 状态文字样式。
 - 支持 `prefers-reduced-motion`，用户关闭动画时停止旋转。
 - 加载行尺寸保持稳定，避免正文出现时产生明显布局跳动。
 
