@@ -28,6 +28,18 @@ class ChatLiveStatusFrontendTest(unittest.TestCase):
         typewriter = self.source[typewriter_start:typewriter_end]
         self.assertIn("msg.loadingStatus = null", typewriter)
 
+    def test_loading_status_has_accessible_markup_and_reduced_motion(self):
+        css = Path("css/style_v2.css").read_text(encoding="utf-8")
+        self.assertIn("function renderAssistantLoadingStatus(status)", self.source)
+        self.assertIn(
+            'class="message-status assistant-loading-status"',
+            self.source,
+        )
+        self.assertIn('role="status"', self.source)
+        self.assertIn('aria-live="polite"', self.source)
+        self.assertIn(".assistant-loading-status", css)
+        self.assertIn("@media (prefers-reduced-motion: reduce)", css)
+
 
 if __name__ == "__main__":
     unittest.main()

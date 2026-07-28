@@ -2699,6 +2699,27 @@ body::after { display: none; }
   animation: spin 1s linear infinite;
 }
 
+.assistant-loading-status {
+  min-height: 1.5rem;
+  padding: 0.125rem 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.assistant-loading-status .spinner {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border-color: var(--border-color);
+  border-top-color: var(--accent-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-loading-status .spinner {
+    animation: none;
+  }
+}
+
 /* Conversation list */
 .conversation-list {
   display: flex;

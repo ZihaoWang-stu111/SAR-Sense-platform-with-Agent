@@ -889,6 +889,27 @@ function buildAssistantDisplayContent(message) {
   return `${ragResults.join('\n\n')}\n\n${content}`.trim();
 }
 
+function renderAssistantLoadingStatus(status) {
+  if (!status) return '';
+  return `
+    <div class="message-status assistant-loading-status" role="status" aria-live="polite">
+      <span class="spinner" aria-hidden="true"></span>
+      <span>${escapeHtml(status)}</span>
+    </div>
+  `;
+}
+
+function renderAssistantDisplayHtml(message, isStreaming) {
+  const hasAnswer = Boolean((message?.content || '').trim());
+  const showLoading = Boolean(isStreaming && message?.loadingStatus && !hasAnswer);
+  let html = renderMarkdown(buildAssistantDisplayContent(message));
+  html = renderWithCitations(html, isStreaming && !showLoading);
+  const loadingHtml = showLoading
+    ? renderAssistantLoadingStatus(message.loadingStatus)
+    : '';
+  return `${loadingHtml}${html}`;
+}
+
 function updateLastMessage(isFinal = false) {
   const chatMessages = document.getElementById('chatMessages');
   const lastMessage = chatMessages.lastElementChild;
@@ -898,12 +919,11 @@ function updateLastMessage(isFinal = false) {
   const assistantMessage = state.messages[state.messages.length - 1];
   const existingThoughtChain = contentDiv.querySelector('.thought-chain');
 
-  let html = renderMarkdown(buildAssistantDisplayContent(assistantMessage));
   const currentConvId = state.currentConversationId;
   // 流式期也调 renderWithCitations：把 RAG answer 折叠进 🔎 检索材料，避免大段占屏把
   // 最终回答挤到底部。streamingCursor 由 renderWithCitations 插到 mainBody 末尾。
   const isStreaming = !isFinal && state.streamingStatus.has(currentConvId);
-  html = renderWithCitations(html, isStreaming);
+  const html = renderAssistantDisplayHtml(assistantMessage, isStreaming);
 
   if (existingThoughtChain) {
     contentDiv.innerHTML = html;
@@ -1079,13 +1099,11 @@ function renderMessages() {
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
 
-    let displayContent = msg.role === 'assistant' ? buildAssistantDisplayContent(msg) : msg.content;
-    let html = renderMarkdown(displayContent);
+    let html = renderMarkdown(msg.content);
     const currentConvId = state.currentConversationId;
     const isStreamingMsg = msg.role === 'assistant' && index === state.messages.length - 1 && state.streamingStatus.has(currentConvId);
     if (msg.role === 'assistant') {
-      // 流式期最后一条消息传 streamingCursor，光标插到 mainBody 末尾（与 updateLastMessage 一致）
-      html = renderWithCitations(html, isStreamingMsg);
+      html = renderAssistantDisplayHtml(msg, isStreamingMsg);
     }
     contentDiv.innerHTML = html;
 
