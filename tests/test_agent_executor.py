@@ -108,6 +108,9 @@ class ChatAgentDispatchTest(unittest.IsolatedAsyncioTestCase):
             body = "".join([chunk async for chunk in response.body_iterator])
 
         self.assertEqual(executor.submissions, 1)
+        self.assertIn("event: status", body)
+        self.assertIn("正在思考...", body)
+        self.assertLess(body.index("event: status"), body.index("event: chunk"))
         self.assertIn("测试回答", body)
 
 

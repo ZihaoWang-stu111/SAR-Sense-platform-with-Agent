@@ -121,6 +121,7 @@ async def chat_stream(
         def run_agent():
             """执行器任务：跑 agent + 累积 + 推 SSE + 调度存库。client 断了也跑完。"""
             nonlocal full_content
+            loop.call_soon_threadsafe(sse_queue.put_nowait, ("status", "正在思考..."))
             metrics = get_metrics()
             started_at = metrics.start_conversation()
             try:
@@ -151,7 +152,10 @@ async def chat_stream(
                 event_type, event_data = await sse_queue.get()
                 if event_type == 'done':
                     break
-                if event_type == 'thought_step':
+                if event_type == 'status':
+                    data = json.dumps({'content': event_data}, ensure_ascii=False)
+                    yield f"event: status\ndata: {data}\n\n"
+                elif event_type == 'thought_step':
                     data = json.dumps({'step': event_data}, ensure_ascii=False)
                     yield f"event: thought_step\ndata: {data}\n\n"
                 elif event_type == 'chunk':
