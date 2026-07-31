@@ -29,6 +29,7 @@ child_chunk_overlap: 40
 parent_docstore: parent_docstore.json
 bm25_cache_path: runtime/bm25_index.pkl   # BM25 索引 pickle 持久化（重启 load 而非重建，知识库变更自动失效）
 retrieve_k_children: 40          # 混合检索召回子块数（rerank 候选池；表格 caption 常缺算法名，召回弱，调大让表格进候选）
+rerank_candidate_k: 60           # 动态 RRF 融合去重后，送入 BGE 重排的最大子块数
 retrieve_k_parents: 6             # 重排+回表去重后最终喂给 LLM 的父块数（一篇论文 3 个表 + 3 text，6 能全收）
 
 # MinerU 结构感知分块（仅对 MinerU 解析的 PDF 生效；false 时退回整篇 md 语义分块）

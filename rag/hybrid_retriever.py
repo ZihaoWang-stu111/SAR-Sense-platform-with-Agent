@@ -100,9 +100,11 @@ class DynamicHybridRetriever:
         fingerprint_provider=None,
         knowledge_repository=None,
         active_chunk_ids_provider=None,
+        rerank_candidate_k=60,
     ):
         self.vector_store = vector_store
         self.k = k
+        self.rerank_candidate_k = rerank_candidate_k
         # 优先使用注入的数据库指纹判断 BM25 缓存是否有效。
         # manifest_path 仅作为旧调用方的兼容回退路径。
         self.manifest_path = manifest_path
@@ -305,11 +307,11 @@ class DynamicHybridRetriever:
 
         if query_length >= 60 and not has_exact_term:
             # 长描述更像语义问答，向量语义更可靠。
-            return [0.7, 0.3]
+            return [0.6, 0.4]
 
         if has_exact_term or has_number:
             # 型号、指标、数字和专有名词更适合关键词精确召回。
-            return [0.35, 0.65]
+            return [0.4, 0.6]
 
         if query_length <= 20 and len(tokens) <= 5:
             # 很短的问题通常是在搜关键词。
@@ -317,7 +319,7 @@ class DynamicHybridRetriever:
 
         if has_chinese and has_ascii:
             # 中英文混合问题通常既需要语义，也需要术语精确匹配。
-            return [0.45, 0.55]
+            return [0.5, 0.5]
 
         return [0.5, 0.5]
 
@@ -329,11 +331,12 @@ class DynamicHybridRetriever:
         active_chunk_ids = self._get_active_chunk_ids()
         if active_chunk_ids is not None and not active_chunk_ids:
             return []
-        return self.get_retriever(
+        candidates = self.get_retriever(
             query,
             allowed_doc_ids=allowed_doc_ids,
             active_chunk_ids=active_chunk_ids,
         ).invoke(query)
+        return candidates[:self.rerank_candidate_k]
 
     def get_retriever(self, query: str, allowed_doc_ids=None, active_chunk_ids=None):
         """根据当前 query，返回定制化权重的混合检索器"""
@@ -375,6 +378,7 @@ class DynamicHybridRetriever:
 
         ensemble_retriever = EnsembleRetriever(
             retrievers=[vector_retriever, bm25_retriever],
-            weights=weights  # <--- 去掉外面的 [ ]
+            weights=weights,
+            id_key="chunk_id",
         )
         return ensemble_retriever

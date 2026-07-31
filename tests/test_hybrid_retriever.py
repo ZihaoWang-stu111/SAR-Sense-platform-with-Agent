@@ -23,13 +23,51 @@ class DynamicHybridRetrieverTest(unittest.TestCase):
         self.assertIn("vv", tokens)
         self.assertIn("极化", tokens)
 
-    def test_dynamic_weights_favor_bm25_for_exact_metrics(self):
+    def test_dynamic_weights_use_bounded_profiles(self):
         retriever = object.__new__(DynamicHybridRetriever)
 
-        weights = retriever._get_dynamic_weights("MBE-Net 的 mAP50 和召回率是多少？")
+        cases = [
+            ("MBE-Net mAP50", [0.4, 0.6]),
+            (
+                "Explain how feature extraction improves robustness under "
+                "complex maritime backgrounds without exact model names",
+                [0.6, 0.4],
+            ),
+            ("请解释 feature extraction 在复杂背景中的作用和主要优势", [0.5, 0.5]),
+        ]
+        for query, expected in cases:
+            with self.subTest(query=query):
+                self.assertEqual(retriever._get_dynamic_weights(query), expected)
 
-        self.assertLess(weights[0], weights[1])
-        self.assertGreaterEqual(weights[1], 0.6)
+    def test_ensemble_deduplicates_by_chunk_id(self):
+        vector_store = Mock()
+        vector_store.as_retriever.return_value = object()
+        retriever = object.__new__(DynamicHybridRetriever)
+        retriever.vector_store = vector_store
+        retriever.k = 40
+        retriever.bm25_retriever = object()
+        retriever.active_chunk_ids_provider = None
+
+        with patch("rag.hybrid_retriever.EnsembleRetriever") as ensemble:
+            retriever.get_retriever("ship")
+
+        self.assertEqual(ensemble.call_args.kwargs["id_key"], "chunk_id")
+
+    def test_retrieve_limits_candidates_before_rerank(self):
+        candidates = [
+            Document(page_content=str(index), metadata={"chunk_id": str(index)})
+            for index in range(4)
+        ]
+        fused_retriever = Mock()
+        fused_retriever.invoke.return_value = candidates
+        retriever = object.__new__(DynamicHybridRetriever)
+        retriever.active_chunk_ids_provider = None
+        retriever.rerank_candidate_k = 3
+        retriever.get_retriever = Mock(return_value=fused_retriever)
+
+        results = retriever.retrieve("ship")
+
+        self.assertEqual(results, candidates[:3])
 
     def test_fingerprint_provider_drives_cache_without_manifest_access(self):
         cached_bm25 = object()

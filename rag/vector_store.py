@@ -44,6 +44,7 @@ class VectorStoreService:
         self.hybrid_engine = DynamicHybridRetriever(
             vector_store=self.vector_store,
             k=retrieve_k,
+            rerank_candidate_k=chroma_conf.get("rerank_candidate_k", 60),
             manifest_path=None,
             bm25_cache_path=get_abs_path(chroma_conf.get("bm25_cache_path", "runtime/bm25_index.pkl")),
             knowledge_repository=self.knowledge_repository,
