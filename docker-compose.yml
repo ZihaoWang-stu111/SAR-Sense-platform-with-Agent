@@ -1,9 +1,9 @@
 # SAR-Sense 一键编排：MySQL 8 + 应用
 #
 # 用法：
-#   1. 在项目根目录创建 .env，填 DASHSCOPE_API_KEY 和 TAVILY_API_KEY（参考 .env.example）
+#   1. 复制 .env.example 为 .env，至少填写密码、JWT_SECRET 和模型所需 API Key
 #   2. docker compose up --build      # 首次需要 build 应用镜像
-#   3. 浏览器打开 http://localhost:5000 ，admin / admin123 登录
+#   3. 浏览器打开 http://localhost:5000，使用 .env 中配置的管理员账号登录
 #   4. 日常启停：docker compose up  /  docker compose down
 #
 # 首次启动会下载 BGE 重排模型（约 1.1GB，进 hf_cache 卷，之后秒加载）。
@@ -13,8 +13,10 @@ services:
     image: mysql:8.0
     container_name: sar-sense-db
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: sar_sense
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 .env 设置 MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sar_sense}
+      MYSQL_USER: ${MYSQL_USER:-sar_sense}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请在 .env 设置 MYSQL_PASSWORD}
     # 强制 utf8mb4，对齐本地开发配置
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     # 调试时可在宿主机用 DB GUI 连 127.0.0.1:3307（故意避开本地 MySQL 的 3306，避免端口冲突）
@@ -25,7 +27,7 @@ services:
       - mysql_data:/var/lib/mysql
     # healthcheck 必须确认 sar_sense 库已建（不只 ping），否则应用启动时建表会失败
     healthcheck:
-      test: ["CMD-SHELL", "mysql -h 127.0.0.1 -uroot -proot -e 'SELECT 1' sar_sense --silent"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -38,14 +40,24 @@ services:
     ports:
       - "5000:5000"
     environment:
+      APP_ENV: production
+      JWT_SECRET: ${JWT_SECRET:?请在 .env 设置 JWT_SECRET}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?请在 .env 设置 ADMIN_PASSWORD}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5000}
       # MySQL 连接（指向 db 服务，容器间走 docker 网络）
       MYSQL_HOST: db
       MYSQL_PORT: "3306"
-      MYSQL_USER: root
-      MYSQL_PASSWORD: root
-      MYSQL_DATABASE: sar_sense
+      MYSQL_USER: ${MYSQL_USER:-sar_sense}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请在 .env 设置 MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sar_sense}
+      # 聊天模型可选 Ollama 或 DashScope；Ollama 默认连接宿主机服务。
+      CHAT_PROVIDER: ${CHAT_PROVIDER:-ollama}
+      CHAT_MODEL_NAME: ${CHAT_MODEL_NAME:-qwen3.5:4b}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-qwen3.7-text-embedding}
       # 重排模型走 HF 下载（容器内无本地 E:/models 路径；HF_ENDPOINT=hf-mirror.com 已在镜像内置）
-      RERANKER_MODEL_NAME: BAAI/bge-reranker-base
+      RERANKER_MODEL_NAME: ${RERANKER_MODEL_NAME:-BAAI/bge-reranker-base}
       # API key 从宿主 .env 读取注入（未设置则传空串，不阻断启动）
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
       TAVILY_API_KEY: ${TAVILY_API_KEY:-}
@@ -55,19 +67,22 @@ services:
       # Redis（限流 + 分布式锁，utils/traffic_control.py）
       REDIS_URL: redis://redis:6379/0
       TRAFFIC_CONTROL_ENABLED: "true"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
-      - app_uploads:/app/data/uploads      # 用户上传的图片/文件
+      - app_data:/app/data                  # 上传文件与不可变知识库版本
+      - app_chroma:/app/chroma_db           # Chroma 向量及 HNSW 索引
       - app_logs:/app/logs                  # 日志文件
       - app_runtime:/app/runtime            # BM25 索引缓存
       - hf_cache:/app/.cache/huggingface    # HF 模型缓存（BGE reranker，避免每次重启重下）
     restart: unless-stopped
 
-  # MinerU PDF 解析服务（CPU pipeline 后端，86.47 准确率，无需 GPU）
+  # MinerU PDF 解析服务
   # app 通过 http://mineru:8000 调用；软依赖，不阻塞 app 启动（mineru 挂了走 PyPDFLoader 兜底）。
   # 首次启动需预热模型权重：docker exec sar-sense-mineru mineru-models-download --source modelscope
   mineru:
@@ -120,7 +135,8 @@ services:
 
 volumes:
   mysql_data:
-  app_uploads:
+  app_data:
+  app_chroma:
   app_logs:
   app_runtime:
   hf_cache:

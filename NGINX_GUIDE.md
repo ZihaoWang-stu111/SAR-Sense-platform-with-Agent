@@ -172,9 +172,9 @@ nginx -t
 # 错误信息会指出哪一行有问题
 ```
 
-### 问题3：静态文件 404
+### 问题3：页面或静态资源 404
 ```bash
-# 检查路径是否正确（Windows 用正斜杠或双反斜杠）
-alias e:/agent开发trea/css/;     # 正确
-alias e:\\agent开发trea\\css\\;  # 也正确
+# 当前配置把页面、静态资源和 API 都代理给 FastAPI。
+# 先确认后端可访问：
+curl http://127.0.0.1:5000/api/health
 ```

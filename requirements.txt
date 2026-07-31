@@ -31,6 +31,7 @@ langchain-chroma==1.1.0
 langchain-text-splitters==1.1.2
 langchain-classic==1.0.7
 langchain-protocol==0.0.15
+langchain-ollama==1.1.0
 
 # --- 向量库 / 检索 ---
 chromadb==1.5.9                    # 1.x 均有 compaction，退出进程前需等待 compaction 完成，避免 HNSW 索引写半损坏
@@ -48,6 +49,19 @@ scikit-learn==1.7.2
 numpy==1.26.4
 pandas==2.2.3
 pillow==12.2.0
+opencv-python==4.11.0.86         # 4.12+ 在 Python 3.10 下要求 NumPy 2.x，与当前 NumPy 1.26 不兼容
+matplotlib==3.10.9
+scipy==1.15.3
+psutil==5.9.4
+tqdm==4.67.3
+packaging==26.0
+
+# --- 本地魔改 Ultralytics / MBE-Net 运行依赖 ---
+timm==1.0.27
+einops==0.8.2
+PyWavelets==1.8.0
+dill==0.4.1
+efficientnet-pytorch==0.7.1
 
 # --- LLM / 搜索 API ---
 dashscope==1.25.18
@@ -58,6 +72,7 @@ requests==2.34.2
 # --- 文件解析（extract_file_content 工具：PDF / docx / OCR）---
 python-docx==1.2.0               # .docx 文档解析
 PyMuPDF==1.27.2.3                # PDF 解析（import fitz）
+pdfplumber==0.11.10              # eval_rag25 的 PDF 评测集构建
 rapidocr-onnxruntime==1.4.4      # 图片 OCR（onnxruntime 推理）
 
 # --- Redis（限流 + 分布式锁，utils/traffic_control.py）---

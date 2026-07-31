@@ -15,9 +15,22 @@ __pycache__/
 .vscode/
 .codegraph/
 .claude/
+.superpowers/
 
-# 密钥（绝不进镜像层 —— .env 由 docker-compose 注入，不打进镜像）
+# 密钥（绝不进镜像层，由 Docker Compose / 部署平台注入）
 .env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+secrets*.yml
+secrets*.yaml
+id_rsa*
+id_ed25519*
+*.jks
+*.keystore
 
 # 参考 / 学习资料（运行时不需要，体积大）
 参考项目/
@@ -39,11 +52,28 @@ tests/
 # 归档的旧 Streamlit 前端
 legacy/
 
-# 运行时数据（挂载为 volume，不进镜像）
-logs/
-server.log
-runtime/
-data/uploads/
+# 运行时数据与知识库原文（挂载为 volume，不进镜像）
+/logs/
+*.log
+/runtime/
+/data/
+/chroma_db/
+/manifest.json
+/parent_docstore.json
+*.sqlite
+*.sqlite3
+*.db
+
+# 项目根 data/ 不进镜像，但 Ultralytics 的 Python 数据模块必须保留。
+!ultralytics/data/
+!ultralytics/data/**
+
+# 训练过程产物（运行时只需要 best.pt）
+**/events.out.tfevents*
+**/weights/last.pt
+**/train_batch*.jpg
+Detct_prdc/runs/
+Detct_prdc/MBE-Net/args.yaml
 
 # Windows 脚本（Linux 容器用不上）
 *.bat

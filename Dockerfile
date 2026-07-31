@@ -38,12 +38,15 @@ RUN pip install --no-cache-dir -r requirements.txt \
     -i https://pypi.tuna.tsinghua.edu.cn/simple \
     --extra-index-url https://pypi.org/simple
 
-# 拷贝项目代码 + 魔改 ultralytics + 模型权重 + 知识库数据 + 配置
-# （.dockerignore 已排除 .env / logs / runtime / 参考项目 / 评测 等）
+# 拷贝项目代码、精简后的自定义 ultralytics、模型权重和配置。
+# 本地数据、向量库、日志与密钥由 .dockerignore 排除，运行时通过卷和环境变量提供。
 COPY . .
 
-# 运行时目录占位（即便 volume 首次挂载前也要有挂载点）
-RUN mkdir -p data/uploads logs runtime .cache/huggingface
+# 使用非 root 用户运行应用；命名卷首次创建时会继承这些目录权限。
+RUN groupadd --system --gid 10001 app \
+    && useradd --system --uid 10001 --gid app --home-dir /app app \
+    && mkdir -p data logs runtime chroma_db .cache/huggingface \
+    && chown -R app:app /app
 
 # 环境变量
 ENV PYTHONUNBUFFERED=1 \
@@ -53,6 +56,8 @@ ENV PYTHONUNBUFFERED=1 \
     HF_HOME=/app/.cache/huggingface
 
 EXPOSE 5000
+
+USER app
 
 # 用项目入口启动（保留你熟悉的启动方式 + banner）
 CMD ["python", "api_server_fastapi.py"]
