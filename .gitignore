@@ -1,33 +1,57 @@
-# Vendored YOLO - 不需要索引
-ultralytics/
-
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+.venv/
+venv/
+
+# 环境变量与本地密钥
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+secrets*.yml
+secrets*.yaml
+id_rsa*
+id_ed25519*
+*.jks
+*.keystore
 
 # ChromaDB
-chroma_db/
+/chroma_db/
 
-# CodeGraph
+# 本地开发工具
 .codegraph/
-
-# IDE
+.claude/
+.superpowers/
 .idea/
 .vscode/
 
 # 运行时数据
-conversations/
-logs/
-server.log
-runtime/
-manifest.json
-parent_docstore.json
-data/uploads/
-data/
+/conversations/
+/logs/
+*.log
+/runtime/
+/manifest.json
+/parent_docstore.json
+/data/
 
 # 数据库文件（SQLite 等，防止误入库）
 *.sqlite3
+*.sqlite
 *.db
 
 # 一次性迁移/参考项目
@@ -36,6 +60,9 @@ utils/migrate_sqlite_to_mysql.py
 
 # 本地/工具专用说明与评测产物
 CLAUDE.md
+plan.md
+docs/superpowers/
+工程审查报告.md
 eval/results/
 
 # 学习/demo/参考资料（不进仓库）
@@ -47,14 +74,21 @@ mcp-learning/
 Thumbs.db
 .DS_Store
 
-# 临时测试脚本/目录（不进仓库）
+# 临时脚本与生成结果
 _tmp*
-.superpowers/
+_verify_*
+*.tmp
+tests/analyze_output.txt
+
+# 模型训练产生的可再生成文件（保留 best.pt 和手工挑选的展示图）
+**/events.out.tfevents*
+**/weights/last.pt
+**/train_batch*.jpg
+Detct_prdc/MBE-Net/args.yaml
+Detct_prdc/runs/
 
 # 个人简历 / Word 文档（不入仓库）
 *.docx
 *.docx.bak
 ~$*
-data/MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf
 PROJECT_REVIEWer.md
-.gitignore
