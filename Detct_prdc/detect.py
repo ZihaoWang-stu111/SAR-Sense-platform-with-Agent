@@ -1,25 +1,37 @@
-import warnings
-warnings.filterwarnings('ignore')
+"""使用项目内 MBE-Net 权重执行本地批量检测。"""
+
+import argparse
+from pathlib import Path
+
 from ultralytics import YOLO
-# BILIBILI UP 魔傀面具
-# 推理参数官方详解链接：https://docs.ultralytics.com/modes/predict/#inference-sources:~:text=of%20Results%20objects-,Inference%20Arguments,-model.predict()
 
-# 预测框粗细和颜色修改问题可看<使用说明.md>下方的<YOLOV8源码常见疑问解答小课堂>第六点
 
-if __name__ == '__main__':
-    model = YOLO('E:/agent开发/Detct_prdc/MBE-Net/weights/best.pt') # select your model.pt path
-    model.predict(source='E:/shiyantu/images',
-                  imgsz=640,
-                  project='runs/detect',
-                  name='exp',
-                  save=True,
-                  # conf=0.2,
-                  # iou=0.7,
-                  # agnostic_nms=True,
-                  # visualize=True, # visualize model features maps
-                  # line_width=2, # line width of the bounding boxes
-                  # show_conf=False, # do not show prediction confidence
-                  # show_labels=False, # do not show prediction labels
-                  # save_txt=True, # save results as .txt file
-                  # save_crop=True, # save cropped images with results
-                )
+PROJECT_DIR = Path(__file__).resolve().parent
+DEFAULT_MODEL = PROJECT_DIR / "MBE-Net" / "weights" / "best.pt"
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="MBE-Net SAR 舰船检测")
+    parser.add_argument("source", type=Path, help="待检测图片、视频或目录")
+    parser.add_argument("--model", type=Path, default=DEFAULT_MODEL, help="本地 .pt 权重路径")
+    parser.add_argument("--imgsz", type=int, default=640, help="推理图片尺寸")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=PROJECT_DIR / "runs" / "detect",
+        help="检测结果目录",
+    )
+    args = parser.parse_args()
+
+    model = YOLO(str(args.model))
+    model.predict(
+        source=str(args.source),
+        imgsz=args.imgsz,
+        project=str(args.output),
+        name="exp",
+        save=True,
+    )
+
+
+if __name__ == "__main__":
+    main()
