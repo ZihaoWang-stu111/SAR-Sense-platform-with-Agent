@@ -1,9 +1,9 @@
-chat_provider: ollama          # ollama / dashscope（默认 dashscope）
+chat_provider: ollama          # 可选 ollama / dashscope
 chat_model_name: qwen3.5:4b     # Ollama 模型名（chat_provider=dashscope 时为 DashScope 模型名）
 ollama_base_url: http://localhost:11434
 embedding_model_name: qwen3.7-text-embedding
-# 本地开发用本地路径（秒加载）；容器里改成 BAAI/bge-reranker-base 或删掉（自动从 HF 下载）
-reranker_model_name: E:/models/Xorbits/bge-reranker-base
+# 默认从 Hugging Face 下载；本地已有模型时可通过 RERANKER_MODEL_NAME 覆盖为本机路径。
+reranker_model_name: BAAI/bge-reranker-base
 
 # MinerU PDF 解析服务（可选，失败自动回退 PyPDFLoader）
 # docker 部署时由 compose 注入 MINERU_API_URL=http://mineru:8000 覆盖下面这行

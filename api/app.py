@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import threading
 
 from fastapi import FastAPI
@@ -23,12 +24,19 @@ from api.routers import (
 logger = logging.getLogger(__name__)
 
 
+def _cors_origins() -> list[str]:
+    configured = os.getenv("CORS_ORIGINS", "")
+    if configured:
+        return [origin.strip() for origin in configured.split(",") if origin.strip()]
+    return ["http://localhost:5000", "http://127.0.0.1:5000"]
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="SAR-Sense API", version="2.0")
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=_cors_origins(),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -45,6 +53,10 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def startup_event():
         """Startup: 1) 建表 + 种子用户  2) 后台预加载重对象"""
+        app_env = os.getenv("APP_ENV", "development").lower()
+        admin_username = os.getenv("ADMIN_USERNAME", "admin")
+        admin_password = os.getenv("ADMIN_PASSWORD")
+
         # 1. 异步建表（幂等）：从 models 包导入所有模型注册到同一 metadata
         try:
             from config.db_conf import async_engine
@@ -53,10 +65,10 @@ def create_app() -> FastAPI:
             async with async_engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
             logger.info("DB 表已建（或已存在）")
-            # 2. 种子用户：admin/admin123（幂等）
+            # 2. 幂等创建或修正种子管理员；生产环境密码必须由环境变量提供。
             from config.db_conf import AsyncSessionLocal
             from crud.users import (
-                count_users,
+                count_admin_users,
                 create_user,
                 ensure_user_role_column,
                 get_user_by_username,
@@ -68,16 +80,26 @@ def create_app() -> FastAPI:
             async with AsyncSessionLocal() as session:
                 await ensure_user_role_column(session)
                 await ensure_conversation_rag_results_column(session)
-                if (await count_users(session)) == 0:
-                    await create_user(session, "admin", hash_password("admin123"), role=ROLE_ADMIN)
-                    logger.info("已创建种子用户 admin/admin123")
-                else:
-                    admin_user = await get_user_by_username(session, "admin")
-                    if admin_user and admin_user.role != ROLE_ADMIN:
-                        await update_user_role(session, admin_user, ROLE_ADMIN)
-                        logger.info("已修正 admin 用户角色")
+                admin_user = await get_user_by_username(session, admin_username)
+                if admin_user is None and (await count_admin_users(session)) == 0:
+                    if not admin_password:
+                        raise RuntimeError(
+                            "首次启动必须通过环境变量 ADMIN_PASSWORD 配置管理员密码"
+                        )
+                    await create_user(
+                        session,
+                        admin_username,
+                        hash_password(admin_password),
+                        role=ROLE_ADMIN,
+                    )
+                    logger.info(f"已创建种子管理员 {admin_username}")
+                elif admin_user and admin_user.role != ROLE_ADMIN:
+                    await update_user_role(session, admin_user, ROLE_ADMIN)
+                    logger.info(f"已修正 {admin_username} 用户角色")
                 await session.commit()
         except Exception as e:
+            if app_env in {"production", "prod"}:
+                raise
             logger.warning(f"DB 建表/种子用户失败: {e}")
 
         # 3. 后台预加载（同步对象，不阻塞 startup）

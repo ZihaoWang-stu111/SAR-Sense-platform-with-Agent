@@ -1,16 +1,16 @@
-"""认证安全工具（纯函数，无 FastAPI 依赖）。
-
-bcrypt 做密码哈希，PyJWT 签发/校验 token。
-求职项目最简实现：SECRET_KEY 硬编码常量（生产环境改为环境变量）。
-"""
+"""认证安全工具：bcrypt 密码哈希与 JWT 签发、校验。"""
 import os
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
+from dotenv import load_dotenv
 
-# 求职项目：硬编码 secret。生产环境应改为 os.getenv("JWT_SECRET") 或从配置读。
-SECRET_KEY = os.getenv("JWT_SECRET", "sar-sense-dev-secret-change-in-production-2026")
+load_dotenv()
+
+SECRET_KEY = os.getenv("JWT_SECRET")
+if not SECRET_KEY:
+    raise RuntimeError("必须通过环境变量 JWT_SECRET 配置 JWT 签名密钥")
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_DAYS = 7
 

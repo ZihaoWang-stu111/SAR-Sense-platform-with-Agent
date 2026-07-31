@@ -1,6 +1,6 @@
 import os
-os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
 from rag.vector_store import get_vector_store_service
 from utils.prompt_loader import load_rag_prompts

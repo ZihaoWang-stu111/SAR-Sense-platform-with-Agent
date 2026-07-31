@@ -1,20 +1,23 @@
-"""异步 MySQL 引擎 + AsyncSession + get_db 依赖（对齐参考方式）。
-
-库：sar_sense（root/root），utf8mb4。
-业务路由通过 Depends(get_db) 注入 AsyncSession；crud 函数全部 async。
-"""
+"""MySQL 同步/异步引擎与 FastAPI 请求级 AsyncSession。"""
 import os
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-# 通过环境变量注入连接信息：本地默认 localhost/root/root（不设 env 照常工作），
-# Docker 部署时由 compose 注入 MYSQL_HOST=db 等。
+# db_conf 可能先于 config_handler 被导入，需独立确保本地 .env 已加载。
+load_dotenv()
+
+_MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
+if not _MYSQL_PASSWORD:
+    raise RuntimeError("必须通过环境变量 MYSQL_PASSWORD 配置数据库密码")
+
+# 用户名和地址可采用本地开发默认值，密码必须显式注入。
 _DATABASE_OPTIONS = {
     "username": os.getenv("MYSQL_USER", "root"),
-    "password": os.getenv("MYSQL_PASSWORD", "root"),
+    "password": _MYSQL_PASSWORD,
     "host": os.getenv("MYSQL_HOST", "localhost"),
     "port": int(os.getenv("MYSQL_PORT", "3306")),
     "database": os.getenv("MYSQL_DATABASE", "sar_sense"),

@@ -1,10 +1,9 @@
 import os
 
-# 🌟 保留防崩咒语，防止 Windows 下的 OpenMP/MKL DLL 冲突
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
-os.environ["ANONYMIZED_TELEMETRY"] = "False"
-# 🚨 注意：这里已经删除了禁用显卡的代码
+# Windows 本地默认值；部署环境可在导入前显式覆盖。
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
 
 from sentence_transformers import CrossEncoder
 from langchain_core.documents import Document
@@ -13,9 +12,7 @@ from utils.logger_handler import logger
 
 class BGERerankerService:
     def __init__(self, model_name=None):
-        # 三级回退：环境变量(容器注入) → 配置(rag.yml reranker_model_name，本地路径) → 公共模型名(任何机器可拉)
-        # 这样本地开发继续用 rag.yml 里的 E:/... 路径（秒加载、禁联网），
-        # Docker 里 compose 注入 RERANKER_MODEL_NAME=BAAI/bge-reranker-base 走 HF 下载。
+        # 环境变量优先；配置默认使用公开模型名，也允许覆盖成本地模型路径。
         if not model_name:
             from utils.config_handler import rag_conf
             model_name = os.getenv("RERANKER_MODEL_NAME") or rag_conf.get("reranker_model_name") or "BAAI/bge-reranker-base"
@@ -31,7 +28,7 @@ class BGERerankerService:
             logger.info("✅ BGE 重排模型加载完成")
         except Exception as e:
             logger.error(f"❌ 模型加载失败: {e}", exc_info=True)
-            raise e
+            raise
 
     def rerank(self, query: str, documents: list[Document], score_threshold: float = 0.3) -> list[Document]:
         if not documents:
