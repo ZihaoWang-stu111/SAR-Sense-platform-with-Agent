@@ -31,7 +31,7 @@
 ### SQLite → MySQL（异步 SQLAlchemy + aiomysql）
 - 对齐根目录 `参考项目/` 的分层架构：新建 `config/db_conf.py`（异步 engine + get_db 依赖）、`models/`（4 个 ORM 模型）、`schemas/`（Pydantic 请求模型）、`crud/`（异步 CRUD 函数）。
 - 业务表 4 张：`users` / `conversations` / `conversation_messages`（thought_steps 用 MySQL JSON 列，UNIQUE(conversation_id, message_index)）/ `metric_events`。
-- 表结构由 `Base.metadata.create_all` 在 startup 自动创建；种子用户 `admin`/`admin123` 自动创建。
+- 表结构由 `Base.metadata.create_all` 在 startup 自动创建；种子管理员由环境变量配置，生产环境不接受空密码。
 - [utils/migrate_sqlite_to_mysql.py](utils/migrate_sqlite_to_mysql.py)：一次性把旧 SQLite（runtime/sar_sense.db）的 1 用户 + 29 对话 + 62 消息 + 3 指标导入 MySQL。
 - 删掉旧 `utils/db.py`（同步 sqlite3）+ `utils/migrate_sqlite.py`。
 - AgentMetrics 保留内存计数（`/api/metrics` 读内存），额外同步 pymysql 写 `metric_events`（LangChain middleware 是同步的，不能走 async session）。

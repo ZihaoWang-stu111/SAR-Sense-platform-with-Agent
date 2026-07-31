@@ -329,7 +329,7 @@ data/.knowledge_versions/abc123/report.pdf
 这样数据库不会保存当前机器专属的绝对路径：
 
 ```text
-不保存：E:\\agent开发trea\\data\\.knowledge_versions\\abc\\report.pdf
+不保存：E:\\sar-sense\\data\\.knowledge_versions\\abc\\report.pdf
 保存：  .knowledge_versions/abc/report.pdf
 ```
 

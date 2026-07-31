@@ -80,7 +80,7 @@ MySQL `sar_sense` is the source of truth for users, conversations, knowledge met
 - **utils/security.py** — `hash_password`/`verify_password` (bcrypt direct, no passlib) + `create_access_token`/`decode_token` (PyJWT, 7-day expiry).
 - **api/auth.py** — `get_current_user(token, db)` decodes the JWT, then reloads the current user from MySQL so role changes take effect on the next request. `require_admin(user)` checks `role == "admin"` and returns 403 otherwise.
 - **Frontend** ([js/auth.js](js/auth.js)) — token in `localStorage`, `apiFetch()` wrapper injects `Authorization: Bearer <token>`, 401 → redirect to login.
-- **RBAC**: knowledge upload/delete/ACL changes and user-role management require `admin`; list/download/retrieval enforce each document's `allowed_roles`. Seed user: `admin`/`admin123` with role `admin`.
+- **RBAC**: knowledge upload/delete/ACL changes and user-role management require `admin`; list/download/retrieval enforce each document's `allowed_roles`. The seed administrator is configured through `ADMIN_USERNAME` and `ADMIN_PASSWORD`; production startup rejects an empty password.
 
 ### Detection ([Detct_prdc/](Detct_prdc/))
 
