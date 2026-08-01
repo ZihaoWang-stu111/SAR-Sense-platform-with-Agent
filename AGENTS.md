@@ -2,7 +2,7 @@
 
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
-> **Note**: This file is kept in sync with the current codebase. The Streamlit frontend has been archived (see [legacy/](legacy/)); FastAPI is the sole active entry point.
+> **Note**: This file is kept in sync with the current codebase. FastAPI is the sole active entry point.
 
 ## Project Overview
 
@@ -14,7 +14,7 @@ SAR-Sense: an intelligent platform for SAR (Synthetic Aperture Radar) ship detec
 ```bash
 conda activate rag_env_backup
 ```
-There is **no root `requirements.txt`** in this repository; the only requirements file is under `参考项目/` and belongs to the reference project. Runtime API keys are documented in [.env.example](.env.example): copy it to `.env` and fill `DASHSCOPE_API_KEY` for ChatTongyi/DashScope embeddings and `TAVILY_API_KEY` for web search.
+Install dependencies from the root [requirements.txt](requirements.txt). Runtime configuration is documented in [.env.example](.env.example); copy it to `.env` and fill the required model and external-service settings.
 
 **FastAPI frontend (primary and only active frontend):**
 ```bash
@@ -23,8 +23,6 @@ python api_server_fastapi.py
 start_server.bat
 ```
 Port 5000. Entry point delegates to [api/app.py](api/app.py) (`create_app()`), which mounts static `css/` `js/` `assets/`, registers global exception handlers, and includes routers under `api/routers/`. Swagger at `/docs`.
-
-**Streamlit frontend (ARCHIVED, do not use):** moved to [legacy/streamlit_app.py](legacy/streamlit_app.py) (originally root `app.py`). It is **not runnable** — `utils.conversation_manager` was removed, so it is kept only for historical reference. See [legacy/README.md](legacy/README.md). Do not attempt to fix it; work on the FastAPI main line instead.
 
 ## Architecture
 
@@ -56,18 +54,17 @@ Port 5000. Entry point delegates to [api/app.py](api/app.py) (`create_app()`), w
 - **vector_store.py** — ChromaDB singleton (`get_vector_store_service()`). Loads docs, applies semantic + parent-child chunking (controlled by [config/chroma.yml](config/chroma.yml)), embeds versioned child chunks into Chroma, and persists document metadata and parent chunks to MySQL. Uploads activate a complete new generation before cleaning up the old one.
 - **hybrid_retriever.py** — `DynamicHybridRetriever`: vector + BM25 ensemble with dynamic weights. Both routes filter by active MySQL chunk ids, so failed or superseded generations cannot be recalled. The BM25 pickle is keyed by a database-derived knowledge fingerprint plus the `preprocess_func` qualname.
 - **parent_child_retriever.py** — `ParentChildResolver.resolve(child_docs)`: dedup hit child blocks → fetch corresponding parent blocks, preserving rerank order.
-- **parent_docstore.py** — retains the legacy JSON `ParentDocstore` only for migration compatibility; it is not the runtime parent-chunk persistence layer.
 - **repositories/parent_chunk_repository.py** — `ParentChunkRepository` owns runtime SQLAlchemy persistence and batched lookup for `parent_chunks`, avoiding one query per hit.
 - **reranker.py** — `BGERerankerService` (bge-reranker-base, CPU). Pure function by design: never mutates inputs, builds new `Document` instances with shallow-copied metadata + `rerank_score`. Default `score_threshold=0.3`; eval passes 0.0.
 - **rag_service.py** — `RagSummarizeService.retriever_docs(query)` flow: retrieve children (hybrid) → rerank on children → resolve to parents in rerank order (RR→PC).
 
 ### Model Layer ([model/factory.py](model/factory.py))
 
-Factory for `chat_model` (ChatTongyi, deepseek-v3.2) and `embeddings` (DashScopeEmbeddings, text-embedding-v4) — both DashScope. Configured via [config/rag.yml](config/rag.yml). Both are module-level singletons (eager init at import).
+Factory for the configured chat provider (Ollama or DashScope) and DashScope embeddings. The current [config/rag.yml](config/rag.yml) selects local Ollama for chat and DashScope for embeddings. Both are module-level singletons (eager init at import).
 
 ### Storage Layer: MySQL + SQLAlchemy 2.0 (async request data + sync RAG/metrics)
 
-MySQL `sar_sense` is the source of truth for users, conversations, knowledge metadata, parent chunks, ACL, and metric events. FastAPI request CRUD uses async SQLAlchemy + aiomysql; synchronous LangChain/RAG persistence is isolated in `repositories/` and uses SQLAlchemy + PyMySQL through `SyncSessionLocal`. Chroma holds child vectors and `data/.knowledge_versions/<uuid>/` holds immutable, versioned source files. Root `manifest.json` and `parent_docstore.json` are legacy migration inputs/backups and are no longer written at runtime.
+MySQL `sar_sense` is the source of truth for users, conversations, knowledge metadata, parent chunks, ACL, and metric events. FastAPI request CRUD uses async SQLAlchemy + aiomysql; synchronous LangChain/RAG persistence is isolated in `repositories/` and uses SQLAlchemy + PyMySQL through `SyncSessionLocal`. Chroma holds child vectors and `data/.knowledge_versions/<uuid>/` holds immutable, versioned source files. Local `manifest.json` and `parent_docstore.json` files, if present, are obsolete backups and are not required by the application.
 
 - **config/db_conf.py** — `async_engine`, `AsyncSessionLocal`, `get_db()` dependency (commit/rollback/close).
 - **models/** — shared `Base(DeclarativeBase)` + ORM models for users, conversations/messages, `KnowledgeDocument`, `ParentChunk`, and `MetricEvent`.
@@ -95,7 +92,7 @@ Forked copy of YOLO v8.3.9 with custom NN modules (mamba, cutlass, DCNv2/v3/v4, 
 
 | File | Purpose |
 |------|---------|
-| `rag.yml` | Chat model (`deepseek-v3.2`), embedding model (`text-embedding-v4`) |
+| `rag.yml` | Chat provider/model, embedding model, reranker, and MinerU endpoint |
 | `chroma.yml` | Collection name, chunk sizes, semantic/parent-child toggles, separators, `retrieve_k_children`, `retrieve_k_parents` |
 | `prompts.yml` | Paths to prompt template files |
 | `agent.yml` | External data path, Tavily API key |
@@ -104,9 +101,9 @@ All loaded at import time by [utils/config_handler.py](utils/config_handler.py) 
 
 ## Key Technical Details
 
-- **LLM Provider**: Alibaba Cloud DashScope (ChatTongyi / DashScopeEmbeddings)
+- **LLM Provider**: configurable Ollama or DashScope chat model; DashScope embeddings
 - **Vector DB**: ChromaDB, persisted locally in `chroma_db/`
-- **Parent docstore**: MySQL `parent_chunks`; `parent_docstore.json` is retained only as a migration backup
+- **Parent storage**: MySQL `parent_chunks`
 - **Knowledge base metadata/dedup**: MySQL `knowledge_documents`, keyed by SHA-256-derived document identity, **not MD5**
 - **Detection Model**: YOLO via vendored ultralytics, loaded once via the `get_yolo_model()` lazy singleton in [api/dependencies.py](api/dependencies.py) (shared by `/api/detect` and the `detect_ships` agent tool)
 - **Agent Framework**: LangChain `create_agent` (langgraph-based), streaming via `agent.stream()`

@@ -15,9 +15,7 @@
 文档状态和 child_ids -> MySQL 的 knowledge_documents 表
 ~~~
 
-当前运行时使用 repositories/parent_chunk_repository.py 的 ParentChunkRepository。
-
-rag/parent_docstore.py 仍然存在，但它是旧 JSON 实现，主要用于迁移兼容，不是当前运行时的父块存储。
+当前运行时只使用 repositories/parent_chunk_repository.py 的 ParentChunkRepository。旧 JSON 实现已经从代码库移除。
 
 ## 2. 先区分四种数据
 
@@ -705,4 +703,3 @@ MySQL 提供父块完整正文
 RAG 先召回并重排子块，再按 parent_id 批量回表，
 最后把去重后的父块交给 LLM。
 ~~~
-

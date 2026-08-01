@@ -1011,16 +1011,6 @@ hybrid_engine.retrieve(query, allowed_doc_ids=...)
 
 它属于查询入口，不参与入库。
 
-### `manifest` 属性
-
-从 MySQL 动态生成兼容旧调用方的 manifest 字典：
-
-```python
-knowledge_repository.as_manifest()
-```
-
-它不再读取或写入根目录的 `manifest.json`。
-
 ### `get_vector_store_service()`
 
 使用双重检查锁创建进程内共享的 `VectorStoreService` 实例，避免 API、RAG 工具和知识库管理各自创建一套 Chroma/BM25 对象。
@@ -1036,7 +1026,6 @@ knowledge_repository.as_manifest()
 | `get_vector_store_service()` | 模块函数 | 创建并复用进程内的 `VectorStoreService` |
 | `VectorStoreService.__init__()` | 初始化 | 组装 MySQL、分块器、Chroma、混合检索器和父块 Repository |
 | `retrieve()` | 查询入口 | 把查询交给混合检索器 |
-| `manifest` | 兼容属性 | 从 MySQL 生成旧 manifest 结构 |
 | `_snapshot_document()` | 更新辅助函数 | 保存旧版本清理所需的 ID 和路径 |
 | `_cleanup_staged_generation()` | 失败清理函数 | 删除本次入库已经产生的半成品 |
 | `_delete_original_file()` | 文件删除辅助函数 | 在 `data/` 范围内安全删除原始文件 |

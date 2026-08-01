@@ -15,14 +15,7 @@ Knowledge file ACL is stored in MySQL table `knowledge_documents`.
 - `allowed_roles = ["researcher"]`: visible to admin and researcher.
 - Admin is always allowed, even if the role list is empty.
 
-Legacy files imported from `manifest.json` default to admin-only. After the cutover, `manifest.json` and `parent_docstore.json` are migration backups only; MySQL is the runtime source of truth:
-
-```bash
-python -m utils.migrate_knowledge_mysql
-python -m utils.migrate_knowledge_mysql --check
-```
-
-Run migration while knowledge writes are stopped, after backing up MySQL, `chroma_db/`, `data/`, and both legacy JSON files. `--check` compares those static JSON snapshots with the current MySQL and Chroma state, so it is intended for the initial cutover verification only. Once runtime uploads or deletes begin and the JSON backups stop changing, this legacy comparison is expected to drift.
+MySQL is the only runtime source of truth. Existing local JSON data has completed its one-time cutover; new installations create ACL records through the current upload flow and do not depend on legacy JSON files.
 
 ## Request Flow
 
@@ -60,8 +53,6 @@ This avoids the unsafe pattern of “full-library top-k, then filter”, which c
 ```bash
 python -m compileall api agent rag crud schemas utils tests
 python -m unittest tests.test_rag_acl_retrieval -v
-# Initial cutover only; see the migration note above.
-python -m utils.migrate_knowledge_mysql --check
 ```
 
 Manual checks:

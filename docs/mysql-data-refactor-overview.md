@@ -301,8 +301,6 @@ fingerprint()
 
 `fingerprint()` 根据 active 文档的身份、hash、版本位置、chunk 列表和计数等信息生成知识库指纹，供 BM25 缓存判断是否过期。
 
-最后，`as_manifest()` 会把 MySQL 当前数据临时转换为旧的 manifest 字典结构。它只是兼容层，不代表运行时又回到了 JSON 存储。
-
 ### 6.2 `ParentChunkRepository`
 
 [`repositories/parent_chunk_repository.py`](../repositories/parent_chunk_repository.py) 负责 `parent_chunks`。
@@ -778,7 +776,7 @@ parent_docstore.json
   -> 不再作为运行时主写入目标
 ```
 
-`rag/parent_docstore.py` 中保留的 `ParentDocstore` 只是旧 JSON 存储实现，用于兼容迁移来源。运行时父块查询走 [`repositories/parent_chunk_repository.py`](../repositories/parent_chunk_repository.py)。
+旧 JSON 父块实现已经移除，运行时父块查询只走 [`repositories/parent_chunk_repository.py`](../repositories/parent_chunk_repository.py)。
 
 ---
 
@@ -800,8 +798,6 @@ parent_docstore.json
 | [`api/routers/knowledge.py`](../api/routers/knowledge.py) | 上传、列出、下载、修改权限和删除知识库文件 |
 | [`api/routers/metrics.py`](../api/routers/metrics.py) | 从 Repository 获取历史指标并处理管理员重置 |
 | [`schemas/knowledge.py`](../schemas/knowledge.py) | 定义知识库 API 请求和响应模型 |
-| [`rag/parent_docstore.py`](../rag/parent_docstore.py) | 仅保留旧 JSON 父块实现，作为迁移兼容代码 |
-
 中间方案中的 `KnowledgeStore`、`MetricsStore` 和 `MySQLParentDocstore` 已分别收敛为三个 Repository，不再保留两套长期并存的命名和入口。
 
 ---
@@ -827,7 +823,7 @@ parent_docstore.json
 4. 旧数据清理属于维护动作，强制停止时可能短暂留下孤儿向量、父块或版本文件。
 5. active chunk ID 过滤保证孤儿数据不会被正常召回，但不会自动抹除所有孤儿文件。
 6. 指标虽然带有 `user_id`，当前展示接口仍然做全局聚合。
-7. `rag/parent_docstore.py` 和根目录两个 JSON 文件暂时保留，是为了迁移和回滚，而不是运行时依赖。
+7. 根目录若仍有旧 JSON 文件，它们只是本地备份，不参与运行；兼容实现和一次性迁移代码已移除。
 
 ---
 
