@@ -1,14 +1,11 @@
 import os
-import inspect
 import sys
-import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from langchain_core.documents import Document
 
-from rag.parent_docstore import ParentDocstore
 from rag.parent_child_retriever import ParentChildResolver
 
 
@@ -29,31 +26,19 @@ class BatchOnlyParentStore:
         raise AssertionError(f"per-parent lookup is forbidden: {parent_id}")
 
 
-def test_parent_docstore_crud():
-    tmpdir = tempfile.mkdtemp()
-    store_path = os.path.join(tmpdir, "test_docstore.json")
-    ds = ParentDocstore(store_path)
-    ds.save(
-        "doc1:parent:000",
-        "parent text here",
-        {"parent_id": "doc1:parent:000", "doc_id": "doc1", "chunk_type": "parent"},
-    )
-    assert ds.get("doc1:parent:000")["page_content"] == "parent text here"
-    assert ds.count() == 1
-    ds.delete_many(["doc1:parent:000"])
-    assert ds.count() == 0
-
-
 def test_resolver_dedupe_and_fallback():
-    tmpdir = tempfile.mkdtemp()
-    store_path = os.path.join(tmpdir, "test_docstore.json")
-    ds = ParentDocstore(store_path)
-    ds.save(
-        "doc1:parent:000",
-        "full parent context about MBE-Net mAP 92.3%",
-        {"parent_id": "doc1:parent:000", "filename": "test.txt"},
+    store = BatchOnlyParentStore(
+        {
+            "doc1:parent:000": {
+                "page_content": "full parent context about MBE-Net mAP 92.3%",
+                "metadata": {
+                    "parent_id": "doc1:parent:000",
+                    "filename": "test.txt",
+                },
+            }
+        }
     )
-    resolver = ParentChildResolver(ds, top_k_parents=2)
+    resolver = ParentChildResolver(store, top_k_parents=2)
     children = [
         Document(
             page_content="mAP 92.3%",
@@ -69,8 +54,10 @@ def test_resolver_dedupe_and_fallback():
     assert "MBE-Net" in parents[0].page_content
     assert parents[0].metadata["match_child_id"] == "doc1:parent:000:child:000"
 
-    legacy = [Document(page_content="old chunk", metadata={"chunk_id": "abc_0"})]
-    assert resolver.resolve(legacy) == legacy
+    child_without_parent = [
+        Document(page_content="standalone chunk", metadata={"chunk_id": "abc_0"})
+    ]
+    assert resolver.resolve(child_without_parent) == child_without_parent
 
 
 def test_resolver_batches_parent_lookup_and_preserves_ranked_first_hits():
@@ -153,14 +140,6 @@ class ParentChildResolverBatchTest(unittest.TestCase):
     def test_batch_lookup_contract(self):
         test_resolver_batches_parent_lookup_and_preserves_ranked_first_hits()
 
-    def test_resolver_depends_on_parent_store_protocol_not_json_implementation(self):
-        annotation = inspect.signature(ParentChildResolver.__init__).parameters[
-            "parent_docstore"
-        ].annotation
-
-        self.assertIsNot(annotation, ParentDocstore)
-        self.assertNotEqual(annotation, "ParentDocstore")
-
 
 def test_config_enabled():
     from utils.config_handler import chroma_conf
@@ -169,7 +148,6 @@ def test_config_enabled():
 
 
 if __name__ == "__main__":
-    test_parent_docstore_crud()
     test_resolver_dedupe_and_fallback()
     test_config_enabled()
     print("ALL UNIT TESTS PASSED")

@@ -1,6 +1,4 @@
 import hashlib
-import json
-from datetime import datetime
 from utils.logger_handler import logger
 import os
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
@@ -27,64 +25,6 @@ def get_file_hash(file_path):
         logger.error(f"计算 {file_path} 失败，{e}")
         return None
 
-
-# ==================== Manifest 管理 ====================
-
-def load_manifest(manifest_path):
-    """加载 manifest.json → Python dict（O(1) 查询）"""
-    if not os.path.exists(manifest_path):
-        return {}
-    try:
-        with open(manifest_path, 'r', encoding='UTF-8') as f:
-            return json.load(f)
-    except (json.JSONDecodeError, Exception) as e:
-        logger.warning(f"manifest.json 解析失败，重建空 manifest: {e}")
-        return {}
-
-
-def save_manifest(manifest_path, manifest):
-    """持久化 manifest.json"""
-    with open(manifest_path, 'w', encoding='UTF-8') as f:
-        json.dump(manifest, f, indent=2, ensure_ascii=False)
-
-
-def check_file_status(manifest, filename, file_hash):
-    """判断文件状态：NEW / UPDATED / SAME / DUPLICATE
-    DUPLICATE: 同名不在 manifest 中，但 hash 与其他文件相同 → 内容重复"""
-    if filename not in manifest:
-        # 全局 hash 去重：同名不存在，但内容可能和别的文件一样
-        for other_name, entry in manifest.items():
-            if entry.get("file_hash") == file_hash:
-                return "DUPLICATE"
-        return "NEW"
-    if manifest[filename]["file_hash"] != file_hash:
-        return "UPDATED"
-    return "SAME"
-
-
-def update_manifest_entry(manifest, filename, doc_id, file_hash,
-                          chunk_count, chunk_ids, chunk_method, file_type,
-                          parent_ids=None, parent_count=None, child_count=None):
-    """更新/新增 manifest 条目"""
-    entry = {
-        "doc_id": doc_id,
-        "file_hash": file_hash,
-        "chunk_count": chunk_count,
-        "chunk_ids": chunk_ids,
-        "chunk_method": chunk_method,
-        "file_type": file_type,
-        "ingested_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-        "status": "active"
-    }
-    if parent_ids is not None:
-        entry["parent_ids"] = parent_ids
-        entry["parent_count"] = parent_count
-        entry["child_count"] = child_count
-    manifest[filename] = entry
-    return manifest
-
-
-# ==================== 原有函数（不变） ====================
 
 def listdir_with_allowed_type(path, allowed_types):
 

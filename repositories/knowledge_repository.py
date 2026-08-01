@@ -209,51 +209,6 @@ class KnowledgeRepository:
                 session.rollback()
                 raise
 
-    def as_manifest(self) -> dict[str, dict]:
-        with self.session_factory() as session:
-            docs = list(
-                session.scalars(
-                    select(KnowledgeDocument)
-                    .where(KnowledgeDocument.status == "active")
-                    .order_by(KnowledgeDocument.filename)
-                ).all()
-            )
-            manifest = {}
-            for doc in docs:
-                entry = {
-                    "doc_id": doc.doc_id,
-                    "file_hash": doc.file_hash,
-                    "chunk_count": doc.chunk_count,
-                    "chunk_ids": list(doc.chunk_ids or []),
-                    "chunk_method": doc.chunk_method,
-                    "file_type": doc.file_type,
-                    "ingested_at": (
-                        doc.ingested_at.strftime("%Y-%m-%dT%H:%M:%S")
-                        if doc.ingested_at
-                        else None
-                    ),
-                    "status": doc.status,
-                }
-                if doc.parent_count is not None:
-                    parent_ids = []
-                    seen_parent_ids = set()
-                    for chunk_id in doc.chunk_ids or []:
-                        if ":child:" not in chunk_id:
-                            continue
-                        parent_id = chunk_id.rsplit(":child:", 1)[0]
-                        if parent_id not in seen_parent_ids:
-                            seen_parent_ids.add(parent_id)
-                            parent_ids.append(parent_id)
-                    entry.update(
-                        {
-                            "parent_ids": parent_ids,
-                            "parent_count": doc.parent_count,
-                            "child_count": doc.child_count,
-                        }
-                    )
-                manifest[doc.filename] = entry
-            return manifest
-
     def fingerprint(self) -> str:
         with self.session_factory() as session:
             rows = session.execute(

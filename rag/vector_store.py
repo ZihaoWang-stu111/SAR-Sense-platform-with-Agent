@@ -61,11 +61,6 @@ class VectorStoreService:
         """将查询和权限范围交给混合检索器。"""
         return self.hybrid_engine.retrieve(query, allowed_doc_ids=allowed_doc_ids)
 
-    @property
-    def manifest(self):
-        """返回由 MySQL 生成的、兼容旧调用方的最新知识库清单。"""
-        return self.knowledge_repository.as_manifest()
-
     @staticmethod
     def _snapshot_document(record):
         """保存旧 generation 清理所需的子块 ID、父块 ID 和文件路径。"""

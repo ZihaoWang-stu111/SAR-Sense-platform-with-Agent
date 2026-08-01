@@ -8,7 +8,6 @@ from unittest.mock import patch
 
 from langchain_core.documents import Document
 
-from rag import parent_docstore as parent_docstore_module
 from rag import vector_store as vector_module
 
 
@@ -107,33 +106,6 @@ class FakeKnowledgeRepository:
     def delete(self, doc_id):
         self.events.append(("document_delete", doc_id))
         return self.records.pop(doc_id, None) is not None
-
-    def as_manifest(self):
-        manifest = {}
-        for record in self.list_active():
-            entry = {
-                "doc_id": record.doc_id,
-                "file_hash": record.file_hash,
-                "chunk_count": record.chunk_count,
-                "chunk_ids": list(record.chunk_ids),
-                "chunk_method": record.chunk_method,
-                "file_type": record.file_type,
-                "ingested_at": (
-                    record.ingested_at.strftime("%Y-%m-%dT%H:%M:%S")
-                    if record.ingested_at
-                    else None
-                ),
-                "status": record.status,
-            }
-            if record.parent_count is not None:
-                entry.update(
-                    parent_ids=list(record.parent_ids),
-                    parent_count=record.parent_count,
-                    child_count=record.child_count,
-                )
-            manifest[record.filename] = entry
-        return manifest
-
 
 class FakeVectorStore:
     def __init__(self, events=None, fail_add=False, fail_delete_ids=None):
@@ -256,7 +228,7 @@ def make_service(repository, *, events=None, vector=None, parent_enabled=False):
 
 
 class VectorStoreMySQLRuntimeTest(unittest.TestCase):
-    def test_initialization_uses_mysql_repositories_and_dynamic_manifest(self):
+    def test_initialization_uses_mysql_repositories(self):
         repository = FakeKnowledgeRepository()
         parent_store = FakeParentDocstore()
         hybrid = SimpleNamespace()
@@ -295,7 +267,6 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
                 create=True,
             ) as chunker_factory,
             patch.object(vector_module, "DynamicHybridRetriever", return_value=hybrid) as retriever,
-            patch.object(vector_module, "load_manifest", create=True) as load_manifest,
         ):
             service = vector_module.VectorStoreService()
 
@@ -303,7 +274,6 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
         self.assertIs(service.parent_docstore, parent_store)
         self.assertIs(service.chunker, chunker)
         chunker_factory.assert_called_once_with(config, vector_module.embed_model)
-        self.assertFalse(hasattr(parent_docstore_module, "MySQLParentDocstore"))
         retriever.assert_called_once()
         self.assertIsNone(retriever.call_args.kwargs["manifest_path"])
         self.assertIs(
@@ -314,11 +284,6 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
             retriever.call_args.kwargs["active_chunk_ids_provider"](),
             set(),
         )
-        load_manifest.assert_not_called()
-
-        self.assertEqual(service.manifest, {})
-        repository.records["new-doc"] = make_record(doc_id="new-doc", filename="new.txt")
-        self.assertIn("new.txt", service.manifest)
 
     def test_snapshot_keeps_only_cleanup_fields_and_derives_parent_ids(self):
         record = make_record(

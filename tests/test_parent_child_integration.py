@@ -10,16 +10,16 @@ from rag.rag_service import RagSummarizeService
 def main():
     vs = get_vector_store_service()
     fname = "SAR舰船检测概述.txt"
-    if fname in vs.manifest:
+    if vs.knowledge_repository.get_by_filename(fname) is not None:
         vs.delete_document(fname)
 
     new, upd, skip, rem = vs.load_document()
     print("load:", new, upd, skip, rem)
 
-    entry = vs.manifest.get(fname, {})
-    print("chunk_method:", entry.get("chunk_method"))
-    print("parent_count:", entry.get("parent_count"))
-    print("child_count:", entry.get("child_count"))
+    document = vs.knowledge_repository.get_by_filename(fname)
+    print("chunk_method:", document.chunk_method if document else None)
+    print("parent_count:", document.parent_count if document else None)
+    print("child_count:", document.child_count if document else None)
     print("docstore total:", vs.parent_docstore.count())
 
     rag = RagSummarizeService()
