@@ -900,10 +900,15 @@ function renderAssistantLoadingStatus(status) {
 }
 
 function renderAssistantDisplayHtml(message, isStreaming) {
+  const ragResults = Array.isArray(message?.rag_results) ? message.rag_results.filter(Boolean) : [];
   const hasAnswer = Boolean((message?.content || '').trim());
   const showLoading = Boolean(isStreaming && message?.loadingStatus && !hasAnswer);
   let html = renderMarkdown(buildAssistantDisplayContent(message));
-  html = renderWithCitations(html, isStreaming && !showLoading);
+  html = renderWithCitations(
+    html,
+    isStreaming && !showLoading,
+    ragResults.length > 0 && !hasAnswer
+  );
   const loadingHtml = showLoading
     ? renderAssistantLoadingStatus(message.loadingStatus)
     : '';
@@ -1316,7 +1321,7 @@ function parseTableRow(line) {
 }
 
 // ==================== Citation Rendering ====================
-function renderWithCitations(html, streamingCursor = false) {
+function renderWithCitations(html, streamingCursor = false, forceFoldToolBody = false) {
   // 只处理 assistant 消息中有引用标记的文本
   // streamingCursor: 流式期传 true，把打字机光标插到 mainBody 末尾（content 打字机处）
   const cursor = streamingCursor ? '<span class="streaming-cursor"></span>' : '';
@@ -1333,18 +1338,18 @@ function renderWithCitations(html, streamingCursor = false) {
 
     // 单次 RAG：保持原有逻辑
     if (matches.length === 1) {
-      return renderSingleRagCitation(html, matches[0], cursor);
+      return renderSingleRagCitation(html, matches[0], cursor, forceFoldToolBody);
     }
 
     // 多次 RAG：新逻辑
-    return renderMultipleRagCitations(html, matches, cursor);
+    return renderMultipleRagCitations(html, matches, cursor, forceFoldToolBody);
   } catch (e) {
     console.error('[renderWithCitations] 解析失败，显示原始内容', e);
     return html + cursor; // 优雅降级：出错时返回原始 HTML
   }
 }
 
-function renderSingleRagCitation(html, match, cursor = '') {
+function renderSingleRagCitation(html, match, cursor = '', forceFoldToolBody = false) {
   // 现有的单次 RAG 逻辑
   const splitIdx = match.index + match[0].length;
   let body = html.substring(0, match.index).trim();
@@ -1393,8 +1398,11 @@ function renderSingleRagCitation(html, match, cursor = '') {
     return decorated;
   };
 
-  const mainBody = decorateCitationBody(trailingBody || body) + cursor;
-  const toolBody = trailingBody ? decorateCitationBody(body) : '';
+  const shouldFoldToolBody = Boolean(trailingBody) || forceFoldToolBody;
+  const mainBody = decorateCitationBody(
+    trailingBody || (shouldFoldToolBody ? '' : body)
+  ) + cursor;
+  const toolBody = shouldFoldToolBody ? decorateCitationBody(body) : '';
 
   // 生成来源卡片
   const sourceItems = sources.map(s =>
@@ -1418,7 +1426,7 @@ function renderSingleRagCitation(html, match, cursor = '') {
   return `<div class="message-with-citations">${mainBody}${toolPanel}${sourcePanel}</div>`;
 }
 
-function renderMultipleRagCitations(html, matches, cursor = '') {
+function renderMultipleRagCitations(html, matches, cursor = '', forceFoldToolBody = false) {
   console.log('[renderMultipleRagCitations] 开始解析，参考来源数量:', matches.length);
 
   let sourceGroups = [];  // 按 RAG 调用分组的来源
@@ -1481,7 +1489,7 @@ function renderMultipleRagCitations(html, matches, cursor = '') {
     (text || '').replace(/《(.+?)》/g, '<span class="citation-filename">📄 $1</span>');
 
   const toolBodies = sourceGroups.map(g => g.toolBody).filter(text => text && text.trim());
-  const shouldFoldTools = Boolean(finalBody);
+  const shouldFoldTools = Boolean(finalBody) || forceFoldToolBody;
   const mainBodyRaw = shouldFoldTools ? finalBody : toolBodies.join('<br><br>');
   const bodyWithHighlight = decorateCitationBody(mainBodyRaw) + cursor;
 
