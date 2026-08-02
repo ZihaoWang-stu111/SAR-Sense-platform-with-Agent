@@ -1,5 +1,7 @@
 collection_name: agent_prjct
 persist_directory: chroma_db
+hnsw_batch_size: 1
+hnsw_sync_threshold: 1         # 知识库写入低频，逐条同步优先保证 Windows 进程重启后的持久性
 k: 3
 data_path: data
 allow_knowledge_file_type: ["txt", "pdf"]

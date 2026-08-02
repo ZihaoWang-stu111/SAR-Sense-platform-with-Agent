@@ -11,6 +11,7 @@ from rag.hybrid_retriever import DynamicHybridRetriever
 from rag.document_chunker import DocumentChunker
 from repositories.knowledge_repository import KnowledgeRepository
 from repositories.parent_chunk_repository import ParentChunkRepository
+from rag.chroma_health import check_collection_health
 
 _vector_store_service = None
 _vector_store_lock = Lock()
@@ -36,8 +37,19 @@ class VectorStoreService:
         self.vector_store = Chroma(
             collection_name=chroma_conf["collection_name"],
             embedding_function=embed_model,
-            persist_directory=get_abs_path(chroma_conf["persist_directory"])
-
+            persist_directory=get_abs_path(chroma_conf["persist_directory"]),
+            collection_configuration={
+                "hnsw": {
+                    "batch_size": chroma_conf.get("hnsw_batch_size", 100),
+                    "sync_threshold": chroma_conf.get("hnsw_sync_threshold", 100),
+                }
+            },
+        )
+        health = check_collection_health(self.vector_store._collection)
+        logger.info(
+            "Chroma 向量健康检查通过: count=%s, dimension=%s",
+            health["count"],
+            health["dimension"],
         )
 
         retrieve_k = chroma_conf.get("retrieve_k_children", 15)
