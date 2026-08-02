@@ -10,6 +10,26 @@ from langchain_core.documents import Document
 from utils.logger_handler import logger
 
 
+def resolve_reranker_source(model_name, cache_resolver=None):
+    """优先解析本地目录或 Hugging Face 缓存，避免启动时重复联网探测。"""
+    if os.path.exists(model_name):
+        return model_name, True
+
+    if cache_resolver is None:
+        from huggingface_hub import snapshot_download
+
+        cache_resolver = snapshot_download
+
+    try:
+        cached_path = cache_resolver(
+            repo_id=model_name,
+            local_files_only=True,
+        )
+        return cached_path, True
+    except Exception:
+        return model_name, False
+
+
 class BGERerankerService:
     def __init__(self, model_name=None):
         # 环境变量优先；配置默认使用公开模型名，也允许覆盖成本地模型路径。
@@ -17,13 +37,17 @@ class BGERerankerService:
             from utils.config_handler import rag_conf
             model_name = os.getenv("RERANKER_MODEL_NAME") or rag_conf.get("reranker_model_name") or "BAAI/bge-reranker-base"
 
-        logger.info(f"正在加载重排模型: {model_name}...")
+        model_source, local_only = resolve_reranker_source(model_name)
+        logger.info(
+            "正在加载重排模型: %s (%s)...",
+            model_source,
+            "本地" if local_only else "首次下载",
+        )
         try:
-            # 本地路径存在则禁止联网；HF repo id 则允许下载
             self.reranker = CrossEncoder(
-                model_name,
+                model_source,
                 device='cpu',
-                local_files_only=os.path.exists(model_name),
+                local_files_only=local_only,
             )
             logger.info("✅ BGE 重排模型加载完成")
         except Exception as e:
