@@ -8,7 +8,7 @@
 
 - **Agent 工作流**：基于 LangChain `create_agent`（LangGraph runtime）编排
   RAG、OCR、联网搜索、海况查询和舰船检测等工具，通过 Middleware 统一完成
-  工具监控与动态 Prompt 切换。
+  工具监控与动态 Prompt 切换；针对跨文档、多轮检索与复杂技术比较，增加隔离上下文的 SAR Research 子智能体（sar-researcher），由主智能体按任务复杂度动态委派，子智能体执行轨迹与 RAG 来源分别桥接回父会话，主链路（SSE / 存库 / 并发）零侵入。
 - **混合 RAG**：ChromaDB 向量召回与 BM25 动态融合，截断候选后执行 BGE
   子块重排，再按排序回表父块；自建 25 题评估集中 Recall@5 从向量基线
   `60%` 提升到完整链路的 `92%`。
