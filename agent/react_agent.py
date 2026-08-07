@@ -5,6 +5,7 @@ from agent.tools.agent_tools import get_weather,get_scene_id,\
     get_current_month,get_user_location,rag_summarize,fetch_external_data,fill_context_for_report,\
     get_sea_state,compare_scenes,get_scene_trend,web_search,detect_ships
 from agent.tools.middleware import monitor_tool, report_prompt_switch,log_before_model
+from agent.tools.delegation_tools import delegate_research
 from datetime import datetime
 import re
 
@@ -18,7 +19,8 @@ class ReactAgent:
             system_prompt=load_system_prompts(),
             tools=[get_weather, get_scene_id, get_current_month,
                    get_user_location, rag_summarize, fetch_external_data, fill_context_for_report,
-                   get_sea_state, compare_scenes, get_scene_trend, web_search, detect_ships],
+                   get_sea_state, compare_scenes, get_scene_trend, web_search, detect_ships,
+                   delegate_research],
             middleware=[monitor_tool, report_prompt_switch,log_before_model]
 
         )
@@ -43,6 +45,13 @@ class ReactAgent:
         runtime_context = {"report": False}
         if user_context:
             runtime_context.update(user_context)
+
+        # 子 Agent 桥接（V3）：请求级 RAG 来源 collector。
+        # subagent_rag_results 是当前请求级 list 引用，delegate_research 内部 append，
+        # 本循环在 chunk 之间轮询并 yield，复用现有 rag_result 通道（chat.py 零改动）。
+        subagent_rag_results = []
+        runtime_context["_subagent_rag_results"] = subagent_rag_results
+        emitted_rag_count = 0
 
         for chunk in self.agent.stream(input_dict, stream_mode="values", context=runtime_context):
             messages = chunk["messages"]
@@ -94,11 +103,17 @@ class ReactAgent:
                             "upload_id": viz_upload_id,
                             "timestamp": datetime.now().strftime("%H:%M:%S")
                         })
-                    truncated = result_content[:200] + "..." if len(result_content) > 200 else result_content
+                    tool_name = getattr(message, 'name', '')
+                    if tool_name == "delegate_research":
+                        # 研究总结不进思考链，避免与最终回答重复、thought_steps 膨胀；
+                        # LLM 仍在 ToolMessage 里看到完整研究结论，这里只改前端展示文本。
+                        display_content = "深度研究完成，正在整理研究结论"
+                    else:
+                        display_content = result_content[:200] + "..." if len(result_content) > 200 else result_content
                     emit_step({
                         "step_type": "tool_result",
-                        "content": truncated,
-                        "tool_name": getattr(message, 'name', ''),
+                        "content": display_content,
+                        "tool_name": tool_name,
                         "tool_call_id": getattr(message, 'tool_call_id', ''),
                         "timestamp": datetime.now().strftime("%H:%M:%S")
                     })
@@ -119,10 +134,27 @@ class ReactAgent:
                     content = message.content.strip() if message.content else ""
                     # RAG 检索结果单独作为结构化事件输出，前端用于渲染参考来源面板，不混进最终回答正文。
                     # 其他工具结果（天气、位置等）走思维链，不进正文。
-                    if content and "参考来源" in content:
+                    # 加 tool_name == "rag_summarize" 守卫：避免 delegate_research 研究总结里
+                    # 出现"参考来源"字样被误判（子 Agent 来源走 collector，不进这里）。
+                    tool_name = getattr(message, 'name', '')
+                    if (
+                        tool_name == "rag_summarize"
+                        and content
+                        and "参考来源" in content
+                    ):
                         yield {"type": "rag_result", "content": content}
 
             processed_message_count = len(messages)
+
+            # V3: 轮询子 Agent RAG 来源 collector，复用现有 rag_result 通道。
+            # delegate_research 执行期间子 Agent 的 RAG 来源 append 进 collector，
+            # 在 tool 完成后的 chunk 一次性 yield 给 chat.py 的 rag_results。
+            while emitted_rag_count < len(subagent_rag_results):
+                yield {
+                    "type": "rag_result",
+                    "content": subagent_rag_results[emitted_rag_count],
+                }
+                emitted_rag_count += 1
 
 if __name__ == '__main__':
     agent = ReactAgent()

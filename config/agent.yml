@@ -1,2 +1,8 @@
 external_data_path: data/external/records.csv
 # tavily_api_key 从 .env 的 TAVILY_API_KEY 读取，不在此明文存放
+
+research_agent:
+  enabled: true
+  name: sar-researcher
+  max_tool_calls: 6
+  recursion_limit: 20

@@ -41,5 +41,18 @@ def load_report_prompts():
         logger.error(f"[report_prompt_path]解析报告生成提示词出错{str(e)}")
         raise e
 
+def load_research_prompts():
+
+    try:
+        system_prompt_path = get_abs_path(prompts_conf["research_prompt_path"])
+    except KeyError as e:
+        logger.error("[research_prompt_path]在yaml配置项中没有该配置项")
+        raise e
+    try:
+        return open(system_prompt_path, 'r', encoding="UTF-8").read()
+    except Exception as e:
+        logger.error(f"[research_prompt_path]解析研究子智能体提示词出错{str(e)}")
+        raise e
+
 if __name__ == '__main__':
     print(load_system_prompts())
