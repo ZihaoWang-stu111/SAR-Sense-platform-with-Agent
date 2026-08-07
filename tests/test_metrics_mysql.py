@@ -537,10 +537,13 @@ class ReactAgentRuntimeContextTest(unittest.TestCase):
         self.assertEqual(chunks, [])
         self.assertEqual(captured["input_dict"], {"messages": chat_pack})
         self.assertEqual(captured["stream_mode"], "values")
-        self.assertEqual(
-            captured["context"],
-            {"report": False, "user_id": 42, "role": "researcher"},
-        )
+        context = captured["context"]
+        self.assertEqual(context["report"], False)
+        self.assertEqual(context["user_id"], 42)
+        self.assertEqual(context["role"], "researcher")
+        # V3 子 Agent 桥接：请求级 RAG 来源 collector
+        self.assertIn("_subagent_rag_results", context)
+        self.assertEqual(context["_subagent_rag_results"], [])
 
 
 class MetricsAPITest(unittest.IsolatedAsyncioTestCase):
