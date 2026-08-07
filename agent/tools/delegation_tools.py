@@ -34,6 +34,14 @@ def delegate_research(task: str, runtime: ToolRuntime) -> str:
     不得只传"帮我研究一下"之类模糊内容。
     """
     context = runtime.context
+
+    # 单轮防重复委派（工程约束，不只靠 Prompt）：
+    # context 是请求级（每请求新建 runtime_context），同一 turn 内第二次调用直接返回，
+    # 下次用户请求重新生成 context，flag 自动重置。
+    if context.get("_research_delegated"):
+        return "本轮已完成一次深度研究，请基于已有研究结果继续回答，不得再次委派。"
+    context["_research_delegated"] = True
+
     rag_results = context.get("_subagent_rag_results")
 
     try:
@@ -47,7 +55,7 @@ def delegate_research(task: str, runtime: ToolRuntime) -> str:
             },
             rag_results=rag_results,
         )
-    except Exception as exc:
+    except Exception:
         logger.error("delegate_research 执行失败", exc_info=True)
         # 不泄露 traceback，主 Agent 据 prompt fallback 或说明能力暂不可用。
         return "深度研究子智能体暂时执行失败，请基于现有信息继续回答。"

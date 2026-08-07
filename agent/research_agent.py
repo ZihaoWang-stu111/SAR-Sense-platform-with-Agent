@@ -4,11 +4,21 @@ import threading
 from typing import Optional
 
 from langchain.agents import create_agent
+from langchain.agents.middleware import ToolCallLimitMiddleware
 
 from model.factory import chat_model
 from agent.tools.agent_tools import rag_summarize, web_search, get_current_month
 from agent.tools.middleware import monitor_tool, log_before_model
 from utils.prompt_loader import load_research_prompts
+from utils.config_handler import agent_conf
+
+
+# 子 Agent 运行限制（从 config/agent.yml 读取，提供硬约束兜底）：
+# - max_tool_calls：单次研究工具调用上限（ToolCallLimitMiddleware run_limit）
+# - recursion_limit：LangGraph 图步数上限（防 4b 模型循环不收敛）
+_research_conf = (agent_conf.get("research_agent") or {})
+_RESEARCH_MAX_TOOL_CALLS = _research_conf.get("max_tool_calls", 6)
+_RESEARCH_RECURSION_LIMIT = _research_conf.get("recursion_limit", 20)
 
 
 # Research Agent 工具白名单：仅检索 / 联网 / 时间。
@@ -34,7 +44,16 @@ def get_research_agent():
                     model=chat_model,
                     system_prompt=load_research_prompts(),
                     tools=RESEARCH_TOOLS,
-                    middleware=[monitor_tool, log_before_model],
+                    middleware=[
+                        # 硬约束：单次研究最多 N 次工具调用，超过则阻止该工具、
+                        # 让模型基于已有证据总结（exit_behavior=continue 不抛异常）
+                        ToolCallLimitMiddleware(
+                            run_limit=_RESEARCH_MAX_TOOL_CALLS,
+                            exit_behavior="continue",
+                        ),
+                        monitor_tool,
+                        log_before_model,
+                    ],
                     name="sar-researcher",
                 )
 
@@ -78,7 +97,10 @@ def execute_research(
     final_messages: list = []
 
     for chunk in research_agent.stream(
-        input_dict, stream_mode="values", context=user_context
+        input_dict,
+        stream_mode="values",
+        context=user_context,
+        config={"recursion_limit": _RESEARCH_RECURSION_LIMIT},
     ):
         messages = chunk.get("messages", [])
         if messages:

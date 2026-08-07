@@ -78,6 +78,18 @@ class DelegateResearchContextTest(unittest.TestCase):
         self.assertNotIn("secret", result.lower())
         self.assertIn("失败", result)
 
+    def test_single_delegation_per_turn(self):
+        """同一 turn 内第二次 delegate_research 被阻止（工程约束，不只靠 Prompt）。"""
+        from agent.tools import delegation_tools
+        context = _base_context()
+        runtime = _make_runtime(context)
+        with patch.object(delegation_tools, "execute_research", return_value="结论") as mock_exec:
+            r1 = delegation_tools.delegate_research.func(task="x", runtime=runtime)
+            r2 = delegation_tools.delegate_research.func(task="y", runtime=runtime)
+        self.assertEqual(r1, "结论")
+        self.assertIn("已完成一次深度研究", r2)
+        self.assertEqual(mock_exec.call_count, 1)  # 第二次被挡，execute_research 只调一次
+
 
 class ExecuteResearchBehaviorTest(unittest.TestCase):
     """execute_research 行为：mock research_agent.stream，验证 collector 与 ACL。"""
