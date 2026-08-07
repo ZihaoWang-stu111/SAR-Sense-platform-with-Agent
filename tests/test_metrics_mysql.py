@@ -740,10 +740,12 @@ class ChatMetricsIntegrationTest(unittest.IsolatedAsyncioTestCase):
         )
         user = {"id": 88, "username": "reader", "role": "researcher"}
 
+        from services import chat_runner as chat_runner_mod
+
         with (
-            patch.object(chat_api, "get_agent", return_value=FakeAgent()),
-            patch.object(chat_api, "get_metrics", return_value=fake_metrics),
-            patch.object(chat_api, "get_allowed_doc_ids", new=AsyncMock(return_value=None)),
+            patch.object(chat_runner_mod, "get_agent", return_value=FakeAgent()),
+            patch.object(chat_runner_mod, "get_metrics", return_value=fake_metrics),
+            patch.object(chat_runner_mod, "get_allowed_doc_ids", new=AsyncMock(return_value=None)),
             patch.object(chat_api, "rate_limit", new=AsyncMock()),
         ):
             response = await chat_api.chat_stream(
