@@ -545,7 +545,8 @@ const TOOL_LOADING_STATUS = Object.freeze({
   rag_summarize: '正在检索知识库...',
   web_search: '正在搜索网络...',
   detect_ships: '正在检测图像...',
-  extract_file_content: '正在解析文件...'
+  extract_file_content: '正在解析文件...',
+  delegate_research: '正在进行深度研究...'
 });
 
 function getLoadingStatusForStep(step) {
@@ -958,7 +959,7 @@ function updateLastMessage(isFinal = false) {
 
 function updateThoughtChainRealtime(thoughtSteps) {
   // detect_image 步骤不进思维链，由 appendDetectImages 渲染成回答下方卡片
-  thoughtSteps = (thoughtSteps || []).filter(s => s && s.step_type !== 'detect_image');
+  thoughtSteps = (thoughtSteps || []).filter(s => s && s.step_type !== 'detect_image' && s.agent_name !== 'sar-researcher');
   // 防御检查：确保当前会话正在流式输出
   const currentConvId = state.currentConversationId;
   if (!state.streamingStatus.has(currentConvId)) return;
@@ -1553,7 +1554,7 @@ function initCitationClickHandlers(container) {
 
 function renderThoughtChain(steps) {
   // detect_image 步骤不进思维链，由 appendDetectImages 单独渲染成回答下方卡片
-  steps = (steps || []).filter(s => s && s.step_type !== 'detect_image');
+  steps = (steps || []).filter(s => s && s.step_type !== 'detect_image' && s.agent_name !== 'sar-researcher');
   if (steps.length === 0) return '';
   const stepConfig = {
     thinking: { icon: '💭', label: '思考', color: '#3b82f6' },
