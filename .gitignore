@@ -67,6 +67,9 @@ eval/results/
 
 # 学习/demo/参考资料（不进仓库）
 learning/
+
+# 子 Agent 设计草稿（本地方案文档，不入库）
+SAR-Sense_SubAgent_Implementation_Plan*.md
 LLM-wiki
 mcp-learning/
 
