@@ -68,6 +68,7 @@ dashscope==1.25.18
 openai==2.42.0
 tavily-python==0.7.24
 requests==2.34.2
+mcp==2.0.0                    # MCP 2026-07-28 协议学习工具
 
 # --- 文件解析（extract_file_content 工具：PDF / docx / OCR）---
 python-docx==1.2.0               # .docx 文档解析
