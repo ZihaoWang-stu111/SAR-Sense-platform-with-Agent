@@ -406,15 +406,27 @@ def web_search(query: str, days: int = 0) -> str:
         if not api_key:
             return "未配置 TAVILY_API_KEY，无法联网搜索"
         tavily_client = TavilyClient(api_key=api_key)
+        from utils.call_governance import (
+            DEFAULT_TAVILY_TIMEOUT_S,
+            call_with_retries,
+            get_timeout_s,
+        )
+
         search_kwargs = {
             "query": query,
             "search_depth": "advanced",
             "max_results": 5,
             "include_answer": True,
+            "timeout": get_timeout_s("TAVILY_TIMEOUT_S", DEFAULT_TAVILY_TIMEOUT_S),
         }
         if days > 0:
             search_kwargs["days"] = days
-        response = tavily_client.search(**search_kwargs)
+
+        response = call_with_retries(
+            lambda: tavily_client.search(**search_kwargs),
+            provider="tavily",
+            model="search",
+        )
 
         if not response.get("results"):
             return f"未找到与「{query}」相关的搜索结果。"
