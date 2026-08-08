@@ -1,6 +1,8 @@
 import unittest
+from unittest.mock import patch
 
 from agent.tools.mcp_tools import calculate_detection_metrics_mcp
+from agent.react_agent import ReactAgent
 from mcp_server.detection_metrics_server import calculate_detection_metrics
 
 
@@ -33,6 +35,15 @@ class MCPBridgeTest(unittest.TestCase):
         self.assertIn("Precision=88.89%", result)
         self.assertIn("Recall=80.00%", result)
         self.assertIn("F1=84.21%", result)
+
+
+class MCPAgentRegistrationTest(unittest.TestCase):
+    def test_react_agent_registers_mcp_tool(self):
+        with patch("agent.react_agent.create_agent") as create_agent:
+            ReactAgent()
+
+        tools = create_agent.call_args.kwargs["tools"]
+        self.assertIn("calculate_detection_metrics_mcp", [item.name for item in tools])
 
 
 if __name__ == "__main__":

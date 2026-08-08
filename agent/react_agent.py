@@ -6,6 +6,7 @@ from agent.tools.agent_tools import get_weather,get_scene_id,\
     get_sea_state,compare_scenes,get_scene_trend,web_search,detect_ships
 from agent.tools.middleware import monitor_tool, report_prompt_switch,log_before_model
 from agent.tools.delegation_tools import delegate_research
+from agent.tools.mcp_tools import calculate_detection_metrics_mcp
 from datetime import datetime
 import re
 
@@ -20,7 +21,7 @@ class ReactAgent:
             tools=[get_weather, get_scene_id, get_current_month,
                    get_user_location, rag_summarize, fetch_external_data, fill_context_for_report,
                    get_sea_state, compare_scenes, get_scene_trend, web_search, detect_ships,
-                   delegate_research],
+                   delegate_research, calculate_detection_metrics_mcp],
             middleware=[monitor_tool, report_prompt_switch,log_before_model]
 
         )
