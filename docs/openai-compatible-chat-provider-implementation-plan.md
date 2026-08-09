@@ -44,9 +44,12 @@ class ChatModelFactoryTest(unittest.TestCase):
         {
             "CHAT_PROVIDER": "openai",
             "CHAT_MODEL_NAME": "mimo-v2.5-pro",
-            "OPENAI_API_KEY": "test-key",
-            "OPENAI_BASE_URL": "https://example.invalid/v1",
-            "OPENAI_TIMEOUT_S": "45",
+            "OPENAI_API_KEY": "system-key",
+            "OPENAI_BASE_URL": "https://standard.invalid/v1",
+            "OPENAI_TIMEOUT_S": "15",
+            "OPENAI_COMPATIBLE_API_KEY": "test-key",
+            "OPENAI_COMPATIBLE_BASE_URL": "https://example.invalid/v1",
+            "OPENAI_COMPATIBLE_TIMEOUT_S": "45",
         },
         clear=False,
     )
@@ -129,11 +132,28 @@ if provider == "ollama":
         },
     )
 if provider == "openai":
+    compatible_api_key = (
+        os.getenv("OPENAI_COMPATIBLE_API_KEY") or ""
+    ).strip() or None
+    compatible_base_url = (
+        os.getenv("OPENAI_COMPATIBLE_BASE_URL") or ""
+    ).strip() or None
+    if bool(compatible_api_key) != bool(compatible_base_url):
+        raise ValueError(
+            "OPENAI_COMPATIBLE_API_KEY and "
+            "OPENAI_COMPATIBLE_BASE_URL must be configured together"
+        )
+
+    standard_timeout = get_timeout_s(
+        "OPENAI_TIMEOUT_S", DEFAULT_OPENAI_TIMEOUT_S
+    )
     return ChatOpenAI(
         model=model_name,
-        api_key=os.getenv("OPENAI_API_KEY"),
-        base_url=os.getenv("OPENAI_BASE_URL"),
-        timeout=get_timeout_s("OPENAI_TIMEOUT_S", DEFAULT_OPENAI_TIMEOUT_S),
+        api_key=compatible_api_key or os.getenv("OPENAI_API_KEY"),
+        base_url=compatible_base_url or os.getenv("OPENAI_BASE_URL"),
+        timeout=get_timeout_s(
+            "OPENAI_COMPATIBLE_TIMEOUT_S", standard_timeout
+        ),
         max_retries=0,
         use_responses_api=False,
     )
@@ -180,9 +200,10 @@ langchain-openai==1.2.2
 
 ```dotenv
 # OpenAI 兼容聊天服务；CHAT_PROVIDER=openai 时填写。
-# OPENAI_API_KEY=""
-# OPENAI_BASE_URL="https://example.com/v1"
-# OPENAI_TIMEOUT_S=120
+# OPENAI_COMPATIBLE_API_KEY=""
+# OPENAI_COMPATIBLE_BASE_URL="https://example.com/v1"
+# OPENAI_COMPATIBLE_TIMEOUT_S=120
+# 未设置专用变量时兼容 OPENAI_API_KEY/OPENAI_BASE_URL/OPENAI_TIMEOUT_S。
 ```
 
 - [ ] **Step 3: 运行静态验证**
@@ -211,7 +232,7 @@ git commit -m "feat: 接入 OpenAI 兼容聊天模型"
 
 - [ ] **Step 1: 写入本机临时配置**
 
-在已被 Git 忽略的 `.env` 中设置 `CHAT_PROVIDER=openai`、`CHAT_MODEL_NAME=mimo-v2.5-pro`、`OPENAI_BASE_URL=https://token-plan-cn.xiaomimimo.com/v1`、`OPENAI_TIMEOUT_S=120`，并将用户提供的真实凭据写入 `OPENAI_API_KEY`。密钥不得出现在计划、日志、测试或 Git diff 中。
+在已被 Git 忽略的 `.env` 中设置 `CHAT_PROVIDER=openai`、`CHAT_MODEL_NAME=mimo-v2.5-pro`、`OPENAI_COMPATIBLE_BASE_URL=<兼容服务地址>`、`OPENAI_COMPATIBLE_TIMEOUT_S=120`，并将用户提供的真实凭据写入 `OPENAI_COMPATIBLE_API_KEY`。密钥和实际临时服务地址不得出现在计划、日志、测试或 Git diff 中。
 
 - [ ] **Step 2: 验证模型初始化和最小文本调用**
 

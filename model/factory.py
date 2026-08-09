@@ -48,11 +48,28 @@ class ChatModelFactory(BaseModelFactory):
                 },
             )
         if provider == "openai":
+            compatible_api_key = (
+                os.getenv("OPENAI_COMPATIBLE_API_KEY") or ""
+            ).strip() or None
+            compatible_base_url = (
+                os.getenv("OPENAI_COMPATIBLE_BASE_URL") or ""
+            ).strip() or None
+            if bool(compatible_api_key) != bool(compatible_base_url):
+                raise ValueError(
+                    "OPENAI_COMPATIBLE_API_KEY and "
+                    "OPENAI_COMPATIBLE_BASE_URL must be configured together"
+                )
+
+            standard_timeout = get_timeout_s(
+                "OPENAI_TIMEOUT_S", DEFAULT_OPENAI_TIMEOUT_S
+            )
             return ChatOpenAI(
                 model=model_name,
-                api_key=os.getenv("OPENAI_API_KEY"),
-                base_url=os.getenv("OPENAI_BASE_URL"),
-                timeout=get_timeout_s("OPENAI_TIMEOUT_S", DEFAULT_OPENAI_TIMEOUT_S),
+                api_key=compatible_api_key or os.getenv("OPENAI_API_KEY"),
+                base_url=compatible_base_url or os.getenv("OPENAI_BASE_URL"),
+                timeout=get_timeout_s(
+                    "OPENAI_COMPATIBLE_TIMEOUT_S", standard_timeout
+                ),
                 max_retries=0,
                 use_responses_api=False,
             )

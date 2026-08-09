@@ -60,7 +60,7 @@ Port 5000. Entry point delegates to [api/app.py](api/app.py) (`create_app()`), w
 
 ### Model Layer ([model/factory.py](model/factory.py))
 
-Factory for the configured chat provider (Ollama or DashScope) and DashScope embeddings. The current [config/rag.yml](config/rag.yml) selects local Ollama for chat and DashScope for embeddings. Both are module-level singletons (eager init at import).
+Factory for the configured chat provider (Ollama, OpenAI-compatible, or DashScope) and DashScope embeddings. The current [config/rag.yml](config/rag.yml) selects local Ollama for chat and DashScope for embeddings. Both are module-level singletons (eager init at import).
 
 ### Storage Layer: MySQL + SQLAlchemy 2.0 (async request data + sync RAG/metrics)
 
@@ -101,7 +101,7 @@ All loaded at import time by [utils/config_handler.py](utils/config_handler.py) 
 
 ## Key Technical Details
 
-- **LLM Provider**: configurable Ollama or DashScope chat model; DashScope embeddings
+- **LLM Provider**: configurable Ollama, OpenAI-compatible, or DashScope chat model; DashScope embeddings
 - **Vector DB**: ChromaDB, persisted locally in `chroma_db/`
 - **Parent storage**: MySQL `parent_chunks`
 - **Knowledge base metadata/dedup**: MySQL `knowledge_documents`, keyed by SHA-256-derived document identity, **not MD5**

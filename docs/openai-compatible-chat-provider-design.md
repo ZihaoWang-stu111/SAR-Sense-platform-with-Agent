@@ -7,7 +7,7 @@
 ## 设计
 
 - 在 `ChatModelFactory` 中增加 `openai` Provider 分支，使用 `langchain_openai.ChatOpenAI`。
-- 通过环境变量读取 `OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_TIMEOUT_S`。
+- 优先读取项目专用的 `OPENAI_COMPATIBLE_API_KEY`、`OPENAI_COMPATIBLE_BASE_URL`、`OPENAI_COMPATIBLE_TIMEOUT_S`，避免开发机已有的标准 OpenAI 环境变量覆盖本项目配置。专用 Key 与地址必须成对配置，缺少任一项会立即报错，避免把一套凭据发送到另一套服务；二者均未设置时才整体回退到标准 `OPENAI_API_KEY` 与 `OPENAI_BASE_URL`。超时可独立回退到 `OPENAI_TIMEOUT_S`。
 - 继续通过已有 `CHAT_PROVIDER` 和 `CHAT_MODEL_NAME` 选择聊天 Provider 与模型。
 - 本机 `.env` 设置为 OpenAI Provider；真实密钥只保存在 `.env`，不写入受 Git 跟踪的文件。
 - `config/rag.yml` 保持 Ollama 默认配置，避免把临时模型服务变成仓库默认依赖。
@@ -33,7 +33,7 @@ ChatOpenAI(base_url, api_key, model)
 
 - SDK 内部重试保持最小，由项目现有 `call_governance` 统一处理外层重试。
 - 认证错误直接失败，不重复重试。
-- 超时通过 `OPENAI_TIMEOUT_S` 配置，不复用 DashScope 的环境变量。
+- 超时优先通过 `OPENAI_COMPATIBLE_TIMEOUT_S` 配置，未设置时兼容 `OPENAI_TIMEOUT_S`，不复用 DashScope 的环境变量。
 
 ## 验证
 
