@@ -7,9 +7,11 @@ from langchain_community.chat_models.tongyi import BaseChatModel, ChatTongyi
 from langchain_community.embeddings import DashScopeEmbeddings
 from langchain_community.embeddings.dashscope import embed_with_retry
 from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 
 from utils.call_governance import (
     DEFAULT_DASHSCOPE_TIMEOUT_S,
+    DEFAULT_OPENAI_TIMEOUT_S,
     DEFAULT_OLLAMA_TIMEOUT_S,
     acall_with_retries,
     call_with_retries,
@@ -45,16 +47,27 @@ class ChatModelFactory(BaseModelFactory):
                     ),
                 },
             )
-        # request_timeout → DashScope HTTP；max_retries=1 把重试交给 call_governance
-        return ChatTongyi(
-            model=model_name,
-            max_retries=1,
-            model_kwargs={
-                "request_timeout": get_timeout_s(
-                    "DASHSCOPE_TIMEOUT_S", DEFAULT_DASHSCOPE_TIMEOUT_S
-                ),
-            },
-        )
+        if provider == "openai":
+            return ChatOpenAI(
+                model=model_name,
+                api_key=os.getenv("OPENAI_API_KEY"),
+                base_url=os.getenv("OPENAI_BASE_URL"),
+                timeout=get_timeout_s("OPENAI_TIMEOUT_S", DEFAULT_OPENAI_TIMEOUT_S),
+                max_retries=0,
+                use_responses_api=False,
+            )
+        if provider == "dashscope":
+            # request_timeout → DashScope HTTP；max_retries=1 把重试交给 call_governance
+            return ChatTongyi(
+                model=model_name,
+                max_retries=1,
+                model_kwargs={
+                    "request_timeout": get_timeout_s(
+                        "DASHSCOPE_TIMEOUT_S", DEFAULT_DASHSCOPE_TIMEOUT_S
+                    ),
+                },
+            )
+        raise ValueError(f"Unsupported chat provider: {provider}")
 
 
 class _BatchedDashScopeEmbeddings(DashScopeEmbeddings):
