@@ -35,13 +35,13 @@ LangChain 调用同步工具 calculate_detection_metrics_mcp
 asyncio.run(_call_detection_metrics(...))
         |
         v
-stdio_client 启动独立 Python 子进程
+高层 Client 接管 stdio 传输并启动独立 Python 子进程
         |
         v
-MCP ClientSession -> server/discover
+Client 自动尝试 server/discover，并兼容旧式 initialize
         |
         v
-MCP ClientSession -> tools/call
+Client.call_tool() -> tools/call
         |
         v
 MCP Server 执行 calculate_detection_metrics
@@ -206,39 +206,24 @@ server = StdioServerParameters(
 使用 `sys.executable` 比硬编码 `python` 更可靠，否则系统可能启动另一个没有安装 MCP
 依赖的 Python。
 
-#### 第二步：建立 stdio 连接
+#### 第二步：创建传输并交给高层 Client
 
 ```python
-async with stdio_client(server) as (read_stream, write_stream):
+async with Client(stdio_client(server)) as client:
 ```
 
-`stdio_client` 会：
+这里有两层职责：
 
-1. 启动 MCP Server 子进程。
-2. 将子进程 stdin/stdout 包装成异步读写流。
-3. 退出 `async with` 时关闭管道并回收子进程。
+1. `stdio_client(server)` 描述 stdio 传输，负责启动子进程并包装 stdin/stdout。
+2. 高层 `Client` 进入上下文时建立连接、协商协议，并在退出时释放会话和传输。
 
 因此不需要手工调用 `subprocess.Popen()`，也不会留下常驻端口。
 
-#### 第三步：创建协议会话
+#### 第三步：自动发现并协商协议
 
-```python
-async with ClientSession(read_stream, write_stream) as session:
-```
-
-`ClientSession` 在读写流之上处理 MCP 消息、请求 ID、响应匹配和数据模型校验。
-
-你需要理解它是“协议客户端”，但不需要深挖内部 Dispatcher、JSON-RPC 编解码和
-AnyIO task group。
-
-#### 第四步：协议发现
-
-```python
-await session.discover()
-```
-
-这是本示例专门体现 MCP `2026-07-28` 版本的地方。客户端通过
-`server/discover` 获取服务端支持的现代协议版本，并采用双方都支持的版本。
+`Client` 默认使用 `mode="auto"`。进入上下文时，它会先尝试 `server/discover`，与
+支持 `2026-07-28` 的服务端协商现代协议；如果连接的是旧服务端，则自动回退到
+`initialize`。业务代码不再手工调用 `discover()`。
 
 本项目实测结果：
 
@@ -246,12 +231,13 @@ await session.discover()
 supported_versions=['2026-07-28']
 ```
 
-旧版 MCP 主要通过 `initialize` 握手；当前代码没有调用 `initialize()`。
+底层仍存在 `ClientSession`，但它由高层 `Client` 管理。只有需要直接控制协议会话、
+原始流或测试底层传输时，才需要手工使用它。
 
-#### 第五步：调用工具
+#### 第四步：调用工具
 
 ```python
-result = await session.call_tool(
+result = await client.call_tool(
     "calculate_detection_metrics",
     {"tp": tp, "fp": fp, "fn": fn},
 )
@@ -263,7 +249,7 @@ result = await session.call_tool(
 - 第二个参数是符合工具输入 Schema 的参数字典。
 - 返回值是 MCP 的 `CallToolResult`，不是普通字符串。
 
-#### 第六步：解析结果与错误
+#### 第五步：解析结果与错误
 
 ```python
 text = "\n".join(
@@ -473,8 +459,8 @@ Tool Calling 是模型表达“我要调用哪个函数、传什么参数”的�
 
 ### 5. 这真的是跨进程 MCP 调用吗？
 
-是。`stdio_client` 使用当前 Python 启动独立子进程，客户端先执行
-`server/discover`，再执行 `tools/call`。集成测试没有绕过协议调用服务端函数。
+是。高层 `Client` 进入 `stdio_client` 传输后，使用当前 Python 启动独立子进程，
+自动完成协议发现，再执行 `tools/call`。集成测试没有绕过协议调用服务端函数。
 
 ### 6. 为什么自己写桥接，不用 `langchain-mcp-adapters`？
 
@@ -499,8 +485,8 @@ Tool Calling 是模型表达“我要调用哪个函数、传什么参数”的�
 
 ### 10. 7 月 28 日版本在源码中体现在哪里？
 
-体现在 `session.discover()`。实测服务返回 `supported_versions=['2026-07-28']`，客户端
-没有调用旧式 `initialize()`。
+体现在 `Client` 的自动协议协商。它优先尝试 `server/discover`，实测服务返回
+`supported_versions=['2026-07-28']`；连接旧服务端时则自动回退 `initialize()`。
 
 ## 十一、哪些必须看懂，哪些先不要深挖
 
@@ -509,7 +495,7 @@ Tool Calling 是模型表达“我要调用哪个函数、传什么参数”的�
 - `MCPServer` 的职责。
 - `@mcp.tool()` 如何发布工具。
 - stdio 客户端为什么会启动子进程。
-- `ClientSession.discover()` 和 `call_tool()` 的先后关系。
+- 高层 `Client` 如何接管 stdio、自动协商协议并调用 `call_tool()`。
 - MCP 内容块如何转换成 LangChain 工具字符串。
 - LangChain `@tool` 为什么是同步桥接。
 - 工具如何注册进 `ReactAgent`。
@@ -518,6 +504,7 @@ Tool Calling 是模型表达“我要调用哪个函数、传什么参数”的�
 ### 知道存在即可
 
 - MCP SDK 内部 JSON-RPC Dispatcher。
+- 高层 `Client` 内部持有的底层 `ClientSession`。
 - AnyIO 的 task group 和流实现。
 - `mcp_types` 自动生成的数据模型细节。
 - stdio 在 Windows 上如何终止整个子进程树。

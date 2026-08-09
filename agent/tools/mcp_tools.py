@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 from langchain_core.tools import tool
-from mcp import ClientSession, StdioServerParameters
+from mcp import Client, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 
@@ -16,13 +16,11 @@ async def _call_detection_metrics(tp: int, fp: int, fn: int) -> str:
         args=["-m", "mcp_server.detection_metrics_server"],
         cwd=PROJECT_ROOT,
     )
-    async with stdio_client(server) as (read_stream, write_stream):
-        async with ClientSession(read_stream, write_stream) as session:
-            await session.discover()
-            result = await session.call_tool(
-                "calculate_detection_metrics",
-                {"tp": tp, "fp": fp, "fn": fn},
-            )
+    async with Client(stdio_client(server)) as client:
+        result = await client.call_tool(
+            "calculate_detection_metrics",
+            {"tp": tp, "fp": fp, "fn": fn},
+        )
 
     text = "\n".join(
         block.text
