@@ -6,7 +6,7 @@
 
 **Architecture:** 模型选择继续由 `CHAT_PROVIDER` 与 `CHAT_MODEL_NAME` 控制；`ChatModelFactory` 在现有 Ollama、DashScope 分支旁新增 `ChatOpenAI` 分支。通用能力进入代码仓库，服务地址、模型切换和真实密钥只进入被忽略的本机 `.env`。
 
-**Tech Stack:** Python 3.10、LangChain 1.3、`langchain-openai` 1.4.1、OpenAI 兼容 API、unittest
+**Tech Stack:** Python 3.10、LangChain 1.3、`langchain-openai` 1.2.2、OpenAI 兼容 API、unittest
 
 ---
 
@@ -171,7 +171,7 @@ Expected: 所有测试 PASS。
 在 `requirements.txt` 的 LangChain 区域加入：
 
 ```text
-langchain-openai==1.4.1
+langchain-openai==1.2.2
 ```
 
 - [ ] **Step 2: 补充不含凭据的示例配置**
