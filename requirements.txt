@@ -32,6 +32,7 @@ langchain-text-splitters==1.1.2
 langchain-classic==1.0.7
 langchain-protocol==0.0.15
 langchain-ollama==1.1.0
+langchain-openai==1.4.1
 
 # --- 向量库 / 检索 ---
 chromadb==1.5.9                    # 1.x 均有 compaction，退出进程前需等待 compaction 完成，避免 HNSW 索引写半损坏
