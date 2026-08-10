@@ -10,8 +10,8 @@
   RAG、OCR、联网搜索、海况查询和舰船检测等工具，通过 Middleware 统一完成
   工具监控与动态 Prompt 切换；针对跨文档、多轮检索与复杂技术比较，增加隔离上下文的 SAR Research 子智能体（sar-researcher），由主智能体按任务复杂度动态委派，子智能体执行轨迹与 RAG 来源分别桥接回父会话，主链路（SSE / 存库 / 并发）零侵入。
 - **混合 RAG**：ChromaDB 向量召回与 BM25 动态融合，截断候选后执行 BGE
-  子块重排，再按排序回表父块；自建 25 题评估集中 Recall@5 从向量基线
-  `60%` 提升到完整链路的 `92%`。
+  子块重排，再按排序回表父块；自建 40 题多场景检索评测集，对向量召回、
+  混合检索、重排和父块回表进行消融对比。
 - **结构化入库**：MinerU 优先解析 PDF 文本、表格和公式，支持中英文自适应
   语义分块；表格与公式按原子块保存，失败时自动回退 PyPDFLoader。
 - **工程化存储**：MySQL 保存用户、会话、知识库元数据、父块与指标事件，
@@ -45,8 +45,8 @@ flowchart LR
 ```text
 查询
   -> ACL 计算 allowed_doc_ids
-  -> Chroma 向量召回 + 授权 BM25 召回
-  -> 动态加权 RRF 融合并截断
+  -> Chroma 向量主召回 + 授权 BM25 补充候选
+  -> 按 chunk_id 去重并控制候选预算
   -> BGE 子块重排
   -> 父块批量回表与二次权限校验
   -> LLM 生成回答与结构化引用
@@ -128,8 +128,8 @@ python -m unittest discover -s tests
 python -m eval_rag25.evaluate --help
 ```
 
-检索消融结果见
-[eval_rag25/results/ablation_table.md](eval_rag25/results/ablation_table.md)。
+运行评测后，检索消融结果会生成到
+`eval_rag25/results/ablation_table.md`。
 
 ## 目录说明
 
@@ -143,7 +143,7 @@ models/         SQLAlchemy ORM 模型
 schemas/        Pydantic 请求/响应模型
 services/       文件抽取、上传与检测服务
 ultralytics/    为 MBE-Net 裁剪的检测专用运行时
-eval_rag25/     25 题 RAG 消融评估
+eval_rag25/     40 题 RAG 消融评估
 ```
 
 ## 数据与密钥

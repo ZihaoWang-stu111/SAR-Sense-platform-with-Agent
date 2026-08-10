@@ -1,3 +1,0 @@
-﻿pipeline,k,n,recall,mrr,avg_latency_ms
-vector_only,3,2,0.5,0.25,4554.35
-full,3,2,1.0,1.0,8815.4
