@@ -1,47 +1,77 @@
-# RAG 25题评估
+# RAG 40 题检索评估
 
-这个目录是独立评估集，不改生产 RAG 代码。
+该目录提供独立的检索消融评测，不修改生产 RAG 代码。目录名保留为
+`eval_rag25` 以兼容已有命令，默认数据集已经升级为
+`qa_dataset_40.json`。
 
-## 覆盖范围
+## 评测口径
 
-- 5 个 txt 知识库文件
-- `MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection(pdf).pdf`
-- `SFQ-Det.pdf`
-- `posterWZH.pdf`
-- 不包含个人简历 PDF
+每道题只设置一份确定性的金标准证据：
 
-## Pipeline
+- `gold_filename`：证据所属文件；
+- `gold_snippet`：必须出现在召回文本中的原文片段；
+- 命中条件：文件名匹配，并且召回块包含规范化后的原文片段。
+
+这种单证据口径用于比较检索链路的 Recall、MRR 和延迟。真正的跨文档综合
+问答应另做答案质量评测，不混入本组检索指标。
+
+## 数据集覆盖
+
+- 40 道题：10 道 easy、20 道 medium、10 道 hard；
+- 题型包括事实、概念、机理、模块、比较、数值、表格、指标、应用场景、
+  别名改写和多约束查询；
+- 语料覆盖 5 个 TXT、poster，以及 MBE-Net、SFQ-Det、SADL、GL-DETR 论文 PDF；
+- 其中 38 题的证据直接存在于子块；`q25` 和 `q38` 仅在父块中保留完整证据，
+  用于验证父块回表对表格和多约束问题的实际价值；
+- 不包含个人简历 PDF。
+
+## 消融流水线
 
 | name | meaning |
 |---|---|
 | `vector_only` | Chroma vector top-k |
-| `hybrid_no_pc_no_rr` | vector + BM25 |
 | `hybrid_pc_no_rr` | vector + BM25 -> parent resolve |
 | `hybrid_no_pc_with_rr` | vector + BM25 -> child rerank |
+| `vector_pc_with_rr` | vector Top-60 -> child rerank -> parent resolve（BM25 公平对照） |
 | `full` | vector + BM25 -> child rerank -> parent resolve |
 
-`full` 的顺序和生产 RAG 一致；评估里的 k 只控制返回 top-k，方便算 Recall@3/5/10。
+`full` 与生产 RAG 共用同一个混合召回入口：保留向量 Top-40，BM25 从
+Top-40 中补充最多 20 个不重复子块，再使用生产阈值完成子块重排和父块回表。
+评测参数 `k` 只截取最终有序结果，便于计算 Recall@3/5/10。
 
-## Commands
+## 运行命令
 
-```bash
-python eval_rag25/evaluate.py --validate-only
-python eval_rag25/evaluate.py
-python eval_rag25/evaluate.py --with-answers
+先校验 40 道题、源文件和金标准片段：
+
+```powershell
+conda activate rag_env_backup
+python -m eval_rag25.evaluate --validate-only
 ```
 
-调试时先小跑：
+运行完整检索消融：
 
-```bash
-python eval_rag25/evaluate.py --limit 2 --ks 3 --only-pipelines vector_only full --output-suffix _smoke
+```powershell
+python -m eval_rag25.evaluate
 ```
 
-## Outputs
+需要额外生成各流水线答案时：
 
-- `results/results_raw.csv`: 每题、每 pipeline、每 k 的原始命中记录
-- `results/summary.csv`: Recall、MRR、平均延迟
-- `results/ablation_table.md`: 可直接放 README/简历项目描述的消融表
-- `results/answers.jsonl`: 可选，给外部 judge LLM 打分
+```powershell
+python -m eval_rag25.evaluate --with-answers
+```
+
+调试时先做小规模 smoke：
+
+```powershell
+python -m eval_rag25.evaluate --limit 2 --ks 3 --only-pipelines vector_only full --output-suffix _smoke
+```
+
+## 输出
+
+- `results/results_raw.csv`：每题、每条 pipeline、每个 k 的原始命中记录；
+- `results/summary.csv`：Recall、MRR 和平均延迟；
+- `results/ablation_table.md`：消融对比表；
+- `results/answers.jsonl`：可选，供外部 judge LLM 评分。
 
 外部 judge 的 `scores.jsonl` 格式：
 
@@ -52,7 +82,6 @@ python eval_rag25/evaluate.py --limit 2 --ks 3 --only-pipelines vector_only full
 
 聚合 judge 结果：
 
-```bash
-python eval_rag25/aggregate.py --scores eval_rag25/results/scores.jsonl
+```powershell
+python -m eval_rag25.aggregate --scores eval_rag25/results/scores.jsonl
 ```
-

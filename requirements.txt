@@ -74,7 +74,7 @@ mcp==2.0.0                    # MCP 2026-07-28 协议学习工具
 # --- 文件解析（extract_file_content 工具：PDF / docx / OCR）---
 python-docx==1.2.0               # .docx 文档解析
 PyMuPDF==1.27.2.3                # PDF 解析（import fitz）
-pdfplumber==0.11.10              # eval_rag25 的 PDF 评测集构建
+pdfplumber==0.11.10              # RAG PDF 评测集校验
 rapidocr-onnxruntime==1.4.4      # 图片 OCR（onnxruntime 推理）
 
 # --- Redis（限流 + 分布式锁，utils/traffic_control.py）---

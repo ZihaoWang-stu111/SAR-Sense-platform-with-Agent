@@ -1,0 +1,402 @@
+[
+  {
+    "id": "q01",
+    "question": "为什么说 SAR 特别适合在海洋环境中持续监测舰船？",
+    "gold_answer": "SAR 能穿透云层和雨雾，并具备全天候、全天时观测能力，因此适合海洋舰船持续监测。",
+    "gold_filename": "SAR舰船检测概述.txt",
+    "gold_snippet": "能够穿透云层和雨雾，因此特别适合海洋环境下的目标检测",
+    "source_type": "txt",
+    "qa_type": "concept",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q02",
+    "question": "SSDD 图像主要来自哪些 SAR 卫星？",
+    "gold_answer": "SSDD 图像主要来自 RadarSat-2、TerraSAR-X、Sentinel-1 等多颗 SAR 卫星。",
+    "gold_filename": "HRSID与SSDD数据集.txt",
+    "gold_snippet": "图像来自RadarSat-2、TerraSAR-X、Sentinel-1等多颗SAR卫星",
+    "source_type": "txt",
+    "qa_type": "fact",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q03",
+    "question": "MBE-Net 论文在哪两个数据集上进行了实验验证？",
+    "gold_answer": "MBE-Net 在 HRSID 和 SSDD 数据集上进行了实验验证。",
+    "gold_filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection.pdf",
+    "gold_snippet": "Extensive experiments on the HRSID and SSDD",
+    "source_type": "pdf",
+    "qa_type": "fact",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q04",
+    "question": "CWW-Det 这个缩写在 poster 中对应的完整算法名称是什么？",
+    "gold_answer": "CWW-Det 的完整名称是 CWW-Det: A Context-aware Wavelet-enhanced Detector for SAR Ship Detection。",
+    "gold_filename": "posterWZH.pdf",
+    "gold_snippet": "CWW-Det: A Context-aware Wavelet-enhanced Detector for SAR Ship Detection",
+    "source_type": "pdf",
+    "qa_type": "alias",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q05",
+    "question": "CWW-Det 的实验同时涉及哪两个公开数据集？",
+    "gold_answer": "CWW-Det 使用 HRSID 和 SAR-Ship-Dataset 进行实验。",
+    "gold_filename": "posterWZH.pdf",
+    "gold_snippet": "public HRSID dataset and the SAR-Ship-Dataset",
+    "source_type": "pdf",
+    "qa_type": "dataset",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q06",
+    "question": "传统 CFAR 舰船检测是怎样得到检测阈值的？",
+    "gold_answer": "CFAR 通过估计背景杂波分布设定自适应阈值，再据此检测显著目标。",
+    "gold_filename": "SAR舰船检测概述.txt",
+    "gold_snippet": "通过估计背景杂波分布设定自适应阈值",
+    "source_type": "txt",
+    "qa_type": "concept",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q07",
+    "question": "SAR 图像中颗粒状散斑噪声的物理成因是什么？",
+    "gold_answer": "散斑噪声由雷达分辨单元内多个散射体回波的相干叠加产生。",
+    "gold_filename": "SAR图像特性与挑战.txt",
+    "gold_snippet": "由雷达分辨单元内多个散射体回波的相干叠加产生",
+    "source_type": "txt",
+    "qa_type": "mechanism",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q08",
+    "question": "DFL Loss 不把边界框坐标当作单个数值时，它采用什么建模方式？",
+    "gold_answer": "DFL Loss 将边界框坐标建模为离散概率分布。",
+    "gold_filename": "YOLO目标检测模型知识.txt",
+    "gold_snippet": "DFL Loss（Distribution Focal Loss）：将边界框坐标建模为离散概率分布",
+    "source_type": "txt",
+    "qa_type": "mechanism",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q09",
+    "question": "SFQ-Det 的 SA-WDP 为什么能同时应对散斑噪声和尺度变化？",
+    "gold_answer": "SA-WDP 通过小波池化进行频率解耦，并自适应抑制噪声，从而兼顾散斑噪声与尺度变化。",
+    "gold_filename": "SFQ-Det.pdf",
+    "gold_snippet": "frequency decoupling",
+    "source_type": "pdf",
+    "qa_type": "mechanism",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q10",
+    "question": "poster 将 SAR 舰船检测的主要挑战归纳为哪几类？",
+    "gold_answer": "主要挑战包括低对比度、复杂背景、多尺度变化和部分遮挡。",
+    "gold_filename": "posterWZH.pdf",
+    "gold_snippet": "low contrast, complex backgrounds, multi-scale variations, and partial occlusions",
+    "source_type": "pdf",
+    "qa_type": "enumeration",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q11",
+    "question": "EEWB 为什么比普通下采样更有利于检测小型舰船？",
+    "gold_answer": "EEWB 能保留高频细节，减少传统下采样造成的小目标信息丢失。",
+    "gold_filename": "MBE-Net算法详解.txt",
+    "gold_snippet": "保留高频细节信息，避免传统下采样导致的小目标信息丢失",
+    "source_type": "txt",
+    "qa_type": "mechanism",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q12",
+    "question": "MBE-Net 中负责多尺度特征融合的颈部网络是哪一个模块？",
+    "gold_answer": "该模块是 ACF-FPN。",
+    "gold_filename": "MBE-Net算法详解.txt",
+    "gold_snippet": "ACF-FPN是MBE-Net的特征融合颈部网络",
+    "source_type": "txt",
+    "qa_type": "module",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q13",
+    "question": "LD-DEH 将检测头中的哪两项任务进行了解耦？",
+    "gold_answer": "LD-DEH 解耦了分类任务和边界框回归任务。",
+    "gold_filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection.pdf",
+    "gold_snippet": "decouples classification and regression tasks",
+    "source_type": "pdf",
+    "qa_type": "module",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q14",
+    "question": "SFQ-Det 用哪个检测头把定位质量融入分类置信度？",
+    "gold_answer": "SFQ-Det 使用共享轻量级质量感知检测头，将定位质量显式融入分类置信度。",
+    "gold_filename": "SFQ-Det.pdf",
+    "gold_snippet": "shared lightweight quality-aware detection head",
+    "source_type": "pdf",
+    "qa_type": "mechanism",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q15",
+    "question": "CWW-Det 中用于轻量化共享特征预测的检测头叫什么？",
+    "gold_answer": "该检测头叫 Adaptive Lightweight Shared Feature Head（ALSF-Head）。",
+    "gold_filename": "posterWZH.pdf",
+    "gold_snippet": "Adaptive Lightweight Shared Feature Head (ALSF-Head)",
+    "source_type": "pdf",
+    "qa_type": "module",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q16",
+    "question": "单阶段检测器相较两阶段检测器，为什么更适合实时或边缘部署？",
+    "gold_answer": "单阶段检测器直接预测类别和位置，省去候选区域阶段，因此速度更快。",
+    "gold_filename": "SAR舰船检测概述.txt",
+    "gold_snippet": "直接预测目标类别和位置，速度更快",
+    "source_type": "txt",
+    "qa_type": "comparison",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q17",
+    "question": "L、C、X 三种 SAR 波段按穿透能力从强到弱怎样排序？",
+    "gold_answer": "穿透能力从强到弱为 L 波段、C 波段、X 波段。",
+    "gold_filename": "SAR图像特性与挑战.txt",
+    "gold_snippet": "L波段 > C波段 > X波段",
+    "source_type": "txt",
+    "qa_type": "comparison",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q18",
+    "question": "如果研究需要船舶身份辅助信息，OpenSARShip 相比普通检测数据集有什么优势？",
+    "gold_answer": "OpenSARShip 包含 AIS 信息作为辅助标注，更适合细粒度舰船识别和分析。",
+    "gold_filename": "HRSID与SSDD数据集.txt",
+    "gold_snippet": "包含AIS信息作为辅助标注",
+    "source_type": "txt",
+    "qa_type": "dataset",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q19",
+    "question": "YOLO11 用 C3k2 替换 C2f 的主要目的是什么？",
+    "gold_answer": "C3k2 替代 C2f，用于实现更高效的特征提取。",
+    "gold_filename": "YOLO目标检测模型知识.txt",
+    "gold_snippet": "C3k2模块：替代C2f，更高效的特征提取",
+    "source_type": "txt",
+    "qa_type": "comparison",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q20",
+    "question": "SFQ-Det 相比 YOLO11n 基线，在精度和复杂度上呈现什么总体结果？",
+    "gold_answer": "SFQ-Det 在优于 YOLO11n 基线的同时显著降低了模型复杂度。",
+    "gold_filename": "SFQ-Det.pdf",
+    "gold_snippet": "outperforms the YOLO11n baseline",
+    "source_type": "pdf",
+    "qa_type": "comparison",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q21",
+    "question": "面向边缘设备的 YOLO11n 大约有多少参数？",
+    "gold_answer": "YOLO11n 的参数量约为 2.6M。",
+    "gold_filename": "YOLO目标检测模型知识.txt",
+    "gold_snippet": "YOLO11n（Nano）：最轻量版本，参数量约2.6M，适合边缘设备",
+    "source_type": "txt",
+    "qa_type": "numeric",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q22",
+    "question": "SSDD 数据集一共包含多少张 SAR 图像？",
+    "gold_answer": "SSDD 包含 1160 张 SAR 图像。",
+    "gold_filename": "HRSID与SSDD数据集.txt",
+    "gold_snippet": "图像数量：1160张SAR图像",
+    "source_type": "txt",
+    "qa_type": "numeric",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q23",
+    "question": "SFQ-Det 实验如何划分 SSDD 的训练集、验证集和测试集？",
+    "gold_answer": "训练、验证、测试集按 70%/10%/20% 划分。",
+    "gold_filename": "SFQ-Det.pdf",
+    "gold_snippet": "ratio of 70%/10%/20%",
+    "source_type": "pdf",
+    "qa_type": "numeric",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q24",
+    "question": "SFQ-Det 训练前把所有输入图像统一缩放到什么尺寸？",
+    "gold_answer": "所有图像统一缩放到 640×640。",
+    "gold_filename": "SFQ-Det.pdf",
+    "gold_snippet": "All images were resized to 640×640",
+    "source_type": "pdf",
+    "qa_type": "numeric",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q25",
+    "question": "MBE-Net 在 416、640、1024 三种输入尺寸下的 GFLOPs 分别是多少？",
+    "gold_answer": "对应 GFLOPs 分别为 2.5、5.9 和 15.1。",
+    "gold_filename": "MBE-Net A Multi-Branch Edge-Guided Feature Enhancement Algorithm for SAR Ship Detection.pdf",
+    "gold_snippet": "2.5 at 416×416, 5.9 at 640×640, and 15.1 at 1024×1024",
+    "source_type": "pdf",
+    "qa_type": "table",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q26",
+    "question": "mAP50-95 是在怎样的一组 IoU 阈值上求平均？",
+    "gold_answer": "它是在 IoU 0.5 到 0.95、步长 0.05 的多个阈值上计算 mAP 平均值。",
+    "gold_filename": "SAR舰船检测概述.txt",
+    "gold_snippet": "mAP50-95：IoU阈值从0.5到0.95（步长0.05）的mAP平均值",
+    "source_type": "txt",
+    "qa_type": "metric",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q27",
+    "question": "按常用 AP 尺度划分，中等目标的面积范围是多少？",
+    "gold_answer": "中等目标面积位于 32² 与 96² 像素之间。",
+    "gold_filename": "HRSID与SSDD数据集.txt",
+    "gold_snippet": "AP_medium：中等目标（32²<面积<96²像素）的AP",
+    "source_type": "txt",
+    "qa_type": "metric",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q28",
+    "question": "在近岸港口场景中，哪些背景目标容易让舰船检测产生虚警？",
+    "gold_answer": "港口设施、岛屿和海浪纹理等复杂背景容易产生虚警。",
+    "gold_filename": "SAR舰船检测概述.txt",
+    "gold_snippet": "近岸区域的港口设施、岛屿、海浪纹理等复杂背景容易产生虚警",
+    "source_type": "txt",
+    "qa_type": "application",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q29",
+    "question": "需要对舰船进行精细分类时，应该优先选择哪种 SAR 极化方式？",
+    "gold_answer": "应优先选择全极化（HH+HV+VH+VV），因为它的信息最丰富。",
+    "gold_filename": "SAR图像特性与挑战.txt",
+    "gold_snippet": "全极化（HH+HV+VH+VV）：信息最丰富，适合精细分类",
+    "source_type": "txt",
+    "qa_type": "application",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q30",
+    "question": "YOLO 训练中把四张图像拼成一张的增强方法叫什么？",
+    "gold_answer": "这种方法叫马赛克数据增强（Mosaic Augmentation）。",
+    "gold_filename": "YOLO目标检测模型知识.txt",
+    "gold_snippet": "马赛克数据增强（Mosaic Augmentation）：将四张图像拼接为一张",
+    "source_type": "txt",
+    "qa_type": "procedure",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q31",
+    "question": "SADL 方法主要针对深度网络在 SAR 舰船检测中的哪两类限制？",
+    "gold_answer": "它主要针对训练样本有限和复杂背景干扰两类限制。",
+    "gold_filename": "A_Self-Attention_Dictionary_Learning-Based_Method_for_Ship_Detection_in_SAR_Images.pdf",
+    "gold_snippet": "restricted by limited training samples",
+    "source_type": "pdf",
+    "qa_type": "concept",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q32",
+    "question": "SADL 的混合损失由哪四类误差组成？",
+    "gold_answer": "由重构误差、最小类内误差、最大类间误差和排他性误差组成。",
+    "gold_filename": "A_Self-Attention_Dictionary_Learning-Based_Method_for_Ship_Detection_in_SAR_Images.pdf",
+    "gold_snippet": "reconstruction error, minimal",
+    "source_type": "pdf",
+    "qa_type": "enumeration",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q33",
+    "question": "SADL 只使用三张训练图像时，在多少测试图像上取得了多高的 F1-score？",
+    "gold_answer": "它在 3000 张测试图像上取得 0.47 的 F1-score。",
+    "gold_filename": "A_Self-Attention_Dictionary_Learning-Based_Method_for_Ship_Detection_in_SAR_Images.pdf",
+    "gold_snippet": "0.47 on 3000 test images with only three training images",
+    "source_type": "pdf",
+    "qa_type": "numeric",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q34",
+    "question": "为什么只依赖全局上下文的 Transformer 难以精确定位 SAR 小型舰船？",
+    "gold_answer": "只依赖全局上下文会缺少局部细节信息，从而妨碍小型舰船的精确定位。",
+    "gold_filename": "GL-DETR_Global-to-Local_Transformers_for_Small_Ship_Detection_in_SAR_Images.pdf",
+    "gold_snippet": "context information hinders the precise localization of small",
+    "source_type": "pdf",
+    "qa_type": "concept",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q35",
+    "question": "GL-DETR 的 MIE 模块怎样增强小型舰船的特征？",
+    "gold_answer": "MIE 使用高斯滤波提取并增强小型舰船的高频信息。",
+    "gold_filename": "GL-DETR_Global-to-Local_Transformers_for_Small_Ship_Detection_in_SAR_Images.pdf",
+    "gold_snippet": "high-frequency information of small ships through Gaussian",
+    "source_type": "pdf",
+    "qa_type": "mechanism",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q36",
+    "question": "GL-DETR 的 LIA 如何把粗定位进一步细化为小舰船的精确定位？",
+    "gold_answer": "LIA 利用局部多尺度 ROI 信息丰富对象查询特征，并进一步细化边界框定位。",
+    "gold_filename": "GL-DETR_Global-to-Local_Transformers_for_Small_Ship_Detection_in_SAR_Images.pdf",
+    "gold_snippet": "local interaction attention (LIA) module",
+    "source_type": "pdf",
+    "qa_type": "mechanism",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q37",
+    "question": "GL-DETR 摘要报告其相对 baseline 在 LS-SSDD 和 HRSID 上分别提升多少？",
+    "gold_answer": "在 LS-SSDD 和 HRSID 上分别提升 3.71% 和 4.89%。",
+    "gold_filename": "GL-DETR_Global-to-Local_Transformers_for_Small_Ship_Detection_in_SAR_Images.pdf",
+    "gold_snippet": "3.71% and 4.89% on classical SAR datasets",
+    "source_type": "pdf",
+    "qa_type": "comparison",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q38",
+    "question": "GL-DETR 使用的 LS-SSDD-v1.0 中共有多少标注舰船，其中小于 32×32 像素的比例是多少？",
+    "gold_answer": "共有 6015 个标注舰船，其中 96.2% 小于 32×32 像素。",
+    "gold_filename": "GL-DETR_Global-to-Local_Transformers_for_Small_Ship_Detection_in_SAR_Images.pdf",
+    "gold_snippet": "6015 labeled ships, with 96.2% of them smaller than",
+    "source_type": "pdf",
+    "qa_type": "multi_constraint",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q39",
+    "question": "哪种检测范式不需要先生成候选区域，就能直接完成类别和位置预测？",
+    "gold_answer": "YOLO 所代表的端到端单阶段检测范式不需要额外生成候选区域。",
+    "gold_filename": "YOLO目标检测模型知识.txt",
+    "gold_snippet": "端到端训练：无需额外的候选区域生成步骤",
+    "source_type": "txt",
+    "qa_type": "paraphrase",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q40",
+    "question": "港口中舰船彼此靠得很近时，常规 NMS 为什么可能漏掉真实目标？",
+    "gold_answer": "密集舰船的框相互重叠，NMS 可能把相邻真实目标误判为重复框并抑制掉。",
+    "gold_filename": "SAR图像特性与挑战.txt",
+    "gold_snippet": "NMS（非极大值抑制）可能错误地抑制相邻目标",
+    "source_type": "txt",
+    "qa_type": "application",
+    "difficulty": "hard"
+  }
+]

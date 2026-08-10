@@ -39,13 +39,14 @@ def main() -> int:
 
     retrieval = read_csv(Path(args.retrieval))
     scores = read_scores(Path(args.scores))
+    question_count = len({row["qa_id"] for row in scores})
 
     by_pipeline = defaultdict(list)
     for row in scores:
         by_pipeline[row["pipeline"]].append(row["score"])
 
     lines = [
-        "# RAG 25题最终评估",
+        f"# RAG {question_count}题最终评估",
         "",
         "## Retrieval Summary",
         "",
@@ -82,4 +83,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

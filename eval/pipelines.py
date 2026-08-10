@@ -55,25 +55,13 @@ def _get_reranker() -> BGERerankerService:
 def _retrieve_children(query: str, k_pool: int, hybrid: bool) -> list[Document]:
     """
     从 Chroma 召回原始子块（生产配置下向量库存的就是子块）。
-    临时改 k 后通过 try/finally 还原，避免污染单例状态。
+    混合管线复用生产候选入口，避免评测与线上策略漂移。
     """
     vs = _get_vs()
 
     if not hybrid:
         return vs.vector_store.as_retriever(search_kwargs={"k": k_pool}).invoke(query)
-
-    engine = vs.hybrid_engine
-    old_k_engine = engine.k
-    old_k_bm25 = engine.bm25_retriever.k if engine.bm25_retriever is not None else None
-    engine.k = k_pool
-    if engine.bm25_retriever is not None:
-        engine.bm25_retriever.k = k_pool
-    try:
-        return engine.get_retriever(query).invoke(query)
-    finally:
-        engine.k = old_k_engine
-        if engine.bm25_retriever is not None and old_k_bm25 is not None:
-            engine.bm25_retriever.k = old_k_bm25
+    return vs.retrieve(query)
 
 
 # ==================== 5 个 pipeline ====================

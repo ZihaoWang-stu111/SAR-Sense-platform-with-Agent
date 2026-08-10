@@ -15,21 +15,22 @@ if str(ROOT) not in sys.path:
 from eval_rag25.metrics import first_hit_rank, normalize, reciprocal_rank
 
 DATA_DIR = ROOT / "data"
-DEFAULT_DATASET = ROOT / "eval_rag25" / "qa_dataset_25.json"
+DEFAULT_DATASET = ROOT / "eval_rag25" / "qa_dataset_40.json"
 RESULTS_DIR = ROOT / "eval_rag25" / "results"
+EXPECTED_QUESTION_COUNT = 40
 DEFAULT_KS = [3, 5, 10]
 PIPELINE_ORDER = [
     "vector_only",
-    "hybrid_no_pc_no_rr",
     "hybrid_pc_no_rr",
     "hybrid_no_pc_with_rr",
+    "vector_pc_with_rr",
     "full",
 ]
 PIPELINE_TOGGLES = {
     "vector_only": {"label": "vector", "bm25": False, "pc": False, "rr": False},
-    "hybrid_no_pc_no_rr": {"label": "vector+BM25", "bm25": True, "pc": False, "rr": False},
     "hybrid_pc_no_rr": {"label": "vector+BM25+PC", "bm25": True, "pc": True, "rr": False},
     "hybrid_no_pc_with_rr": {"label": "vector+BM25+RR", "bm25": True, "pc": False, "rr": True},
+    "vector_pc_with_rr": {"label": "vector+RR+PC", "bm25": False, "pc": True, "rr": True},
     "full": {"label": "full", "bm25": True, "pc": True, "rr": True},
 }
 REQUIRED_FIELDS = {
@@ -80,8 +81,10 @@ def _read_source_text(filename: str, source_type: str) -> str:
 
 
 def validate_dataset(qa_list: list[dict]) -> None:
-    if len(qa_list) != 25:
-        raise ValueError(f"expected 25 questions, got {len(qa_list)}")
+    if len(qa_list) != EXPECTED_QUESTION_COUNT:
+        raise ValueError(
+            f"expected {EXPECTED_QUESTION_COUNT} questions, got {len(qa_list)}"
+        )
 
     cache: dict[tuple[str, str], str] = {}
     for qa in qa_list:
@@ -158,7 +161,7 @@ def write_markdown(path: Path, agg_rows: list[dict], n_qa: int) -> None:
     kmid = ks[len(ks) // 2]
 
     lines = [
-        "# RAG 25题检索评估",
+        f"# RAG {n_qa}题检索评估",
         "",
         f"- 题数: {n_qa}",
         f"- k: {ks}",
@@ -194,7 +197,7 @@ def write_markdown(path: Path, agg_rows: list[dict], n_qa: int) -> None:
             "## 简历可用句",
             "",
             (
-                f"> 自建 SAR 领域 25 题 RAG 检索评估集，覆盖 txt、论文 PDF 和 poster；"
+                f"> 自建 SAR 领域 {n_qa} 题 RAG 检索评估集，覆盖 txt、论文 PDF 和 poster；"
                 f"full pipeline 的 Recall@{kmid} 为 {_fmt_pct(full['recall'])}，"
                 f"相比 vector-only 基线 {_fmt_pct(base['recall'])} 变化 {delta:+.1f} pp。"
             ),
@@ -281,7 +284,7 @@ def main() -> int:
                 for qa in qa_list:
                     done += 1
                     rows.append(run_one(pipeline_name, pipeline, qa, k))
-                    if done % 25 == 0 or done == total:
+                    if done % len(qa_list) == 0 or done == total:
                         print(f"retrieval {done}/{total}")
 
         write_csv(RESULTS_DIR / f"results_raw{suffix}.csv", rows)
