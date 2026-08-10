@@ -302,3 +302,16 @@ class ReportPromptContractTests(unittest.TestCase):
             r"缺少可靠数据时.*?检测结论.*?明确"
             r".*?证据不足/无法确认.*?不得编造",
         )
+
+
+class ResearchPromptContractTests(unittest.TestCase):
+    def setUp(self):
+        self.prompt = _prompt("research_prompt.txt")
+
+    def test_research_prompt_defines_retrieval_and_evidence_limits(self):
+        for requirement in ("分别检索", "证据冲突", "资料缺口", "最多 6 次"):
+            self.assertIn(requirement, self.prompt)
+
+    def test_research_prompt_prohibits_private_reasoning_and_fabrication(self):
+        for requirement in ("不输出内部推理过程", "不得编造"):
+            self.assertIn(requirement, self.prompt)
