@@ -14,7 +14,6 @@ with warnings.catch_warnings():
     )
     import jieba
 from langchain_community.retrievers import BM25Retriever
-from langchain_classic.retrievers import EnsembleRetriever
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
@@ -64,7 +63,7 @@ class FilteredBM25Retriever(BaseRetriever):
 
 
 class DynamicHybridRetriever:
-    """混合检索器：动态路由 BM25 + 向量检索"""
+    """非对称混合检索器：向量主召回，BM25 补充关键词候选。"""
 
     DOMAIN_TERMS = [
         # SAR 舰船检测核心概念
@@ -280,49 +279,6 @@ class DynamicHybridRetriever:
         """文档变更后重建 BM25 索引（强制重建并覆盖 pkl）"""
         self.bm25_retriever = self._build_bm25(force=True)
 
-    def _get_dynamic_weights(self, query: str):
-        """根据中英文混合查询特征，动态分配 [向量权重, BM25权重]。"""
-        if not query:
-            return [0.5, 0.5]
-
-        query = query.strip()
-        normalized = query.lower()
-        query_length = len(query)
-        tokens = self._preprocess_for_bm25(query)
-
-        has_chinese = bool(re.search(r"[\u4e00-\u9fff]", query))
-        has_ascii = bool(re.search(r"[a-zA-Z0-9]", query))
-        has_number = bool(re.search(r"\d", query))
-
-        exact_patterns = [
-            r"\bmap\b", r"\bmap50\b", r"\bmap50-95\b", r"\bap50\b",
-            r"\bmbe[-_]?net\b", r"\bsfq[-_]?det\b", r"\byolo\w*\b",
-            r"\bcfar\b", r"\bsar\b", r"\bhrsid\b", r"\bssdd\b",
-            r"\bfaster\s*r[- ]?cnn\b", r"\bssd\b", r"\bdetr\b",
-            r"\bhh\b", r"\bvv\b", r"\bvh\b", r"\bhv\b",
-            r"召回率", r"精确率", r"准确率", r"平均精度", r"误检率", r"虚警率",
-            r"小目标", r"密集目标", r"极化", r"波段", r"场景id",
-        ]
-        has_exact_term = any(re.search(pattern, normalized) for pattern in exact_patterns)
-
-        if query_length >= 60 and not has_exact_term:
-            # 长描述更像语义问答，向量语义更可靠。
-            return [0.6, 0.4]
-
-        if has_exact_term or has_number:
-            # 型号、指标、数字和专有名词更适合关键词精确召回。
-            return [0.4, 0.6]
-
-        if query_length <= 20 and len(tokens) <= 5:
-            # 很短的问题通常是在搜关键词。
-            return [0.4, 0.6]
-
-        if has_chinese and has_ascii:
-            # 中英文混合问题通常既需要语义，也需要术语精确匹配。
-            return [0.5, 0.5]
-
-        return [0.5, 0.5]
-
     def retrieve(self, query: str, allowed_doc_ids=None) -> list[Document]:
         if allowed_doc_ids is not None:
             allowed_doc_ids = set(allowed_doc_ids)
@@ -331,19 +287,8 @@ class DynamicHybridRetriever:
         active_chunk_ids = self._get_active_chunk_ids()
         if active_chunk_ids is not None and not active_chunk_ids:
             return []
-        candidates = self.get_retriever(
-            query,
-            allowed_doc_ids=allowed_doc_ids,
-            active_chunk_ids=active_chunk_ids,
-        ).invoke(query)
-        return candidates[:self.rerank_candidate_k]
 
-    def get_retriever(self, query: str, allowed_doc_ids=None, active_chunk_ids=None):
-        """根据当前 query，返回定制化权重的混合检索器"""
         search_kwargs = {"k": self.k}
-        if active_chunk_ids is None:
-            active_chunk_ids = self._get_active_chunk_ids()
-
         filters = []
         if active_chunk_ids is not None:
             filters.append({"chunk_id": {"$in": sorted(active_chunk_ids)}})
@@ -354,31 +299,34 @@ class DynamicHybridRetriever:
         elif filters:
             search_kwargs["filter"] = {"$and": filters}
         vector_retriever = self.vector_store.as_retriever(search_kwargs=search_kwargs)
+        vector_docs = vector_retriever.invoke(query)
+        candidates = list(vector_docs[:self.rerank_candidate_k])
 
-        # 降级保护
-        if not self.bm25_retriever:
-            return vector_retriever
+        # 向量结果占主候选预算；BM25 只补充剩余名额，不参与预排序。
+        bm25_quota = max(self.rerank_candidate_k - self.k, 0)
+        if not self.bm25_retriever or not bm25_quota:
+            return candidates
 
-        # 获取动态权重，假设返回的是 [0.5, 0.5]
-        weights = self._get_dynamic_weights(query)
-
-
-        bm25_retriever = self.bm25_retriever
-        if allowed_doc_ids is not None or active_chunk_ids is not None:
-            bm25_retriever = FilteredBM25Retriever(
-                source=self.bm25_retriever,
-                allowed_doc_ids=(
-                    None if allowed_doc_ids is None else set(allowed_doc_ids)
-                ),
-                active_chunk_ids=(
-                    None if active_chunk_ids is None else set(active_chunk_ids)
-                ),
-                k=self.k,
-            )
-
-        ensemble_retriever = EnsembleRetriever(
-            retrievers=[vector_retriever, bm25_retriever],
-            weights=weights,
-            id_key="chunk_id",
+        bm25_retriever = FilteredBM25Retriever(
+            source=self.bm25_retriever,
+            allowed_doc_ids=allowed_doc_ids,
+            active_chunk_ids=active_chunk_ids,
+            k=self.k,
         )
-        return ensemble_retriever
+        seen = {
+            (doc.metadata or {}).get("chunk_id")
+            for doc in candidates
+            if (doc.metadata or {}).get("chunk_id")
+        }
+        added = 0
+        for doc in bm25_retriever.invoke(query):
+            chunk_id = (doc.metadata or {}).get("chunk_id")
+            if chunk_id and chunk_id in seen:
+                continue
+            candidates.append(doc)
+            if chunk_id:
+                seen.add(chunk_id)
+            added += 1
+            if added >= bm25_quota or len(candidates) >= self.rerank_candidate_k:
+                break
+        return candidates

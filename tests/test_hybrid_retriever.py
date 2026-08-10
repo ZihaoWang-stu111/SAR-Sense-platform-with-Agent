@@ -2,6 +2,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from langchain_community.retrievers import BM25Retriever
 from langchain_core.documents import Document
 
 from rag.hybrid_retriever import DynamicHybridRetriever, FilteredBM25Retriever
@@ -23,51 +24,35 @@ class DynamicHybridRetrieverTest(unittest.TestCase):
         self.assertIn("vv", tokens)
         self.assertIn("极化", tokens)
 
-    def test_dynamic_weights_use_bounded_profiles(self):
-        retriever = object.__new__(DynamicHybridRetriever)
-
-        cases = [
-            ("MBE-Net mAP50", [0.4, 0.6]),
-            (
-                "Explain how feature extraction improves robustness under "
-                "complex maritime backgrounds without exact model names",
-                [0.6, 0.4],
-            ),
-            ("请解释 feature extraction 在复杂背景中的作用和主要优势", [0.5, 0.5]),
+    def test_retrieve_keeps_vector_results_and_only_appends_unique_bm25_docs(self):
+        vector_docs = [
+            Document(page_content="vector-1", metadata={"chunk_id": "v1"}),
+            Document(page_content="vector-2", metadata={"chunk_id": "v2"}),
         ]
-        for query, expected in cases:
-            with self.subTest(query=query):
-                self.assertEqual(retriever._get_dynamic_weights(query), expected)
-
-    def test_ensemble_deduplicates_by_chunk_id(self):
+        bm25_source = Mock(spec=BM25Retriever)
+        bm25_source.preprocess_func = lambda query: [query]
+        bm25_source.vectorizer = SimpleNamespace(
+            get_scores=lambda _tokens: [10.0, 9.0]
+        )
+        bm25_source.docs = [
+            Document(page_content="duplicate", metadata={"chunk_id": "v2"}),
+            Document(page_content="bm25-extra", metadata={"chunk_id": "b1"}),
+        ]
         vector_store = Mock()
-        vector_store.as_retriever.return_value = object()
+        vector_store.as_retriever.return_value.invoke.return_value = vector_docs
         retriever = object.__new__(DynamicHybridRetriever)
         retriever.vector_store = vector_store
-        retriever.k = 40
-        retriever.bm25_retriever = object()
-        retriever.active_chunk_ids_provider = None
-
-        with patch("rag.hybrid_retriever.EnsembleRetriever") as ensemble:
-            retriever.get_retriever("ship")
-
-        self.assertEqual(ensemble.call_args.kwargs["id_key"], "chunk_id")
-
-    def test_retrieve_limits_candidates_before_rerank(self):
-        candidates = [
-            Document(page_content=str(index), metadata={"chunk_id": str(index)})
-            for index in range(4)
-        ]
-        fused_retriever = Mock()
-        fused_retriever.invoke.return_value = candidates
-        retriever = object.__new__(DynamicHybridRetriever)
-        retriever.active_chunk_ids_provider = None
+        retriever.k = 2
         retriever.rerank_candidate_k = 3
-        retriever.get_retriever = Mock(return_value=fused_retriever)
+        retriever.bm25_retriever = bm25_source
+        retriever.active_chunk_ids_provider = None
 
         results = retriever.retrieve("ship")
 
-        self.assertEqual(results, candidates[:3])
+        self.assertEqual(
+            [doc.metadata["chunk_id"] for doc in results],
+            ["v1", "v2", "b1"],
+        )
 
     def test_fingerprint_provider_drives_cache_without_manifest_access(self):
         cached_bm25 = object()
@@ -142,20 +127,22 @@ class DynamicHybridRetrieverTest(unittest.TestCase):
         retriever.active_chunk_ids_provider.assert_called_once_with()
 
     def test_vector_filter_combines_active_chunks_with_allowed_documents(self):
-        vector_retriever = object()
+        vector_retriever = Mock()
+        vector_retriever.invoke.return_value = []
         vector_store = Mock()
         vector_store.as_retriever.return_value = vector_retriever
         retriever = object.__new__(DynamicHybridRetriever)
         retriever.vector_store = vector_store
         retriever.k = 3
+        retriever.rerank_candidate_k = 5
         retriever.bm25_retriever = None
         retriever.active_chunk_ids_provider = Mock(
             return_value={"active-child-1", "active-child-2"}
         )
 
-        result = retriever.get_retriever("ship", allowed_doc_ids={"doc-visible"})
+        result = retriever.retrieve("ship", allowed_doc_ids={"doc-visible"})
 
-        self.assertIs(result, vector_retriever)
+        self.assertEqual(result, [])
         search_filter = vector_store.as_retriever.call_args.kwargs["search_kwargs"]["filter"]
         self.assertEqual(
             search_filter,
