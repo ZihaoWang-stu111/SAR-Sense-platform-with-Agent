@@ -9,3 +9,10 @@ reranker_model_name: BAAI/bge-reranker-base
 # docker 部署时由 compose 注入 MINERU_API_URL=http://mineru:8000 覆盖下面这行
 mineru_api_url: http://127.0.0.1:8000
 mineru_enabled: true
+
+conversation_compaction:
+  keep_first_messages: 2
+  keep_recent_messages: 20
+  compact_batch_messages: 8
+  history_token_budget: 6000
+  summary_max_chars: 500

@@ -16,7 +16,7 @@ from api.dependencies import get_agent, get_agent_executor, get_metrics
 from config.db_conf import AsyncSessionLocal
 from crud import conversations as conv_crud
 from crud.knowledge_acl import get_allowed_doc_ids
-from utils.conversation_builder import build_chat_pack
+from utils.conversation_builder import build_chat_pack, fit_messages_to_budget
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +48,10 @@ async def prepare_chat(
         if messages and messages[-1].get("role") == "user":
             messages[-1] = {"role": "user", "content": message}
     else:
-        history = [m.model_dump() if hasattr(m, "model_dump") else m for m in history_messages[-10:]]
+        history = [m.model_dump() if hasattr(m, "model_dump") else m for m in history_messages]
         messages = history + [{"role": "user", "content": message}]
 
+    messages = fit_messages_to_budget(messages)
     return messages, user_context
 
 
