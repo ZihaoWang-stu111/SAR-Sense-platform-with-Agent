@@ -1322,6 +1322,18 @@ function parseTableRow(line) {
 }
 
 // ==================== Citation Rendering ====================
+const citationSourceLinePattern = /^\[(\d+)\]\s*([^|]+)\s*\|\s*chunk_id=(\S+)\s*\|\s*score=(\S+)$/;
+
+function hasStructuredCitationSource(html, match) {
+  const sourceStart = match.index + match[0].length;
+  const firstSourceLine = html.substring(sourceStart)
+    .split(/<br\s*\/?>/i)
+    .map(line => line.trim())
+    .find(Boolean);
+  const sourceMatch = firstSourceLine?.match(citationSourceLinePattern);
+  return Boolean(sourceMatch?.[3] && sourceMatch?.[4]);
+}
+
 function renderWithCitations(html, streamingCursor = false, forceFoldToolBody = false) {
   // 只处理 assistant 消息中有引用标记的文本
   // streamingCursor: 流式期传 true，把打字机光标插到 mainBody 末尾（content 打字机处）
@@ -1330,7 +1342,8 @@ function renderWithCitations(html, streamingCursor = false, forceFoldToolBody = 
 
   try {
     // 容错中文冒号、英文冒号、全角冒号，允许前后空格
-    const matches = [...html.matchAll(/参考来源\s*[：:︰]\s*/g)];
+    const matches = [...html.matchAll(/参考来源\s*[：:︰]\s*/g)]
+      .filter(match => hasStructuredCitationSource(html, match));
     if (matches.length === 0) return html + cursor;
 
     // 调试：打印原始 HTML 和匹配到的"参考来源"数量
@@ -1361,7 +1374,7 @@ function renderSingleRagCitation(html, match, cursor = '', forceFoldToolBody = f
   const sources = [];
   let consumedSourceLines = 0;
   for (const line of sourceLines) {
-    const m = line.match(/^\[(\d+)\]\s*([^|]+)(?:\s*\|\s*chunk_id=(\S+))?(?:\s*\|\s*score=(\S+))?$/);
+    const m = line.match(citationSourceLinePattern);
     if (m) {
       sources.push({
         index: parseInt(m[1]),
@@ -1448,7 +1461,7 @@ function renderMultipleRagCitations(html, matches, cursor = '', forceFoldToolBod
 
     // 解析来源列表行
     while (j < lines.length) {
-      const m = lines[j].match(/^\[(\d+)\]\s*([^|]+)(?:\s*\|\s*chunk_id=(\S+))?(?:\s*\|\s*score=(\S+))?$/);
+      const m = lines[j].match(citationSourceLinePattern);
       if (m) {
         sources.push({
           index: parseInt(m[1]),

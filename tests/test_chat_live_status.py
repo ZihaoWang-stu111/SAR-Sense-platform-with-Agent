@@ -1,3 +1,6 @@
+import json
+import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -39,6 +42,42 @@ class ChatLiveStatusFrontendTest(unittest.TestCase):
         self.assertIn('aria-live="polite"', self.source)
         self.assertIn(".assistant-loading-status", css)
         self.assertIn("@media (prefers-reduced-motion: reduce)", css)
+
+    def test_only_structured_rag_sources_are_folded(self):
+        self.assertIn("function hasStructuredCitationSource(html, match)", self.source)
+        self.assertIn(
+            ".filter(match => hasStructuredCitationSource(html, match))",
+            self.source,
+        )
+
+        pattern_match = re.search(
+            r"const citationSourceLinePattern\s*=\s*(/(?:\\.|[^/\r\n])+/[a-z]*);",
+            self.source,
+        )
+        self.assertIsNotNone(pattern_match)
+        cases = [
+            ("[1] paper.pdf | chunk_id=abc | score=0.9876", True),
+            ("[1] 普通正文", False),
+            ("[1] paper.pdf | score=0.9876", False),
+            ("[1] paper.pdf | chunk_id=abc", False),
+        ]
+        script = (
+            f"const pattern = {pattern_match.group(1)};"
+            f"const cases = {json.dumps(cases, ensure_ascii=True)};"
+            "const failures = cases.filter(([line, expected]) => "
+            "pattern.test(line) !== expected);"
+            "if (failures.length) {"
+            "console.error(JSON.stringify(failures));"
+            "process.exit(1);"
+            "}"
+        )
+        result = subprocess.run(
+            ["node", "-e", script],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":
