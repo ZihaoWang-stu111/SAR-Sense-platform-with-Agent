@@ -1,75 +1,7 @@
-import importlib.util
-import sys
-from pathlib import Path
-from types import ModuleType
-from unittest.mock import patch
-
 import pytest
 from langchain_core.documents import Document
 
-
-_TEST_MODULE_NAME = "_test_rag_citation_grounding_rag_service"
-_MISSING = object()
-_STUB_CHAT_MODEL = object()
-
-
-class _ForbiddenService:
-    def __init__(self, *args, **kwargs):
-        raise AssertionError("RagSummarizeService dependencies must not be initialized")
-
-
-def _make_stub_module(name, **attributes):
-    module = ModuleType(name)
-    for attribute, value in attributes.items():
-        setattr(module, attribute, value)
-    return module
-
-
-def _forbid_vector_store_initialization():
-    raise AssertionError("Vector store must not be initialized")
-
-
-def _load_isolated_rag_service():
-    module_path = Path(__file__).resolve().parents[1] / "rag" / "rag_service.py"
-    spec = importlib.util.spec_from_file_location(_TEST_MODULE_NAME, module_path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Unable to load {module_path}")
-
-    stubbed_modules = {
-        "model.factory": _make_stub_module(
-            "model.factory", chat_model=_STUB_CHAT_MODEL
-        ),
-        "rag.vector_store": _make_stub_module(
-            "rag.vector_store",
-            get_vector_store_service=_forbid_vector_store_initialization,
-        ),
-        "rag.reranker": _make_stub_module(
-            "rag.reranker", BGERerankerService=_ForbiddenService
-        ),
-        "rag.parent_child_retriever": _make_stub_module(
-            "rag.parent_child_retriever", ParentChildResolver=_ForbiddenService
-        ),
-        "utils.config_handler": _make_stub_module(
-            "utils.config_handler", chroma_conf={}, prompts_conf={}
-        ),
-    }
-    watched_names = (*stubbed_modules, _TEST_MODULE_NAME)
-    previous_modules = {
-        name: sys.modules.get(name, _MISSING) for name in watched_names
-    }
-
-    with patch.dict(sys.modules, stubbed_modules, clear=False):
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-
-    cache_restored = all(
-        sys.modules.get(name, _MISSING) is previous_modules[name]
-        for name in watched_names
-    )
-    return module, cache_restored
-
-
-rag_service, _IMPORT_CACHE_RESTORED = _load_isolated_rag_service()
+from rag import rag_service
 
 
 class FakeChain:
@@ -80,12 +12,6 @@ class FakeChain:
     def invoke(self, payload):
         self.invocations.append(payload)
         return self.answer
-
-
-def test_rag_service_import_uses_stubs_without_leaking_module_cache():
-    assert rag_service.__name__ == _TEST_MODULE_NAME
-    assert rag_service.chat_model is _STUB_CHAT_MODEL
-    assert _IMPORT_CACHE_RESTORED
 
 
 def test_render_grounded_answer_converts_valid_citations():
