@@ -122,6 +122,166 @@ class MainPromptContractTests(unittest.TestCase):
         ]
         self.assertEqual(limits, ["6"])
 
+    def test_rag_evidence_ids_and_supported_facts_survive_final_answer(self):
+        prompt = _normalized_prompt("main_prompt.txt")
+        self.assertRegex(
+            prompt,
+            r"rag_summarize.*?已经过.*?证据校验",
+        )
+        self.assertRegex(
+            prompt,
+            r"最终回答.*?保留.*?\[n\].*?引用编号.*?对应事实",
+        )
+        self.assertRegex(
+            prompt,
+            r"(?:不得|禁止).*?删除.*?(?:改号|更改编号).*?(?:伪造|新增).*?正文引用",
+        )
+
+    def test_rag_body_citations_are_preserved_without_copying_source_list(self):
+        prompt = _normalized_prompt("main_prompt.txt")
+        self.assertRegex(
+            prompt,
+            r"(?:保留|不得删除).*?rag_summarize 回答正文.*?\[n\].*?对应事实",
+        )
+        self.assertRegex(
+            prompt,
+            r"(?:不得|禁止).*?删除.*?改号.*?伪造.*?新增.*?正文引用",
+        )
+        self.assertRegex(
+            prompt,
+            r"后端.*?追加.*?参考来源：.*?列表.*?仅.*?展示.*?追溯",
+        )
+        self.assertRegex(
+            prompt,
+            r"参考来源：.*?列表.*?(?:不得|禁止).*?最终回答正文.*?(?:重复|照抄)",
+        )
+
+    def test_rag_partial_answer_boundary_is_not_filled_from_model_knowledge(self):
+        prompt = _normalized_prompt("main_prompt.txt")
+        self.assertRegex(
+            prompt,
+            r"RAG.*?仅支持部分.*?保留.*?已确认.*?缺失.*?边界",
+        )
+        self.assertRegex(
+            prompt,
+            r"(?:不得|禁止).*?模型自身知识.*?(?:补齐|补全).*?缺失事实",
+        )
+
+    def test_rag_insufficiency_respects_local_only_and_existing_web_fallback(self):
+        prompt = _normalized_prompt("main_prompt.txt")
+        self.assertRegex(
+            prompt,
+            r"RAG.*?(?:资料|证据)不足.*?只能.*?本地知识库.*?不要联网"
+            r".*?直接说明.*?缺失.*?(?:不得调用|不调用) web_search",
+        )
+        self.assertRegex(
+            prompt,
+            r"用户.*?未.*?限制.*?确有必要.*?(?:允许|可).*?web_search.*?兜底",
+        )
+
+
+class RagSummarizePromptContractTests(unittest.TestCase):
+    def setUp(self):
+        self.prompt = _normalized_prompt("rag_summarize.txt")
+
+    def test_prohibits_illegal_infringing_or_abusive_content(self):
+        self.assertRegex(
+            self.prompt,
+            r"(?:禁止|不得).*?输出.*?违法.*?侵权.*?攻击性.*?内容",
+        )
+
+    def test_uses_only_input_evidence_and_defines_evidence_roles(self):
+        self.assertRegex(
+            self.prompt,
+            r"只.*?依据.*?输入.*?\[证据n\].*?回答",
+        )
+        self.assertRegex(
+            self.prompt,
+            r"(?:不得|禁止).*?模型自身知识.*?(?:补全|添加)",
+        )
+        self.assertRegex(
+            self.prompt,
+            r"直接证据.*?正文.*?直接包含.*?回答.*?事实.*?支撑.*?结论",
+        )
+        self.assertRegex(
+            self.prompt,
+            r"背景信息.*?(?:主题相关|定义|上下文).*?不能.*?单独支撑.*?具体结论",
+        )
+        self.assertRegex(
+            self.prompt,
+            r"信息缺口.*?(?:没有|未).*?明确.*?条件.*?数字.*?比较.*?因果",
+        )
+
+    def test_requires_real_internal_evidence_ids_for_each_key_claim(self):
+        self.assertRegex(
+            self.prompt,
+            r"每个.*?关键事实.*?结论.*?紧跟.*?\[\[EVIDENCE:n\]\]",
+        )
+        self.assertRegex(
+            self.prompt,
+            r"n.*?来自输入.*?真实存在.*?证据编号",
+        )
+        self.assertRegex(
+            self.prompt,
+            r"(?:不得|禁止).*?编造.*?越界.*?文件名.*?替代",
+        )
+        self.assertNotRegex(
+            self.prompt,
+            r"必须用《文件名》|根据《[^》]+》",
+        )
+
+    def test_partial_and_total_insufficiency_are_distinct(self):
+        self.assertRegex(
+            self.prompt,
+            r"部分.*?直接证据.*?回答.*?已支持.*?引用.*?明确.*?缺失",
+        )
+        self.assertRegex(
+            self.prompt,
+            r"不要.*?完整.*?(?:补全|编造)",
+        )
+        self.assertRegex(
+            self.prompt,
+            r"只有.*?所有请求内容.*?没有.*?直接证据.*?答案.*?"
+            r"\[\[INSUFFICIENT\]\].*?开头.*?具体说明.*?缺",
+        )
+        self.assertRegex(
+            self.prompt,
+            r"(?:主题相关|背景信息).*?(?:不等于|不得视为).*?(?:有答案|直接证据)",
+        )
+
+    def test_outputs_only_answer_body_without_sources_or_reasoning(self):
+        self.assertRegex(
+            self.prompt,
+            r"只输出.*?回答正文",
+        )
+        self.assertRegex(
+            self.prompt,
+            r"(?:绝不|不得|不要).*?参考来源.*?列表.*?(?:后端|系统).*?追加",
+        )
+        self.assertRegex(
+            self.prompt,
+            r"(?:不输出|禁止输出).*?分类过程.*?内部推理.*?JSON",
+        )
+
+    def test_keeps_template_variables(self):
+        raw_prompt = _prompt("rag_summarize.txt")
+        self.assertEqual(raw_prompt.count("{input}"), 1)
+        self.assertEqual(raw_prompt.count("{context}"), 1)
+
+    def test_preserves_complete_tables_when_requested(self):
+        self.assertRegex(
+            self.prompt,
+            r"用户.*?完整表格.*?(?:原样|完整).*?输出",
+        )
+        self.assertRegex(
+            self.prompt,
+            r"每一行.*?每一列.*?所有数值",
+        )
+        self.assertRegex(
+            self.prompt,
+            r"(?:禁止|不得).*?省略.*?(?:压缩|概括).*?表格",
+        )
+
 
 class ReportPromptContractTests(unittest.TestCase):
     def setUp(self):
