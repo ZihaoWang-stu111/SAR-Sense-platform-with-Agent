@@ -22,6 +22,20 @@ def test_render_grounded_answer_converts_valid_citations():
     ) == "结论一[1]，结论二[2]，再次引用[1]。"
 
 
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "结论[[[EVIDENCE:1]]]",
+        "结论[[EVIDENCE:1]]]",
+    ],
+)
+def test_render_grounded_answer_rejects_citations_with_extra_brackets(answer):
+    assert (
+        rag_service.render_grounded_answer(answer, source_count=1)
+        == rag_service.GROUNDING_FALLBACK
+    )
+
+
 def test_render_grounded_answer_rejects_answer_without_citation():
     assert (
         rag_service.render_grounded_answer("只有结论，没有证据引用。", source_count=2)

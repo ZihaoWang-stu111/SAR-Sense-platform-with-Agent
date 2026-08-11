@@ -14,7 +14,7 @@ from utils.config_handler import chroma_conf
 
 
 GROUNDING_FALLBACK = "当前资料不足以直接支持可靠结论，无法基于知识库回答。"
-_EVIDENCE_PATTERN = re.compile(r"\[\[EVIDENCE:([0-9]+)\]\]")
+_EVIDENCE_PATTERN = re.compile(r"(?<!\[)\[\[EVIDENCE:([0-9]+)\]\](?!\])")
 _SUSPICIOUS_EVIDENCE_PATTERN = re.compile(r"\[{1,2}\s*EVIDENCE", re.IGNORECASE)
 _INSUFFICIENT_MARKER = "[[INSUFFICIENT]]"
 
