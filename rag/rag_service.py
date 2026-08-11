@@ -1,4 +1,5 @@
 import os
+import re
 os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
@@ -12,6 +13,42 @@ from rag.parent_child_retriever import ParentChildResolver
 from utils.config_handler import chroma_conf
 
 
+GROUNDING_FALLBACK = "当前资料不足以直接支持可靠结论，无法基于知识库回答。"
+_EVIDENCE_PATTERN = re.compile(r"\[\[EVIDENCE:([0-9]+)\]\]")
+_SUSPICIOUS_EVIDENCE_PATTERN = re.compile(r"\[{1,2}\s*EVIDENCE", re.IGNORECASE)
+_INSUFFICIENT_MARKER = "[[INSUFFICIENT]]"
+
+
+def render_grounded_answer(answer, source_count):
+    """校验证据标记，并转换为前端使用的引用格式。"""
+    if not isinstance(answer, str) or type(source_count) is not int or source_count < 0:
+        return GROUNDING_FALLBACK
+
+    answer = answer.strip()
+    insufficient = answer.startswith(_INSUFFICIENT_MARKER)
+    if insufficient:
+        answer = answer[len(_INSUFFICIENT_MARKER):].strip()
+        if not answer:
+            return GROUNDING_FALLBACK
+
+    matches = list(_EVIDENCE_PATTERN.finditer(answer))
+    if not insufficient and not matches:
+        return GROUNDING_FALLBACK
+
+    answer_without_valid_markers = _EVIDENCE_PATTERN.sub("", answer)
+    if _SUSPICIOUS_EVIDENCE_PATTERN.search(answer_without_valid_markers):
+        return GROUNDING_FALLBACK
+
+    try:
+        indexes = [int(match.group(1)) for match in matches]
+    except ValueError:
+        return GROUNDING_FALLBACK
+
+    if any(not 1 <= index <= source_count for index in indexes):
+        return GROUNDING_FALLBACK
+
+    index_iter = iter(indexes)
+    return _EVIDENCE_PATTERN.sub(lambda _: f"[{next(index_iter)}]", answer)
 
 
 class RagSummarizeService:
@@ -71,7 +108,10 @@ class RagSummarizeService:
         if not docs:
             return "知识库中未检索到与该问题相关的可靠资料，无法基于知识库回答。"
 
-        context = ""
+        context = (
+            "证据标记规则：每个关键结论后必须使用 [[EVIDENCE:n]]，其中 n 是下方对应的证据序号；"
+            "若没有直接证据，回答必须以 [[INSUFFICIENT]] 开头并说明缺失信息。\n\n"
+        )
         sources = []
         for i, doc in enumerate(docs, 1):
             filename = doc.metadata.get('filename', '未知文档')
@@ -82,9 +122,9 @@ class RagSummarizeService:
             score = doc.metadata.get('rerank_score', '-')
             if isinstance(score, float):
                 score = f"{score:.4f}"
-            context += f"[{i}] {doc.page_content}\n"
+            context += f"[证据{i}]\n正文：\n{doc.page_content}\n"
             ctx_line = (
-                f"来源: {filename} | chunk_id={chunk_id} | parent_index={chunk_index} "
+                f"来源：{filename} | chunk_id={chunk_id} | parent_index={chunk_index} "
                 f"| match_child={match_child} | page={page} | score={score}"
             )
             table_id = doc.metadata.get('table_id', '')
@@ -96,11 +136,13 @@ class RagSummarizeService:
         answer = self.chain.invoke(
             {"input": query,
              "context": context}
-        ).strip()
-        for marker in ("参考来源：", "参考来源:"):
-            if marker in answer:
-                answer = answer.split(marker, 1)[0].strip()
-                break
+        )
+        if isinstance(answer, str):
+            for marker in ("参考来源：", "参考来源:"):
+                if marker in answer:
+                    answer = answer.split(marker, 1)[0].strip()
+                    break
+        answer = render_grounded_answer(answer, len(sources))
 
         return f"{answer}\n\n参考来源：\n" + "\n".join(sources)
 
