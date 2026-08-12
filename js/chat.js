@@ -365,6 +365,8 @@ function initChat() {
   const removeAttachment = document.getElementById('removeAttachment');
 
   if (!chatMessages || !chatInput) return;
+  initCitationClickHandlers(chatMessages);
+  initEvidenceDrawer();
 
   if (newConvBtn) {
     newConvBtn.addEventListener('click', async () => {
@@ -951,7 +953,6 @@ function updateLastMessage(isFinal = false) {
     }
   }
   if (isFinal) {
-    initCitationClickHandlers(contentDiv);
     appendDetectImages(contentDiv, assistantMessage.thoughtSteps);
   }
   chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -1125,9 +1126,6 @@ function renderMessages() {
     messageDiv.appendChild(contentDiv);
     chatMessages.appendChild(messageDiv);
   });
-
-  // 引用角标点击交互
-  initCitationClickHandlers(chatMessages);
 
   chatMessages.querySelectorAll('.thought-chain').forEach(chain => {
     const header = chain.querySelector('.thought-chain-header');
@@ -1334,6 +1332,44 @@ function hasStructuredCitationSource(html, match) {
   return Boolean(sourceMatch?.[3] && sourceMatch?.[5]);
 }
 
+function citationDataAttributes(source) {
+  return `data-parent-id="${encodeURIComponent(source.parentId)}" ` +
+    `data-filename="${encodeURIComponent(source.filename)}" ` +
+    `data-page="${encodeURIComponent(source.page || '')}" ` +
+    `data-score="${encodeURIComponent(source.score || '')}"`;
+}
+
+function formatCitationScore(value) {
+  const score = Number(value);
+  if (Number.isFinite(score) && score >= 0 && score <= 1) {
+    return `${(score * 100).toFixed(1)}%`;
+  }
+  return value && value !== '-' ? String(value) : '未知';
+}
+
+function decorateCitationBody(text, sources, displayIndexes = null) {
+  let decorated = text || '';
+  decorated = decorated.replace(/\[(\d+)\]/g, (raw, number) => {
+    const index = parseInt(number);
+    const source = sources.find(item => item.index === index);
+    if (!source) return raw;
+    const displayIndex = displayIndexes?.get(index) || index;
+    return `<button type="button" class="citation-ref" ${citationDataAttributes(source)} ` +
+      `aria-label="查看第 ${displayIndex} 条引用证据">[${displayIndex}]</button>`;
+  });
+  return decorated.replace(/《(.+?)》/g, '<span class="citation-filename">📄 $1</span>');
+}
+
+function renderCitationSourceItem(source, displayIndex) {
+  const pageText = source.page ? `第 ${escapeHtml(source.page)} 页 · ` : '';
+  return `<button type="button" class="citation-source-item" ${citationDataAttributes(source)}>
+    <span class="citation-badge">[${displayIndex}]</span>
+    <span class="citation-name">📄 ${source.filename}</span>
+    <span class="citation-meta">${pageText}相关度 ${escapeHtml(formatCitationScore(source.score))}</span>
+    <span class="citation-view">查看证据</span>
+  </button>`;
+}
+
 function renderWithCitations(html, streamingCursor = false, forceFoldToolBody = false) {
   // 只处理 assistant 消息中有引用标记的文本
   // streamingCursor: 流式期传 true，把打字机光标插到 mainBody 末尾（content 打字机处）
@@ -1396,37 +1432,20 @@ function renderSingleRagCitation(html, match, cursor = '', forceFoldToolBody = f
 
   const trailingBody = sourceLines.slice(consumedSourceLines).join('<br>').trim();
 
-  const decorateCitationBody = (text) => {
-    let decorated = text;
-
-    // 替换正文中的 [1] 为可点击角标
-    decorated = decorated.replace(/\[(\d+)\]/g, (match, num) => {
-      const idx = parseInt(num);
-      if (!sources.find(s => s.index === idx)) return match;
-      const src = sources.find(s => s.index === idx);
-      const displayIdx = displayIndexByOriginal.get(idx) || idx;
-      return `<sup class="citation-ref" data-idx="${idx}" title="${src.filename} (score: ${src.score})">[${displayIdx}]</sup>`;
-    });
-
-    // 替换《文件名》为高亮
-    decorated = decorated.replace(/《(.+?)》/g, '<span class="citation-filename">📄 $1</span>');
-    return decorated;
-  };
-
   const shouldFoldToolBody = Boolean(trailingBody) || forceFoldToolBody;
   const mainBody = decorateCitationBody(
-    trailingBody || (shouldFoldToolBody ? '' : body)
+    trailingBody || (shouldFoldToolBody ? '' : body),
+    sources,
+    displayIndexByOriginal
   ) + cursor;
-  const toolBody = shouldFoldToolBody ? decorateCitationBody(body) : '';
+  const toolBody = shouldFoldToolBody
+    ? decorateCitationBody(body, sources, displayIndexByOriginal)
+    : '';
 
-  // 生成来源卡片
-  const sourceItems = sources.map(s =>
-    `<div class="citation-source-item" data-idx="${s.index}">
-      <span class="citation-badge">[${displayIndexByOriginal.get(s.index) || s.index}]</span>
-      <span class="citation-name">📄 ${s.filename}</span>
-      <span class="citation-meta">chunk: ${s.parentId} · score: ${s.score}</span>
-    </div>`
-  ).join('');
+  const sourceItems = sources.map(source => renderCitationSourceItem(
+    source,
+    displayIndexByOriginal.get(source.index) || source.index
+  )).join('');
 
   const sourcePanel = `<details class="citation-sources">
     <summary>📚 参考来源（${sources.length}篇）</summary>
@@ -1501,25 +1520,18 @@ function renderMultipleRagCitations(html, matches, cursor = '', forceFoldToolBod
   // 如果没有解析到任何来源，回退到原始 HTML
   if (sourceGroups.length === 0) return html;
 
-  const decorateCitationBody = (text) =>
-    (text || '').replace(/《(.+?)》/g, '<span class="citation-filename">📄 $1</span>');
-
   const toolBodies = sourceGroups.map(g => g.toolBody).filter(text => text && text.trim());
   const shouldFoldTools = Boolean(finalBody) || forceFoldToolBody;
   const mainBodyRaw = shouldFoldTools ? finalBody : toolBodies.join('<br><br>');
-  const bodyWithHighlight = decorateCitationBody(mainBodyRaw) + cursor;
+  const bodyWithHighlight = decorateCitationBody(mainBodyRaw, []) + cursor;
 
   console.log('[renderMultipleRagCitations] 最终正文长度:', mainBodyRaw.length);
 
   // 生成分组来源面板
   const groupHtmls = sourceGroups.map(group => {
-    const items = group.sources.map(s =>
-      `<div class="citation-source-item">
-        <span class="citation-badge">[${s.index}]</span>
-        <span class="citation-name">📄 ${s.filename}</span>
-        <span class="citation-meta">chunk: ${s.parentId} · score: ${s.score}</span>
-      </div>`
-    ).join('');
+    const items = group.sources
+      .map(source => renderCitationSourceItem(source, source.index))
+      .join('');
 
     return `
       <div class="citation-group">
@@ -1540,7 +1552,7 @@ function renderMultipleRagCitations(html, matches, cursor = '', forceFoldToolBod
     .map(group => `
       <div class="citation-group">
         <div class="citation-group-title">🔍 第${group.groupIndex}次检索</div>
-        <div class="rag-tool-body">${decorateCitationBody(group.toolBody)}</div>
+        <div class="rag-tool-body">${decorateCitationBody(group.toolBody, group.sources)}</div>
       </div>
     `).join('') : '';
 
@@ -1553,18 +1565,112 @@ function renderMultipleRagCitations(html, matches, cursor = '', forceFoldToolBod
 }
 
 function initCitationClickHandlers(container) {
-  container.addEventListener('click', (e) => {
-    const ref = e.target.closest('.citation-ref');
-    if (!ref) return;
-    const idx = ref.dataset.idx;
-    const msgDiv = ref.closest('.message-with-citations');
-    if (!msgDiv) return;
-    const details = msgDiv.querySelector('.citation-sources');
-    if (details) details.open = true;
-    msgDiv.querySelectorAll('.citation-source-item').forEach(el => {
-      el.classList.toggle('highlighted', el.dataset.idx === idx);
+  container.addEventListener('click', (event) => {
+    const trigger = event.target.closest('.citation-ref, .citation-source-item');
+    if (!trigger || !container.contains(trigger) || !trigger.dataset.parentId) return;
+    event.preventDefault();
+    openEvidenceDrawer({
+      parentId: decodeURIComponent(trigger.dataset.parentId),
+      filename: decodeURIComponent(trigger.dataset.filename || ''),
+      page: decodeURIComponent(trigger.dataset.page || ''),
+      score: decodeURIComponent(trigger.dataset.score || ''),
+      trigger,
     });
   });
+}
+
+let evidenceRequestSerial = 0;
+let evidenceLastTrigger = null;
+
+function initEvidenceDrawer() {
+  const drawer = document.getElementById('evidenceDrawer');
+  document.getElementById('evidenceDrawerClose')?.addEventListener('click', closeEvidenceDrawer);
+  document.getElementById('evidenceDrawerDownload')?.addEventListener('click', downloadEvidenceFile);
+  drawer?.addEventListener('click', (event) => {
+    const rect = drawer.getBoundingClientRect();
+    const inside = event.clientX >= rect.left && event.clientX <= rect.right
+      && event.clientY >= rect.top && event.clientY <= rect.bottom;
+    if (!inside) drawer.close();
+  });
+  drawer?.addEventListener('close', () => {
+    evidenceRequestSerial += 1;
+    evidenceLastTrigger?.focus();
+    evidenceLastTrigger = null;
+  });
+}
+
+async function openEvidenceDrawer({ parentId, filename, page, score, trigger }) {
+  const drawer = document.getElementById('evidenceDrawer');
+  const body = document.getElementById('evidenceDrawerBody');
+  const title = document.getElementById('evidenceDrawerTitle');
+  const meta = document.getElementById('evidenceDrawerMeta');
+  const status = document.getElementById('evidenceDrawerStatus');
+  const content = document.getElementById('evidenceDrawerContent');
+  const download = document.getElementById('evidenceDrawerDownload');
+  if (!drawer || !parentId) return;
+
+  const requestSerial = ++evidenceRequestSerial;
+  evidenceLastTrigger = trigger || null;
+  if (!drawer.open) drawer.showModal();
+  body.setAttribute('aria-busy', 'true');
+  title.textContent = filename || '证据详情';
+  meta.textContent = [
+    page ? `第 ${page} 页` : '',
+    score ? `相关度 ${formatCitationScore(score)}` : '',
+  ].filter(Boolean).join(' · ');
+  status.textContent = '正在读取证据...';
+  content.textContent = '';
+  download.hidden = true;
+  download.dataset.url = '';
+  download.dataset.filename = '';
+
+  try {
+    const response = await apiFetch(
+      `${API_BASE}/api/knowledge/evidence/${encodeURIComponent(parentId)}`
+    );
+    if (!response.ok) throw new Error('evidence unavailable');
+    const data = await response.json();
+    if (requestSerial !== evidenceRequestSerial) return;
+
+    title.textContent = data.filename || filename || '证据详情';
+    meta.textContent = [
+      data.page !== null && data.page !== undefined ? `第 ${data.page} 页` : '',
+      score ? `相关度 ${formatCitationScore(score)}` : '',
+    ].filter(Boolean).join(' · ');
+    status.textContent = '';
+    content.textContent = data.content || '';
+    download.hidden = !data.download_url;
+    download.dataset.url = data.download_url || '';
+    download.dataset.filename = data.filename || 'document';
+  } catch (error) {
+    if (requestSerial !== evidenceRequestSerial) return;
+    status.textContent = '证据不存在或当前无权访问';
+    content.textContent = '';
+  } finally {
+    if (requestSerial === evidenceRequestSerial) {
+      body.setAttribute('aria-busy', 'false');
+    }
+  }
+}
+
+function closeEvidenceDrawer() {
+  const drawer = document.getElementById('evidenceDrawer');
+  if (drawer?.open) drawer.close();
+}
+
+async function downloadEvidenceFile(event) {
+  const button = event.currentTarget;
+  if (!button.dataset.url) return;
+  const response = await apiFetch(button.dataset.url);
+  if (!response.ok) return;
+  const objectUrl = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = objectUrl;
+  link.download = button.dataset.filename || 'document';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
 }
 
 function renderThoughtChain(steps) {

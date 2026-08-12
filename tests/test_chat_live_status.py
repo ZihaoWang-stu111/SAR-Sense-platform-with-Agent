@@ -80,6 +80,32 @@ class ChatLiveStatusFrontendTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_evidence_drawer_markup_and_safe_rendering(self):
+        html = Path("templates/chat.html").read_text(encoding="utf-8")
+        css = Path("css/style_v2.css").read_text(encoding="utf-8")
+
+        for element_id in (
+            "evidenceDrawer",
+            "evidenceDrawerClose",
+            "evidenceDrawerContent",
+            "evidenceDrawerDownload",
+        ):
+            self.assertIn(f'id="{element_id}"', html)
+
+        self.assertIn("function openEvidenceDrawer", self.source)
+        self.assertIn("content.textContent = data.content", self.source)
+        self.assertIn("/api/knowledge/evidence/", self.source)
+        self.assertIn(".evidence-drawer", css)
+        self.assertIn(".evidence-drawer::backdrop", css)
+        self.assertIn("@media (max-width: 640px)", css)
+
+    def test_citations_hide_internal_ids_and_use_one_delegated_handler(self):
+        self.assertIn('data-parent-id="${encodeURIComponent', self.source)
+        self.assertIn('<button type="button" class="citation-source-item"', self.source)
+        self.assertNotIn('<span class="citation-meta">chunk:', self.source)
+        self.assertEqual(self.source.count("initCitationClickHandlers(chatMessages)"), 1)
+        self.assertNotIn("initCitationClickHandlers(contentDiv)", self.source)
+
 
 if __name__ == "__main__":
     unittest.main()
