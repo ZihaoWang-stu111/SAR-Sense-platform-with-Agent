@@ -131,7 +131,10 @@ class RagSummarizeService:
             if table_id:
                 ctx_line += f" | {table_id}"
             context += ctx_line + "\n\n"
-            sources.append(f"[{i}] {filename} | chunk_id={chunk_id} | score={score}")
+            source = f"[{i}] {filename} | chunk_id={chunk_id}"
+            if page not in (None, "", "-"):
+                source += f" | page={page}"
+            sources.append(f"{source} | score={score}")
 
         answer = self.chain.invoke(
             {"input": query,

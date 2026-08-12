@@ -56,6 +56,7 @@ class ChatLiveStatusFrontendTest(unittest.TestCase):
         )
         self.assertIsNotNone(pattern_match)
         cases = [
+            ("[1] paper.pdf | chunk_id=abc | page=7 | score=0.9876", True),
             ("[1] paper.pdf | chunk_id=abc | score=0.9876", True),
             ("[1] 普通正文", False),
             ("[1] paper.pdf | score=0.9876", False),

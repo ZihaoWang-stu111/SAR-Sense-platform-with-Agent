@@ -1322,7 +1322,7 @@ function parseTableRow(line) {
 }
 
 // ==================== Citation Rendering ====================
-const citationSourceLinePattern = /^\[(\d+)\]\s*([^|]+)\s*\|\s*chunk_id=(\S+)\s*\|\s*score=(\S+)$/;
+const citationSourceLinePattern = /^\[(\d+)\]\s*([^|]+)\s*\|\s*chunk_id=(\S+)(?:\s*\|\s*page=(\S+))?\s*\|\s*score=(\S+)$/;
 
 function hasStructuredCitationSource(html, match) {
   const sourceStart = match.index + match[0].length;
@@ -1331,7 +1331,7 @@ function hasStructuredCitationSource(html, match) {
     .map(line => line.trim())
     .find(Boolean);
   const sourceMatch = firstSourceLine?.match(citationSourceLinePattern);
-  return Boolean(sourceMatch?.[3] && sourceMatch?.[4]);
+  return Boolean(sourceMatch?.[3] && sourceMatch?.[5]);
 }
 
 function renderWithCitations(html, streamingCursor = false, forceFoldToolBody = false) {
@@ -1379,8 +1379,9 @@ function renderSingleRagCitation(html, match, cursor = '', forceFoldToolBody = f
       sources.push({
         index: parseInt(m[1]),
         filename: (m[2] || '').trim(),
-        chunkId: m[3] || '-',
-        score: m[4] || '-'
+        parentId: m[3] || '-',
+        page: m[4] && m[4] !== '-' ? m[4] : null,
+        score: m[5] || '-'
       });
       consumedSourceLines += 1;
     } else {
@@ -1423,7 +1424,7 @@ function renderSingleRagCitation(html, match, cursor = '', forceFoldToolBody = f
     `<div class="citation-source-item" data-idx="${s.index}">
       <span class="citation-badge">[${displayIndexByOriginal.get(s.index) || s.index}]</span>
       <span class="citation-name">📄 ${s.filename}</span>
-      <span class="citation-meta">chunk: ${s.chunkId} · score: ${s.score}</span>
+      <span class="citation-meta">chunk: ${s.parentId} · score: ${s.score}</span>
     </div>`
   ).join('');
 
@@ -1466,8 +1467,9 @@ function renderMultipleRagCitations(html, matches, cursor = '', forceFoldToolBod
         sources.push({
           index: parseInt(m[1]),
           filename: m[2].trim(),
-          chunkId: m[3] || '-',
-          score: m[4] || '-'
+          parentId: m[3] || '-',
+          page: m[4] && m[4] !== '-' ? m[4] : null,
+          score: m[5] || '-'
         });
         j++;
       } else {
@@ -1515,7 +1517,7 @@ function renderMultipleRagCitations(html, matches, cursor = '', forceFoldToolBod
       `<div class="citation-source-item">
         <span class="citation-badge">[${s.index}]</span>
         <span class="citation-name">📄 ${s.filename}</span>
-        <span class="citation-meta">chunk: ${s.chunkId} · score: ${s.score}</span>
+        <span class="citation-meta">chunk: ${s.parentId} · score: ${s.score}</span>
       </div>`
     ).join('');
 

@@ -269,5 +269,5 @@ def test_rag_summarize_builds_evidence_context_and_appends_backend_sources():
     assert result == (
         "结论得到内部证据支持[1]\n\n"
         "参考来源：\n"
-        "[1] paper.pdf | chunk_id=chunk-1 | score=0.8765"
+        "[1] paper.pdf | chunk_id=chunk-1 | page=7 | score=0.8765"
     )
