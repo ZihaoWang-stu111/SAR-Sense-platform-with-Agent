@@ -22,6 +22,7 @@ def make_doc(**overrides):
         "storage_key": "paper.pdf",
         "file_type": "pdf",
         "chunk_method": "parent_child_fixed",
+        "chunk_ids": ["parent-1:child:000"],
         "chunk_count": 4,
         "parent_count": 2,
         "child_count": 4,
@@ -131,6 +132,7 @@ class KnowledgeAPIWithMySQLTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(routes["/files"].response_model)
         self.assertFalse(routes["/files"].response_model_exclude_none)
         self.assertIsNotNone(routes["/files/{doc_id}/permissions"].response_model)
+        self.assertIsNotNone(routes["/evidence/{parent_id}"].response_model)
 
     async def test_upload_passes_acl_to_runtime_under_one_global_lock(self):
         calls = []
@@ -442,6 +444,114 @@ class KnowledgeAPIWithMySQLTest(unittest.IsolatedAsyncioTestCase):
                 errors.append((raised.exception.status_code, raised.exception.detail))
 
         self.assertEqual(errors, [(404, "Document not found"), (404, "Document not found")])
+
+    async def test_evidence_returns_authorized_active_parent(self):
+        record = {
+            "page_content": "完整父块正文",
+            "metadata": {"doc_id": "doc-1", "filename": "paper.pdf", "page": 7},
+        }
+
+        async def inline_threadpool(func, *args, **kwargs):
+            return func(*args, **kwargs)
+
+        with (
+            patch.object(knowledge.parent_chunk_repository, "get", return_value=record),
+            patch.object(knowledge, "run_in_threadpool", side_effect=inline_threadpool),
+            patch.object(knowledge, "get_document_acl", AsyncMock(return_value=make_doc())),
+            patch.object(knowledge, "_document_file_path", return_value="paper.pdf"),
+        ):
+            response = await knowledge.get_knowledge_evidence(
+                "parent-1",
+                user={"id": 8, "role": "researcher", "username": "reader"},
+                db=SimpleNamespace(),
+            )
+
+        self.assertEqual(
+            response.model_dump(),
+            {
+                "filename": "paper.pdf",
+                "page": 7,
+                "content": "完整父块正文",
+                "doc_id": "doc-1",
+                "download_url": "/api/knowledge/files/doc-1/download",
+            },
+        )
+
+    async def test_evidence_admin_can_read_admin_only_document(self):
+        record = {
+            "page_content": "管理员证据",
+            "metadata": {"doc_id": "doc-1", "page": 0},
+        }
+
+        async def inline_threadpool(func, *args, **kwargs):
+            return func(*args, **kwargs)
+
+        with (
+            patch.object(knowledge.parent_chunk_repository, "get", return_value=record),
+            patch.object(knowledge, "run_in_threadpool", side_effect=inline_threadpool),
+            patch.object(
+                knowledge,
+                "get_document_acl",
+                AsyncMock(return_value=make_doc(allowed_roles=[])),
+            ),
+            patch.object(knowledge, "_document_file_path", return_value=None),
+        ):
+            response = await knowledge.get_knowledge_evidence(
+                "parent-1",
+                user={"id": 1, "role": "admin", "username": "admin"},
+                db=SimpleNamespace(),
+            )
+
+        self.assertEqual(response.content, "管理员证据")
+        self.assertIsNone(response.download_url)
+
+    async def test_evidence_uses_uniform_404_for_unavailable_resources(self):
+        cases = [
+            (None, None),
+            ({"page_content": "x", "metadata": {}}, None),
+            (
+                {"page_content": "x", "metadata": {"doc_id": "doc-1"}},
+                make_doc(status="failed"),
+            ),
+            (
+                {"page_content": "x", "metadata": {"doc_id": "doc-1"}},
+                make_doc(allowed_roles=["business"]),
+            ),
+            (
+                {"page_content": "x", "metadata": {"doc_id": "doc-1"}},
+                make_doc(chunk_ids=["another-parent:child:000"]),
+            ),
+        ]
+
+        async def inline_threadpool(func, *args, **kwargs):
+            return func(*args, **kwargs)
+
+        for record, document in cases:
+            with (
+                patch.object(
+                    knowledge.parent_chunk_repository,
+                    "get",
+                    return_value=record,
+                ),
+                patch.object(
+                    knowledge,
+                    "run_in_threadpool",
+                    side_effect=inline_threadpool,
+                ),
+                patch.object(
+                    knowledge,
+                    "get_document_acl",
+                    AsyncMock(return_value=document),
+                ),
+            ):
+                with self.assertRaises(HTTPException) as raised:
+                    await knowledge.get_knowledge_evidence(
+                        "parent-1",
+                        user={"id": 8, "role": "researcher", "username": "reader"},
+                        db=SimpleNamespace(),
+                    )
+            self.assertEqual(raised.exception.status_code, 404)
+            self.assertEqual(raised.exception.detail, "Evidence not found")
 
     async def test_delete_uses_database_metadata_and_global_lock(self):
         deleted = []

@@ -40,6 +40,14 @@ class KnowledgeFilesResponse(BaseModel):
     total_chunks: int
 
 
+class KnowledgeEvidenceResponse(BaseModel):
+    filename: str
+    page: int | None = None
+    content: str
+    doc_id: str
+    download_url: str | None = None
+
+
 class UpdateDocumentPermissionsResponse(BaseModel):
     success: bool = True
     doc_id: str

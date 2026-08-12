@@ -17,8 +17,10 @@ from crud.knowledge_acl import (
     list_visible_documents,
     update_allowed_roles,
 )
+from repositories.parent_chunk_repository import ParentChunkRepository
 from schemas.knowledge import (
     KnowledgeDocumentResponse,
+    KnowledgeEvidenceResponse,
     KnowledgeFilesResponse,
     UpdateDocumentPermissionsRequest,
     UpdateDocumentPermissionsResponse,
@@ -32,6 +34,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["knowledge"])
 KNOWLEDGE_WRITE_LOCK_KEY = "lock:knowledge-base:write"
 KNOWLEDGE_VERSIONS_DIR = ".knowledge_versions"
+parent_chunk_repository = ParentChunkRepository()
 
 
 def _parse_allowed_roles(visibility_mode: str, raw_roles) -> list[str]:
@@ -79,6 +82,25 @@ def _document_file_path(document) -> str | None:
     except ValueError:
         return None
     return file_path if os.path.isfile(file_path) else None
+
+
+def _can_read_document(document, user: dict) -> bool:
+    return bool(
+        document
+        and document.status == "active"
+        and (
+            is_admin(user)
+            or user.get("role", "guest") in (document.allowed_roles or [])
+        )
+    )
+
+
+def _is_active_parent(document, parent_id: str) -> bool:
+    prefix = f"{parent_id}:child:"
+    return any(
+        chunk_id == parent_id or chunk_id.startswith(prefix)
+        for chunk_id in (document.chunk_ids or [])
+    )
 
 
 def _copy_upload_to_version(upload: UploadFile, data_dir: str) -> tuple[str, str]:
@@ -301,6 +323,45 @@ async def update_knowledge_file_permissions(
     )
 
 
+@router.get(
+    "/evidence/{parent_id}",
+    response_model=KnowledgeEvidenceResponse,
+)
+async def get_knowledge_evidence(
+    parent_id: str,
+    user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> KnowledgeEvidenceResponse:
+    record = await run_in_threadpool(parent_chunk_repository.get, parent_id)
+    metadata = dict((record or {}).get("metadata") or {})
+    doc_id = metadata.get("doc_id")
+    document = await get_document_acl(db, doc_id) if doc_id else None
+
+    if not _can_read_document(document, user) or not _is_active_parent(
+        document,
+        parent_id,
+    ):
+        raise HTTPException(status_code=404, detail="Evidence not found")
+
+    raw_page = metadata.get("page")
+    try:
+        page = int(raw_page) if raw_page not in (None, "", "-") else None
+    except (TypeError, ValueError):
+        page = None
+
+    download_url = None
+    if _document_file_path(document) is not None:
+        download_url = f"/api/knowledge/files/{document.doc_id}/download"
+
+    return KnowledgeEvidenceResponse(
+        filename=document.filename,
+        page=page,
+        content=record["page_content"],
+        doc_id=document.doc_id,
+        download_url=download_url,
+    )
+
+
 @router.get("/files/{doc_id}/download")
 async def download_knowledge_file(
     doc_id: str,
@@ -308,10 +369,7 @@ async def download_knowledge_file(
     db: AsyncSession = Depends(get_db),
 ):
     document = await get_document_acl(db, doc_id)
-    if document is None or document.status != "active":
-        raise HTTPException(status_code=404, detail="Document not found")
-
-    if not is_admin(user) and user.get("role", "guest") not in (document.allowed_roles or []):
+    if not _can_read_document(document, user):
         raise HTTPException(status_code=404, detail="Document not found")
 
     file_path = _document_file_path(document)
