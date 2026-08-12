@@ -119,7 +119,7 @@ Authorization: Bearer <token>
 
 前端：
 
-- `templates/chat.html`：增加一个右侧抽屉和遮罩层。
+- `templates/chat.html`：增加一个原生 `dialog` 右侧抽屉，遮罩由浏览器的 `::backdrop` 提供。
 - `js/chat.js`：兼容新旧来源格式；使用事件委托处理引用编号和来源行点击；通过现有 `apiFetch()` 请求证据。
 - 聊天页现有样式文件：增加抽屉、加载态、来源按钮和移动端样式。
 
