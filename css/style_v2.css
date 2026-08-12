@@ -4176,8 +4176,38 @@ body::after { display: none; }
 .evidence-drawer-content {
   color: var(--text-secondary);
   line-height: 1.75;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.evidence-drawer-content .table-wrapper {
+  overflow-x: auto;
+  margin: 20px 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.evidence-drawer-content table {
+  width: 100%;
+  min-width: max-content;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.evidence-drawer-content th,
+.evidence-drawer-content td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.evidence-drawer-content th {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.evidence-drawer-content tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .evidence-drawer-status,

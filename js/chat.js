@@ -1582,6 +1582,12 @@ function initCitationClickHandlers(container) {
 let evidenceRequestSerial = 0;
 let evidenceLastTrigger = null;
 
+function renderEvidenceContent(text) {
+  return processTables(escapeHtml(text))
+    .replace(/\n/g, '<br>')
+    .replace(/(<\/table>)<br>/g, '$1');
+}
+
 function initEvidenceDrawer() {
   const drawer = document.getElementById('evidenceDrawer');
   document.getElementById('evidenceDrawerClose')?.addEventListener('click', closeEvidenceDrawer);
@@ -1638,7 +1644,7 @@ async function openEvidenceDrawer({ parentId, filename, page, score, trigger }) 
       score ? `相关度 ${formatCitationScore(score)}` : '',
     ].filter(Boolean).join(' · ');
     status.textContent = '';
-    content.textContent = data.content || '';
+    content.innerHTML = renderEvidenceContent(data.content || '');
     download.hidden = !data.download_url;
     download.dataset.url = data.download_url || '';
     download.dataset.filename = data.filename || 'document';

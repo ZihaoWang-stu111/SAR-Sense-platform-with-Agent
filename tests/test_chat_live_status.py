@@ -93,9 +93,15 @@ class ChatLiveStatusFrontendTest(unittest.TestCase):
             self.assertIn(f'id="{element_id}"', html)
 
         self.assertIn("function openEvidenceDrawer", self.source)
-        self.assertIn("content.textContent = data.content", self.source)
+        self.assertIn("function renderEvidenceContent(text)", self.source)
+        self.assertIn("processTables(escapeHtml(text))", self.source)
+        self.assertIn(
+            "content.innerHTML = renderEvidenceContent(data.content || '')",
+            self.source,
+        )
         self.assertIn("/api/knowledge/evidence/", self.source)
         self.assertIn(".evidence-drawer", css)
+        self.assertIn(".evidence-drawer-content table", css)
         self.assertIn(".evidence-drawer::backdrop", css)
         self.assertIn("@media (max-width: 640px)", css)
 
