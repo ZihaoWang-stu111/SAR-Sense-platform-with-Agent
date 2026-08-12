@@ -108,10 +108,7 @@ class RagSummarizeService:
         if not docs:
             return "知识库中未检索到与该问题相关的可靠资料，无法基于知识库回答。"
 
-        context = (
-            "证据标记规则：每个关键结论后必须使用 [[EVIDENCE:n]]，其中 n 是下方对应的证据序号；"
-            "若没有直接证据，回答必须以 [[INSUFFICIENT]] 开头并说明缺失信息。\n\n"
-        )
+        context = ""
         sources = []
         for i, doc in enumerate(docs, 1):
             filename = doc.metadata.get('filename', '未知文档')
