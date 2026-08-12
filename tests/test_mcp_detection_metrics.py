@@ -77,6 +77,19 @@ class MCPAgentRegistrationTest(unittest.TestCase):
         tools = create_agent.call_args.kwargs["tools"]
         self.assertIn("calculate_detection_metrics_mcp", [item.name for item in tools])
 
+    def test_react_agent_has_hard_tool_call_limit(self):
+        with patch("agent.react_agent.create_agent") as create_agent:
+            ReactAgent()
+
+        limiters = [
+            item
+            for item in create_agent.call_args.kwargs["middleware"]
+            if item.__class__.__name__ == "ToolCallLimitMiddleware"
+        ]
+        self.assertEqual(len(limiters), 1)
+        self.assertEqual(limiters[0].run_limit, 6)
+        self.assertEqual(limiters[0].exit_behavior, "continue")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -20,6 +20,7 @@ from api import dependencies
 from api.routers import chat as chat_api
 from api.routers import metrics as metrics_api
 from fastapi.responses import StreamingResponse
+from langchain_core.messages import HumanMessage
 
 
 _IMPORT_ERROR = None
@@ -489,7 +490,7 @@ class MetricsMiddlewareTest(unittest.TestCase):
                 request, lambda _request: "result"
             )
             middleware.log_before_model.before_model(
-                {"messages": [SimpleNamespace(content="hello")]},
+                {"messages": [HumanMessage(content="hello")]},
                 runtime,
             )
 
@@ -505,11 +506,28 @@ class MetricsMiddlewareTest(unittest.TestCase):
 
         with patch.object(middleware, "AgentMetrics", return_value=fake_metrics):
             middleware.log_before_model.before_model(
-                {"messages": [SimpleNamespace(content="hello")]},
+                {"messages": [HumanMessage(content="hello")]},
                 runtime,
             )
 
         fake_metrics.record_llm_call.assert_called_once_with(user_id=1)
+
+    def test_log_before_model_reports_approximate_context_tokens(self):
+        fake_metrics = SimpleNamespace(record_llm_call=MagicMock())
+        runtime = SimpleNamespace(context={"user_id": 7})
+
+        with (
+            patch.object(middleware, "AgentMetrics", return_value=fake_metrics),
+            patch.object(middleware.logger, "info") as info,
+        ):
+            middleware.log_before_model.before_model(
+                {"messages": [HumanMessage(content="hello")]},
+                runtime,
+            )
+
+        log_message = info.call_args.args[0]
+        self.assertIn("1条消息", log_message)
+        self.assertRegex(log_message, r"约\d+ tokens")
 
 
 class ReactAgentRuntimeContextTest(unittest.TestCase):
@@ -517,10 +535,11 @@ class ReactAgentRuntimeContextTest(unittest.TestCase):
         captured = {}
 
         class FakeCompiledAgent:
-            def stream(self, input_dict, *, stream_mode, context):
+            def stream(self, input_dict, *, stream_mode, context, config):
                 captured["input_dict"] = input_dict
                 captured["stream_mode"] = stream_mode
                 captured["context"] = context
+                captured["config"] = config
                 yield {"messages": list(input_dict["messages"])}
 
         react_agent = ReactAgent.__new__(ReactAgent)
@@ -544,6 +563,21 @@ class ReactAgentRuntimeContextTest(unittest.TestCase):
         # V3 子 Agent 桥接：请求级 RAG 来源 collector
         self.assertIn("_subagent_rag_results", context)
         self.assertEqual(context["_subagent_rag_results"], [])
+
+    def test_execute_stream_applies_main_agent_recursion_limit(self):
+        captured = {}
+
+        class FakeCompiledAgent:
+            def stream(self, input_dict, *, stream_mode, context, config):
+                captured["config"] = config
+                yield {"messages": list(input_dict["messages"])}
+
+        react_agent = ReactAgent.__new__(ReactAgent)
+        react_agent.agent = FakeCompiledAgent()
+
+        list(react_agent.execute_stream([{"role": "user", "content": "hello"}]))
+
+        self.assertEqual(captured["config"]["recursion_limit"], 25)
 
 
 class MetricsAPITest(unittest.IsolatedAsyncioTestCase):

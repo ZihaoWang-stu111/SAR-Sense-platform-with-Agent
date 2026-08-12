@@ -1,4 +1,5 @@
 from langchain.agents import create_agent
+from langchain.agents.middleware import ToolCallLimitMiddleware
 from model.factory import chat_model
 from utils.prompt_loader import load_system_prompts
 from agent.tools.agent_tools import get_weather,get_scene_id,\
@@ -7,8 +8,14 @@ from agent.tools.agent_tools import get_weather,get_scene_id,\
 from agent.tools.middleware import monitor_tool, report_prompt_switch,log_before_model
 from agent.tools.delegation_tools import delegate_research
 from agent.tools.mcp_tools import calculate_detection_metrics_mcp
+from utils.config_handler import agent_conf
 from datetime import datetime
 import re
+
+
+_main_agent_conf = agent_conf.get("main_agent") or {}
+_MAIN_MAX_TOOL_CALLS = _main_agent_conf.get("max_tool_calls", 6)
+_MAIN_RECURSION_LIMIT = _main_agent_conf.get("recursion_limit", 25)
 
 
 class ReactAgent:
@@ -22,7 +29,15 @@ class ReactAgent:
                    get_user_location, rag_summarize, fetch_external_data, fill_context_for_report,
                    get_sea_state, compare_scenes, get_scene_trend, web_search, detect_ships,
                    delegate_research, calculate_detection_metrics_mcp],
-            middleware=[monitor_tool, report_prompt_switch,log_before_model]
+            middleware=[
+                ToolCallLimitMiddleware(
+                    run_limit=_MAIN_MAX_TOOL_CALLS,
+                    exit_behavior="continue",
+                ),
+                monitor_tool,
+                report_prompt_switch,
+                log_before_model,
+            ]
 
         )
 
@@ -54,7 +69,12 @@ class ReactAgent:
         runtime_context["_subagent_rag_results"] = subagent_rag_results
         emitted_rag_count = 0
 
-        for chunk in self.agent.stream(input_dict, stream_mode="values", context=runtime_context):
+        for chunk in self.agent.stream(
+            input_dict,
+            stream_mode="values",
+            context=runtime_context,
+            config={"recursion_limit": _MAIN_RECURSION_LIMIT},
+        ):
             messages = chunk["messages"]
 
             # 处理所有新消息（从上次处理位置到当前）

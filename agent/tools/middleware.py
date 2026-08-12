@@ -1,6 +1,7 @@
 import time
 
 from langchain.agents.middleware import before_model, dynamic_prompt, wrap_tool_call
+from langchain_core.messages.utils import count_tokens_approximately
 
 from agent.metrics_collector import AgentMetrics
 from utils.logger_handler import logger
@@ -45,7 +46,11 @@ def monitor_tool(request, handler):
 def log_before_model(state, runtime):
     metrics = AgentMetrics()
     metrics.record_llm_call(user_id=_runtime_user_id(runtime))
-    logger.info(f"[log_before_model]包含：{len(state['messages'])}条消息")
+    messages = state["messages"]
+    approximate_tokens = count_tokens_approximately(messages)
+    logger.info(
+        f"[log_before_model]包含：{len(messages)}条消息，约{approximate_tokens} tokens"
+    )
     logger.debug(
         f"[log_before_model]{type(state['messages'][-1]).__name__}| "
         f"{state['messages'][-1].content.strip()}"
