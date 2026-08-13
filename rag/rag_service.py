@@ -11,44 +11,72 @@ from langchain_core.output_parsers import StrOutputParser
 from rag.reranker import BGERerankerService
 from rag.parent_child_retriever import ParentChildResolver
 from utils.config_handler import chroma_conf
+from utils.logger_handler import logger
 
 
 GROUNDING_FALLBACK = "当前资料不足以直接支持可靠结论，无法基于知识库回答。"
+CITATION_VALIDATION_FALLBACK = "已检索到相关资料，但回答引用校验未通过，请稍后重试。"
 _EVIDENCE_PATTERN = re.compile(r"(?<!\[)\[\[EVIDENCE:([0-9]+)\]\](?!\])")
-_SUSPICIOUS_EVIDENCE_PATTERN = re.compile(r"\[{1,2}\s*EVIDENCE", re.IGNORECASE)
+_REPAIRABLE_EVIDENCE_PATTERN = re.compile(
+    r"[\[【]+\s*EVIDENCE\s*[:：]\s*(?P<index>[0-9]+)\s*[\]】]+",
+    re.IGNORECASE,
+)
+_SUSPICIOUS_EVIDENCE_PATTERN = re.compile(
+    r"(?:[\[【]+\s*EVIDENCE|EVIDENCE\s*[:：])",
+    re.IGNORECASE,
+)
 _INSUFFICIENT_MARKER = "[[INSUFFICIENT]]"
 
 
-def render_grounded_answer(answer, source_count):
-    """校验证据标记，并转换为前端使用的引用格式。"""
-    if not isinstance(answer, str) or type(source_count) is not int or source_count < 0:
-        return GROUNDING_FALLBACK
+def _normalize_evidence_markers(answer: str) -> str:
+    """修正常见的括号、空格、大小写和全角冒号差异。"""
+    def replace(match):
+        index = match.group("index").lstrip("0") or "0"
+        return f"[[EVIDENCE:{index}]]"
 
-    answer = answer.strip()
-    insufficient = answer.startswith(_INSUFFICIENT_MARKER)
-    if insufficient:
-        answer = answer[len(_INSUFFICIENT_MARKER):].strip()
-        if not answer:
+    return _REPAIRABLE_EVIDENCE_PATTERN.sub(replace, answer)
+
+
+def _citation_validation_failed(reason: str) -> str:
+    logger.warning(f"RAG 回答引用校验失败: {reason}")
+    return CITATION_VALIDATION_FALLBACK
+
+
+def render_grounded_answer(answer, source_count):
+    """宽容修复引用格式，严格校验编号，再转换为前端引用。"""
+    if not isinstance(answer, str) or type(source_count) is not int or source_count < 0:
+        return _citation_validation_failed("输入类型或来源数量无效")
+
+    normalized_answer = _normalize_evidence_markers(answer.strip())
+
+    # 证据不足标记只用于模型与后端通信，不展示给用户。
+    is_insufficient = normalized_answer.startswith(_INSUFFICIENT_MARKER)
+    if is_insufficient:
+        normalized_answer = normalized_answer[len(_INSUFFICIENT_MARKER):].strip()
+        if not normalized_answer:
             return GROUNDING_FALLBACK
 
-    matches = list(_EVIDENCE_PATTERN.finditer(answer))
-    if not insufficient and not matches:
-        return GROUNDING_FALLBACK
+    citation_matches = list(_EVIDENCE_PATTERN.finditer(normalized_answer))
+    if not is_insufficient and not citation_matches:
+        return _citation_validation_failed("正常回答没有证据引用")
 
-    answer_without_valid_markers = _EVIDENCE_PATTERN.sub("", answer)
-    if _SUSPICIOUS_EVIDENCE_PATTERN.search(answer_without_valid_markers):
-        return GROUNDING_FALLBACK
+    # 移除合法引用后若还有 EVIDENCE 字样，说明存在无法安全修复的伪引用。
+    answer_without_citations = _EVIDENCE_PATTERN.sub("", normalized_answer)
+    if _SUSPICIOUS_EVIDENCE_PATTERN.search(answer_without_citations):
+        return _citation_validation_failed("存在无法修复的证据标记")
 
     try:
-        indexes = [int(match.group(1)) for match in matches]
+        citation_ids = [int(match.group(1)) for match in citation_matches]
     except ValueError:
-        return GROUNDING_FALLBACK
+        return _citation_validation_failed("证据编号不是有效整数")
 
-    if any(not 1 <= index <= source_count for index in indexes):
-        return GROUNDING_FALLBACK
+    if any(not 1 <= citation_id <= source_count for citation_id in citation_ids):
+        return _citation_validation_failed("证据编号超出本次来源范围")
 
-    index_iter = iter(indexes)
-    return _EVIDENCE_PATTERN.sub(lambda _: f"[{next(index_iter)}]", answer)
+    return _EVIDENCE_PATTERN.sub(
+        lambda match: f"[{match.group(1)}]",
+        normalized_answer,
+    )
 
 
 class RagSummarizeService:

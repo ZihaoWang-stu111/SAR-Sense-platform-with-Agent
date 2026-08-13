@@ -23,30 +23,30 @@ def test_render_grounded_answer_converts_valid_citations():
 
 
 @pytest.mark.parametrize(
-    "answer",
+    ("answer", "expected"),
     [
-        "结论[[[EVIDENCE:1]]]",
-        "结论[[EVIDENCE:1]]]",
+        ("结论[EVIDENCE:1]", "结论[1]"),
+        ("结论[[[EVIDENCE:1]]]", "结论[1]"),
+        ("结论[[ EVIDENCE : 1 ]]", "结论[1]"),
+        ("结论[[evidence：1]]", "结论[1]"),
+        ("结论【【EVIDENCE：1】】", "结论[1]"),
     ],
 )
-def test_render_grounded_answer_rejects_citations_with_extra_brackets(answer):
-    assert (
-        rag_service.render_grounded_answer(answer, source_count=1)
-        == rag_service.GROUNDING_FALLBACK
-    )
+def test_render_grounded_answer_normalizes_repairable_citations(answer, expected):
+    assert rag_service.render_grounded_answer(answer, source_count=1) == expected
 
 
 def test_render_grounded_answer_rejects_answer_without_citation():
     assert (
         rag_service.render_grounded_answer("只有结论，没有证据引用。", source_count=2)
-        == rag_service.GROUNDING_FALLBACK
+        == rag_service.CITATION_VALIDATION_FALLBACK
     )
 
 
 def test_render_grounded_answer_rejects_none_answer():
     assert (
         rag_service.render_grounded_answer(None, source_count=1)
-        == rag_service.GROUNDING_FALLBACK
+        == rag_service.CITATION_VALIDATION_FALLBACK
     )
 
 
@@ -62,7 +62,7 @@ def test_render_grounded_answer_rejects_none_answer():
 def test_render_grounded_answer_rejects_invalid_source_count(answer, source_count):
     assert (
         rag_service.render_grounded_answer(answer, source_count=source_count)
-        == rag_service.GROUNDING_FALLBACK
+        == rag_service.CITATION_VALIDATION_FALLBACK
     )
 
 
@@ -88,7 +88,7 @@ def test_insufficient_explanation_allows_zero_source_count_without_citation():
 def test_render_grounded_answer_rejects_invalid_citations(answer, source_count):
     assert (
         rag_service.render_grounded_answer(answer, source_count)
-        == rag_service.GROUNDING_FALLBACK
+        == rag_service.CITATION_VALIDATION_FALLBACK
     )
 
 
@@ -124,7 +124,7 @@ def test_render_grounded_answer_rejects_invalid_citation_after_insufficient_mark
 
     assert (
         rag_service.render_grounded_answer(answer, source_count=1)
-        == rag_service.GROUNDING_FALLBACK
+        == rag_service.CITATION_VALIDATION_FALLBACK
     )
 
 
@@ -148,7 +148,7 @@ def test_render_grounded_answer_rejects_suspicious_residual_markers(residual_mar
 
     assert (
         rag_service.render_grounded_answer(answer, source_count=1)
-        == rag_service.GROUNDING_FALLBACK
+        == rag_service.CITATION_VALIDATION_FALLBACK
     )
 
 
@@ -166,7 +166,7 @@ def test_render_grounded_answer_handles_overlong_numeric_index(monkeypatch):
         rag_service.render_grounded_answer(
             f"结论[[EVIDENCE:{overlong_index}]]", source_count=1
         )
-        == rag_service.GROUNDING_FALLBACK
+        == rag_service.CITATION_VALIDATION_FALLBACK
     )
 
 
@@ -201,7 +201,7 @@ def test_rag_summarize_appends_backend_sources_after_grounding_fallback():
     result = service.rag_summarize("问题")
 
     assert result == (
-        f"{rag_service.GROUNDING_FALLBACK}\n\n"
+        f"{rag_service.CITATION_VALIDATION_FALLBACK}\n\n"
         "参考来源：\n"
         "[1] source.txt | chunk_id=chunk-9 | score=0.5000"
     )
@@ -226,7 +226,7 @@ def test_rag_summarize_handles_none_answer_and_appends_backend_sources():
     result = service.rag_summarize("问题")
 
     assert result == (
-        f"{rag_service.GROUNDING_FALLBACK}\n\n"
+        f"{rag_service.CITATION_VALIDATION_FALLBACK}\n\n"
         "参考来源：\n"
         "[1] source.txt | chunk_id=chunk-9 | score=0.5000"
     )
@@ -258,8 +258,8 @@ def test_rag_summarize_builds_evidence_context_and_appends_backend_sources():
 
     assert len(chain.invocations) == 1
     context = chain.invocations[0]["context"]
-    assert "[[EVIDENCE:n]]" in context
-    assert "[[INSUFFICIENT]]" in context
+    assert "[[EVIDENCE:n]]" not in context
+    assert "[[INSUFFICIENT]]" not in context
     assert "[证据1]" in context
     assert "正文：\n该方法在复杂海况下提升了检测精度。" in context
     assert (
