@@ -54,5 +54,15 @@ def load_research_prompts():
         logger.error(f"[research_prompt_path]解析研究子智能体提示词出错{str(e)}")
         raise e
 
+
+def load_memory_decision_prompt():
+    try:
+        prompt_path = get_abs_path(prompts_conf["memory_decision_prompt_path"])
+        with open(prompt_path, "r", encoding="UTF-8") as prompt_file:
+            return prompt_file.read()
+    except Exception as e:
+        logger.error(f"[memory_decision_prompt_path]解析记忆决策提示词出错{str(e)}")
+        raise
+
 if __name__ == '__main__':
     print(load_system_prompts())

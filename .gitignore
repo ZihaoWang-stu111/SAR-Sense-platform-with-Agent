@@ -32,6 +32,7 @@ id_ed25519*
 
 # ChromaDB
 /chroma_db/
+/chroma_memory/
 
 # 本地开发工具
 .codegraph/
@@ -95,4 +96,5 @@ Detct_prdc/runs/
 *.docx.bak
 ~$*
 PROJECT_REVIEWer.md
+/SAR-Sense长期记忆源码学习指南.md
 /SAR-Sense项目面试复习手册.md

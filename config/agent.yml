@@ -10,3 +10,12 @@ research_agent:
   name: sar-researcher
   max_tool_calls: 6
   recursion_limit: 20
+
+memory:
+  enabled: true
+  profile_top_k: 5
+  semantic_top_k: 5
+  score_threshold: 0.3
+  max_memories_per_user: 200
+  max_ops_per_turn: 3
+  inject_char_budget: 800
