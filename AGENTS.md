@@ -67,9 +67,9 @@ Factory for the configured chat provider (Ollama, OpenAI-compatible, or DashScop
 MySQL `sar_sense` is the source of truth for users, conversations, knowledge metadata, parent chunks, ACL, and metric events. FastAPI request CRUD uses async SQLAlchemy + aiomysql; synchronous LangChain/RAG persistence is isolated in `repositories/` and uses SQLAlchemy + PyMySQL through `SyncSessionLocal`. Chroma holds child vectors and `data/.knowledge_versions/<uuid>/` holds immutable, versioned source files. Local `manifest.json` and `parent_docstore.json` files, if present, are obsolete backups and are not required by the application.
 
 - **config/db_conf.py** — `async_engine`, `AsyncSessionLocal`, `get_db()` dependency (commit/rollback/close).
-- **models/** — shared `Base(DeclarativeBase)` + ORM models for users, conversations/messages, `KnowledgeDocument`, `ParentChunk`, and `MetricEvent`.
+- **models/** — shared `Base(DeclarativeBase)` + ORM models for users, conversations/messages, long-term user memories, `KnowledgeDocument`, `ParentChunk`, and `MetricEvent`.
 - **schemas/** — Pydantic request models (`LoginRequest`, `RegisterRequest`, `CreateConversationRequest`, `AppendMessageRequest`).
-- **repositories/** — synchronous persistence boundary for LangChain/RAG and metrics: `KnowledgeRepository` owns knowledge metadata and ingestion generations, `ParentChunkRepository` owns parent chunks, and `MetricsRepository` owns metric-event persistence and historical aggregation.
+- **repositories/** — synchronous persistence boundary for LangChain/RAG, metrics, and long-term memory: `KnowledgeRepository` owns knowledge metadata and ingestion generations, `ParentChunkRepository` owns parent chunks, `MetricsRepository` owns metric events and aggregation, and `MemoryRepository` keeps MySQL as the memory source of truth while Chroma only supplies semantic candidate IDs.
 - **crud/** — only request-facing async CRUD taking `db: AsyncSession`; `crud/conversations.py` enforces user isolation (`WHERE user_id=?` on every read/write).
 
 ### Auth Layer (JWT + RBAC)
@@ -122,4 +122,5 @@ All loaded at import time by [utils/config_handler.py](utils/config_handler.py) 
 - **Metrics counted once**: `start/end_conversation` live only in `chat.py`'s SSE generator, never in `execute_stream`.
 - **Knowledge updates are generation-based**: source files use immutable version paths; a new document generation becomes active atomically before obsolete Chroma/parent data is cleaned up.
 - **Cross-store cleanup is eventual**: MySQL, Chroma, and the filesystem do not share one transaction. A forced stop can leave inactive vectors, parent rows, or version files; active-id filtering prevents recall, but maintenance cleanup may still be required.
+- **Long-term memory is single-stage**: before a reply, profiles are read from MySQL and relevant preferences/context are recalled through Chroma then reloaded from MySQL; after a persisted reply, one background LLM call directly decides `ADD/UPDATE/DELETE/NOOP` using similar memory candidates.
 - **Metrics reset scope**: MySQL deletion and in-memory reset share a process-wide lock. This is sufficient for the current single-worker deployment; multi-worker deployment requires a database or distributed lock.

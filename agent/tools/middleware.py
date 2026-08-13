@@ -58,8 +58,15 @@ def log_before_model(state, runtime):
     return None
 
 
+def _append_memory_block(prompt: str, memory_context: str | None) -> str:
+    block = (memory_context or "").strip()
+    return f"{prompt.rstrip()}\n\n{block}\n" if block else prompt
+
+
 @dynamic_prompt                 # 每一次在生成提示词之前，调用此函数
 def report_prompt_switch(request):
     if request.runtime.context.get("report", False):
-        return load_report_prompts()
-    return load_system_prompts()
+        prompt = load_report_prompts()
+    else:
+        prompt = load_system_prompts()
+    return _append_memory_block(prompt, request.runtime.context.get("memory_context"))

@@ -61,7 +61,7 @@ def create_app() -> FastAPI:
         try:
             from config.db_conf import async_engine
             from models import Base
-            from models import users, conversations, metrics, knowledge  # noqa: F401 注册 ORM
+            from models import users, conversations, metrics, knowledge, memories  # noqa: F401 注册 ORM
             async with async_engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
             logger.info("DB 表已建（或已存在）")

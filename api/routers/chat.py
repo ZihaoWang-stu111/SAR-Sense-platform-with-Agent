@@ -66,6 +66,7 @@ async def chat_stream(
         sse_queue: asyncio.Queue = asyncio.Queue()
         submit_chat_run(
             messages=messages,
+            memory_user_message=display_message,
             conversation_id=conversation_id,
             user_context=user_context,
             user_id=user["id"],
