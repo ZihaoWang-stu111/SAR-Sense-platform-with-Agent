@@ -717,12 +717,12 @@ button.btn-secondary:hover {
 }
 
 /* 问答对话气泡 */
-.message.assistant {
+.message.assistant .message-content {
   background: rgba(255, 255, 255, 0.02) !important;
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
-.message.user {
+.message.user .message-content {
   background: rgba(160, 104, 255, 0.08) !important;
   border: 1px solid rgba(160, 104, 255, 0.15) !important;
 }

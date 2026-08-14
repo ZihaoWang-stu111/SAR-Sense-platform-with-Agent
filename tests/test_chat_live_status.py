@@ -112,6 +112,68 @@ class ChatLiveStatusFrontendTest(unittest.TestCase):
         self.assertEqual(self.source.count("initCitationClickHandlers(chatMessages)"), 1)
         self.assertNotIn("initCitationClickHandlers(contentDiv)", self.source)
 
+    def test_message_frame_only_wraps_message_content(self):
+        theme = Path("css/home_renovation_v2.css").read_text(encoding="utf-8")
+
+        self.assertIn(".message.assistant .message-content", theme)
+        self.assertIn(".message.user .message-content", theme)
+        self.assertNotRegex(theme, r"\.message\.assistant\s*\{")
+        self.assertNotRegex(theme, r"\.message\.user\s*\{")
+
+    def test_long_message_content_cannot_expand_chat_column(self):
+        css = Path("css/style_v2.css").read_text(encoding="utf-8")
+
+        for selector in (".chat-main", ".message", ".message-content"):
+            self.assertRegex(
+                css,
+                rf"{re.escape(selector)}\s*\{{[^}}]*min-width:\s*0",
+            )
+        self.assertRegex(
+            css,
+            r"\.message-content\s*\{[^}]*overflow-wrap:\s*anywhere",
+        )
+
+    def test_chat_styles_have_matching_cache_busters(self):
+        html = Path("templates/chat.html").read_text(encoding="utf-8")
+
+        self.assertIn("css/style_v2.css?v=20260814-4", html)
+        self.assertIn("css/home_renovation_v2.css?v=20260814-4", html)
+
+    def test_long_chat_scrolls_inside_message_panel(self):
+        css = Path("css/style_v2.css").read_text(encoding="utf-8")
+
+        self.assertRegex(
+            css,
+            r"\.chat-main\s*\{[^}]*height:\s*640px",
+        )
+        self.assertRegex(
+            css,
+            r"\.chat-messages\s*\{[^}]*min-height:\s*0",
+        )
+        self.assertRegex(
+            css,
+            r"\.chat-messages\s*\{[^}]*overscroll-behavior-y:\s*contain",
+        )
+
+    def test_input_bar_uses_same_bottom_inset_as_sidebar(self):
+        css = Path("css/style_v2.css").read_text(encoding="utf-8")
+        html = Path("templates/chat.html").read_text(encoding="utf-8")
+
+        self.assertRegex(
+            css,
+            r"\.chat-input-area\s*\{[^}]*"
+            r"padding:\s*var\(--space-md\)\s+var\(--space-lg\)\s*;",
+        )
+        self.assertNotIn('class="chat-hint"', html)
+
+    def test_chat_section_has_compact_bottom_spacing(self):
+        css = Path("css/style_v2.css").read_text(encoding="utf-8")
+
+        self.assertRegex(
+            css,
+            r"\.chat\s*\{[^}]*padding-bottom:\s*var\(--space-md\)",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

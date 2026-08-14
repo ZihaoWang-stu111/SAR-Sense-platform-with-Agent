@@ -2185,11 +2185,12 @@ body::after { display: none; }
 .chat {
   position: relative;
   z-index: var(--z-base);
+  padding-bottom: var(--space-md);
 }
 
 .chat-layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 280px minmax(0, 1fr);
   gap: var(--space-md);
   max-width: 1180px;
   margin: 0 auto;
@@ -2224,13 +2225,18 @@ body::after { display: none; }
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  height: 640px;
+  min-height: 0;
+  min-width: 0;
   box-shadow: var(--inset-highlight), var(--shadow-md);
 }
 
 .chat-messages {
   flex: 1;
-  height: 480px;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
   padding: var(--space-xl);
   display: flex;
   flex-direction: column;
@@ -2241,6 +2247,7 @@ body::after { display: none; }
   display: flex;
   gap: var(--space-md);
   max-width: 80%;
+  min-width: 0;
   animation: fadeIn var(--duration-normal) var(--ease-out-expo);
 }
 
@@ -2298,6 +2305,9 @@ body::after { display: none; }
   border-radius: var(--radius-lg);
   padding: var(--space-md) var(--space-lg);
   box-shadow: var(--inset-highlight), var(--shadow-xs);
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .message.user .message-content {
@@ -2341,7 +2351,7 @@ body::after { display: none; }
 }
 
 .chat-input-area {
-  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
   border-top: 1px solid var(--border-color);
   background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.02));
 }
@@ -2405,14 +2415,6 @@ body::after { display: none; }
   height: 18px;
 }
 
-.chat-hint {
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--text-quaternary);
-  margin-top: var(--space-sm);
-  letter-spacing: -0.005em;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .results-grid {
@@ -2435,8 +2437,8 @@ body::after { display: none; }
     max-width: 95%;
   }
 
-  .chat-messages {
-    height: 400px;
+  .chat-main {
+    height: 560px;
   }
 
   .chat-layout {
