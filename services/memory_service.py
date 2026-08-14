@@ -2,17 +2,18 @@
 from __future__ import annotations
 
 import html
-import json
-import re
 import threading
+from typing import Literal
 
-from repositories.memory_repository import MEMORY_CATEGORIES, MemoryRepository
+from langchain_core.output_parsers import PydanticOutputParser
+from pydantic import BaseModel, Field, field_validator
+
+from repositories.memory_repository import MemoryRepository
 from utils.config_handler import agent_conf
 from utils.logger_handler import logger
 from utils.path_tool import get_abs_path
 from utils.prompt_loader import load_memory_decision_prompt
 
-_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL | re.IGNORECASE)
 _MAX_CONTENT_CHARS = 80
 _DEFAULT_CONF = {
     "enabled": True,
@@ -45,64 +46,47 @@ def _clean_content(value) -> str:
     return " ".join(str(value or "").split())[:_MAX_CONTENT_CHARS]
 
 
-def _parse_json_array(text: str) -> list[dict]:
-    raw = (text or "").strip()
-    fenced = _JSON_FENCE_RE.search(raw)
-    if fenced:
-        raw = fenced.group(1).strip()
-    for left, right in (("[", "]"), ("{", "}")):
-        start, end = raw.find(left), raw.rfind(right)
-        if start < 0 or end <= start:
-            continue
-        try:
-            value = json.loads(raw[start : end + 1])
-        except json.JSONDecodeError:
-            continue
-        if isinstance(value, dict):
-            value = [value]
-        return [item for item in value if isinstance(item, dict)]
-    return []
+class MemoryOperation(BaseModel):
+    """长期记忆模型可提出的单个操作。"""
+
+    op: Literal["ADD", "UPDATE", "DELETE", "NOOP"]
+    id: int | None = None
+    content: str | None = Field(default=None, max_length=_MAX_CONTENT_CHARS)
+    category: Literal["profile", "preference", "context"] | None = None
+
+    @field_validator("content", mode="before")
+    @classmethod
+    def normalize_content(cls, value):
+        return _clean_content(value) or None
 
 
-def parse_memory_ops(items: list, *, allowed_ids: set[int], limit: int) -> list[dict]:
-    """把模型输出收窄为允许执行的数据库操作。"""
+class MemoryDecision(BaseModel):
+    """一次长期记忆决策的结构化输出。"""
+    operations: list[MemoryOperation] = Field(default_factory=list)
+
+
+def _filter_memory_ops(
+    decision: MemoryDecision,
+    *,
+    allowed_ids: set[int],
+    limit: int,
+) -> list[dict]:
+    """只保留满足本轮动态 ID 白名单的操作。"""
+    if limit <= 0:
+        return []
     operations = []
-    for item in items:
+    for item in decision.operations:
         if len(operations) >= limit:
             break
-        if not isinstance(item, dict):
+        if item.op == "NOOP":
             continue
-        operation = str(item.get("op") or "").upper()
-        if operation == "ADD":
-            content = _clean_content(item.get("content"))
-            category = str(item.get("category") or "").lower()
-            if content and category in MEMORY_CATEGORIES:
-                operations.append(
-                    {"op": "ADD", "content": content, "category": category}
-                )
+        if item.op in {"UPDATE", "DELETE"} and item.id not in allowed_ids:
             continue
-        if operation not in {"UPDATE", "DELETE"}:
+        if item.op in {"ADD", "UPDATE"} and (
+            not item.content or item.category is None
+        ):
             continue
-        try:
-            memory_id = int(item.get("id"))
-        except (TypeError, ValueError):
-            continue
-        if memory_id not in allowed_ids:
-            continue
-        if operation == "DELETE":
-            operations.append({"op": "DELETE", "id": memory_id})
-            continue
-        content = _clean_content(item.get("content"))
-        category = str(item.get("category") or "").lower()
-        if content and category in MEMORY_CATEGORIES:
-            operations.append(
-                {
-                    "op": "UPDATE",
-                    "id": memory_id,
-                    "content": content,
-                    "category": category,
-                }
-            )
+        operations.append(item.model_dump(exclude_none=True))
     return operations
 
 
@@ -174,6 +158,9 @@ class MemoryService:
         self._index_ready = index is not None
         self._index_lock = threading.Lock()
         self._chat_model = chat_model
+        self._decision_parser = PydanticOutputParser(
+            pydantic_object=MemoryDecision
+        )
 
     def load_context(self, user_id: int, query: str) -> str:
         if not user_id:
@@ -213,15 +200,17 @@ class MemoryService:
             f"本轮用户消息：\n{user_message}\n\n"
             "助手回答（只帮助理解指代，不是事实来源）：\n"
             f"{assistant_content or '（无）'}\n\n"
-            f"已有相似记忆：\n{existing}\n"
+            f"已有相似记忆：\n{existing}\n\n"
+            f"输出格式：\n{self._decision_parser.get_format_instructions()}"
         )
         try:
             result = self._get_chat_model().invoke(payload)
+            decision = self._decision_parser.invoke(result)
         except Exception as exc:
-            logger.warning(f"[memory] 决策模型调用失败: {exc}")
+            logger.warning(f"[memory] 决策模型调用或解析失败: {exc}")
             return
-        operations = parse_memory_ops(
-            _parse_json_array(str(getattr(result, "content", result) or "")),
+        operations = _filter_memory_ops(
+            decision,
             allowed_ids={int(item["id"]) for item in similar},
             limit=self.conf["max_ops_per_turn"],
         )

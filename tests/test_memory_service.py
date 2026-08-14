@@ -1,8 +1,8 @@
 import tempfile
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
 
+from langchain_core.messages import AIMessage
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -10,7 +10,7 @@ from models import Base
 from models.memories import UserMemory  # noqa: F401
 from models.users import User  # noqa: F401
 from repositories.memory_repository import MemoryRepository
-from services.memory_service import MemoryService, format_memory_block, parse_memory_ops
+from services.memory_service import MemoryService, format_memory_block
 
 
 class FakeIndex:
@@ -40,28 +40,7 @@ class FakeChat:
 
     def invoke(self, payload):
         self.calls.append(payload)
-        return SimpleNamespace(content=self.reply)
-
-
-class MemoryParsingTest(unittest.TestCase):
-    def test_rejects_update_id_not_shown_to_model(self):
-        ops = parse_memory_ops(
-            [
-                {"op": "UPDATE", "id": 99, "content": "用户改做 SAR", "category": "profile"},
-                {"op": "ADD", "content": "用户喜欢简短回答", "category": "preference"},
-            ],
-            allowed_ids={1},
-            limit=3,
-        )
-        self.assertEqual(ops, [{"op": "ADD", "content": "用户喜欢简短回答", "category": "preference"}])
-
-    def test_ignores_bad_item_without_dropping_later_operation(self):
-        ops = parse_memory_ops(
-            [None, {"op": "ADD", "content": "用户是研究生", "category": "profile"}],
-            allowed_ids=set(),
-            limit=3,
-        )
-        self.assertEqual(len(ops), 1)
+        return AIMessage(content=self.reply)
 
 
 class MemoryServiceTest(unittest.TestCase):
@@ -93,21 +72,43 @@ class MemoryServiceTest(unittest.TestCase):
             },
         )
 
-    def test_one_model_call_updates_similar_memory(self):
+    def test_one_plain_model_call_is_parsed_into_memory_decision(self):
         old = self.repository.create(
             user_id=1, content="用户研究光学遥感", category="profile"
         )
         self.index.hits = [(old["id"], 0.91)]
         service = self._service(
-            f'[{{"op":"UPDATE","id":{old["id"]},"content":"用户研究 SAR 舰船检测","category":"profile"}}]'
+            '{"operations":[{'
+            f'"op":"UPDATE","id":{old["id"]},'
+            '"content":"用户研究 SAR 舰船检测","category":"profile"}]}'
         )
 
         service.process_turn(1, "我改做 SAR 舰船检测了", "已了解", "conv_1")
 
         self.assertEqual(len(service._chat_model.calls), 1)
+        self.assertIn('"operations"', service._chat_model.calls[0])
         updated = self.repository.get_many([old["id"]], user_id=1)[old["id"]]
         self.assertEqual(updated["content"], "用户研究 SAR 舰船检测")
         self.assertEqual(self.index.docs[old["id"]]["content"], updated["content"])
+
+    def test_rejects_update_id_not_shown_to_model_but_applies_later_add(self):
+        service = self._service(
+            '{"operations":['
+            '{"op":"UPDATE","id":99,"content":"用户改做 SAR",'
+            '"category":"profile"},'
+            '{"op":"ADD","content":"用户喜欢简短回答",'
+            '"category":"preference"}]}'
+        )
+
+        service.process_turn(1, "以后简短回答", "好的", "conv_1")
+
+        preferences = self.repository.list_by_category(
+            1, "preference", limit=5
+        )
+        self.assertEqual(
+            [item["content"] for item in preferences],
+            ["用户喜欢简短回答"],
+        )
 
     def test_load_context_uses_mysql_body_after_vector_hit(self):
         profile = self.repository.create(
@@ -118,7 +119,9 @@ class MemoryServiceTest(unittest.TestCase):
         )
         self.index.hits = [(preference["id"], 0.9)]
 
-        block = self._service('[{"op":"NOOP"}]').load_context(1, "怎么回答")
+        block = self._service('{"operations": []}').load_context(
+            1, "怎么回答"
+        )
 
         self.assertIn(profile["content"], block)
         self.assertIn(preference["content"], block)
