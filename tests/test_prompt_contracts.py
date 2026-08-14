@@ -469,7 +469,7 @@ class ResearchPromptContractTests(unittest.TestCase):
         self.prompt = _prompt("research_prompt.txt")
 
     def test_research_prompt_defines_retrieval_and_evidence_limits(self):
-        for requirement in ("分别检索", "证据冲突", "资料缺口", "最多 6 次"):
+        for requirement in ("分别检索", "证据冲突", "资料缺口", "最多 5 次"):
             self.assertIn(requirement, self.prompt)
 
     def test_research_prompt_prohibits_private_reasoning_and_fabrication(self):

@@ -31,6 +31,17 @@ class ResearchToolsWhitelistTest(unittest.TestCase):
             self.assertNotIn(forbidden, names, f"{forbidden} 不应出现在子 Agent 工具集")
 
 
+class ResearchBudgetTest(unittest.TestCase):
+    def test_research_budget_leaves_room_for_final_summary(self):
+        from agent.research_agent import (
+            _RESEARCH_MAX_TOOL_CALLS,
+            _RESEARCH_RECURSION_LIMIT,
+        )
+
+        self.assertEqual(_RESEARCH_MAX_TOOL_CALLS, 5)
+        self.assertEqual(_RESEARCH_RECURSION_LIMIT, 30)
+
+
 class ExtractFinalAiTextTest(unittest.TestCase):
     def test_returns_last_nonempty_ai(self):
         from agent.research_agent import _extract_final_ai_text

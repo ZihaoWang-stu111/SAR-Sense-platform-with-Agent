@@ -8,8 +8,8 @@ main_agent:
 research_agent:
   enabled: true
   name: sar-researcher
-  max_tool_calls: 6
-  recursion_limit: 20
+  max_tool_calls: 5
+  recursion_limit: 30
 
 memory:
   enabled: true
