@@ -136,8 +136,39 @@ class ChatLiveStatusFrontendTest(unittest.TestCase):
     def test_chat_styles_have_matching_cache_busters(self):
         html = Path("templates/chat.html").read_text(encoding="utf-8")
 
-        self.assertIn("css/style_v2.css?v=20260814-4", html)
-        self.assertIn("css/home_renovation_v2.css?v=20260814-4", html)
+        self.assertIn("css/style_v2.css?v=20260814-6", html)
+        self.assertIn("css/home_renovation_v2.css?v=20260814-6", html)
+
+    def test_chat_uses_wide_layout_without_squeezing_tables(self):
+        css = Path("css/style_v2.css").read_text(encoding="utf-8")
+
+        self.assertRegex(
+            css,
+            r"\.chat\s*>\s*\.container\s*\{[^}]*max-width:\s*none",
+        )
+        self.assertRegex(
+            css,
+            r"\.chat-layout\s*\{[^}]*max-width:\s*none",
+        )
+        self.assertRegex(
+            css,
+            r"\.message\.assistant\s*\{[^}]*max-width:\s*100%",
+        )
+        self.assertRegex(
+            css,
+            r"\.message-content\s+\.table-wrapper\s+table\s*\{[^}]*"
+            r"width:\s*100%",
+        )
+        self.assertRegex(
+            css,
+            r"\.message-content\s+th\s*\{[^}]*"
+            r"white-space:\s*nowrap",
+        )
+        self.assertRegex(
+            css,
+            r"\.message-content\s+td\s*\{[^}]*"
+            r"white-space:\s*normal[^}]*overflow-wrap:\s*break-word",
+        )
 
     def test_long_chat_scrolls_inside_message_panel(self):
         css = Path("css/style_v2.css").read_text(encoding="utf-8")
