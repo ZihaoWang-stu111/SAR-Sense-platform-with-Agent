@@ -18,6 +18,7 @@ _MAX_CONTENT_CHARS = 80
 _DEFAULT_CONF = {
     "enabled": True,
     "profile_top_k": 5,
+    "preference_top_k": 5,
     "semantic_top_k": 5,
     "score_threshold": 0.3,
     "max_memories_per_user": 200,
@@ -168,14 +169,18 @@ class MemoryService:
         profiles = self.repository.list_by_category(
             user_id, "profile", limit=self.conf["profile_top_k"]
         )
+        preferences = self.repository.list_by_category(
+            user_id, "preference", limit=self.conf["preference_top_k"]
+        )
         semantic = self._semantic_memories(
             user_id,
             query,
-            categories=["preference", "context"],
+            categories=["context"],
             threshold=self.conf["score_threshold"],
         )
         return format_memory_block(
-            profiles + semantic, budget=self.conf["inject_char_budget"]
+            profiles + preferences + semantic,
+            budget=self.conf["inject_char_budget"],
         )
 
     def process_turn(

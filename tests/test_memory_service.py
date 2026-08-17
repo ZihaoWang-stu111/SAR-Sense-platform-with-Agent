@@ -17,6 +17,7 @@ class FakeIndex:
     def __init__(self):
         self.docs = {}
         self.hits = []
+        self.search_calls = []
 
     def upsert(self, memory_id, content, user_id, category):
         self.docs[int(memory_id)] = {
@@ -30,6 +31,9 @@ class FakeIndex:
             self.docs.pop(int(memory_id), None)
 
     def search(self, query, user_id, *, categories, k):
+        self.search_calls.append(
+            {"query": query, "user_id": user_id, "categories": categories, "k": k}
+        )
         return self.hits[:k]
 
 
@@ -110,14 +114,17 @@ class MemoryServiceTest(unittest.TestCase):
             ["用户喜欢简短回答"],
         )
 
-    def test_load_context_uses_mysql_body_after_vector_hit(self):
+    def test_load_context_always_injects_preferences_and_only_searches_context(self):
         profile = self.repository.create(
             user_id=1, content="用户是研究生", category="profile"
         )
         preference = self.repository.create(
             user_id=1, content="用户喜欢简短回答", category="preference"
         )
-        self.index.hits = [(preference["id"], 0.9)]
+        context = self.repository.create(
+            user_id=1, content="用户研究 SAR 舰船检测", category="context"
+        )
+        self.index.hits = [(context["id"], 0.9)]
 
         block = self._service('{"operations": []}').load_context(
             1, "怎么回答"
@@ -125,6 +132,8 @@ class MemoryServiceTest(unittest.TestCase):
 
         self.assertIn(profile["content"], block)
         self.assertIn(preference["content"], block)
+        self.assertIn(context["content"], block)
+        self.assertEqual(self.index.search_calls[0]["categories"], ["context"])
 
     def test_memory_block_escapes_prompt_like_content(self):
         block = format_memory_block(

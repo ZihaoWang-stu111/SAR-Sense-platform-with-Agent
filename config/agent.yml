@@ -14,6 +14,7 @@ research_agent:
 memory:
   enabled: true
   profile_top_k: 5
+  preference_top_k: 5
   semantic_top_k: 5
   score_threshold: 0.3
   max_memories_per_user: 200
