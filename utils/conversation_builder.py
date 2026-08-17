@@ -131,36 +131,26 @@ def fit_messages_to_budget(messages: list, token_budget: int | None = None) -> l
     if total <= budget or len(fitted) <= 1:
         return fitted
 
-    current_index = len(fitted) - 1
-    non_system = [
-        index
-        for index, message in enumerate(fitted)
-        if message.get("role") != "system"
-    ]
-    first = non_system[:_KEEP_FIRST_MESSAGES]
-    recent = non_system[-_KEEP_RECENT_MESSAGES:]
-    first_set = set(first)
-    recent_set = set(recent)
-    removal_order = [
-        *(
-            index
-            for index in non_system
-            if index not in first_set
-            and index not in recent_set
-            and index != current_index
-        ),
-        *(
-            index
-            for index, message in enumerate(fitted)
-            if message.get("role") == "system" and index != current_index
-        ),
-        *(
-            index
-            for index in recent
-            if index not in first_set and index != current_index
-        ),
-        *(index for index in first if index != current_index),
-    ]
+    current_index = len(fitted) - 1  # 当前用户消息，永不丢
+    non_system = [i for i, m in enumerate(fitted) if m.get("role") != "system"]
+    first_set = set(non_system[:_KEEP_FIRST_MESSAGES])       # 开头几条：最后防线
+    recent_set = set(non_system[-_KEEP_RECENT_MESSAGES:])    # 最近窗口：保新鲜
+
+    def drop_rank(i: int) -> int:
+        """丢弃优先级，越小越先丢：中段 0 < system(摘要) 1 < 最近窗口 2 < 开头条 3。"""
+        if i in first_set:
+            return 3
+        if i in recent_set:
+            return 2
+        if fitted[i].get("role") == "system":
+            return 1
+        return 0
+
+    # 同级内按下标升序（stable sort），即旧的先丢；当前消息不在候选里
+    removal_order = sorted(
+        (i for i in range(len(fitted)) if i != current_index),
+        key=drop_rank,
+    )
     removed = set()
     for index in removal_order:
         if total <= budget:
@@ -168,7 +158,7 @@ def fit_messages_to_budget(messages: list, token_budget: int | None = None) -> l
         removed.add(index)
         total -= _estimate_message_tokens(fitted[index])
 
-    return [message for index, message in enumerate(fitted) if index not in removed]
+    return [m for i, m in enumerate(fitted) if i not in removed]
 
 
 def _summary_message(summary: str) -> dict:
