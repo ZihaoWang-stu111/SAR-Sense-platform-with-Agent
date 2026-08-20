@@ -622,7 +622,7 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
             ".knowledge_versions/version-1/paper.txt",
         )
 
-    def test_full_scan_keeps_active_versioned_storage_file(self):
+    def test_empty_ingest_does_not_delete_active_documents(self):
         events = []
         record = make_record(
             doc_id="stable-doc",
@@ -634,22 +634,10 @@ class VectorStoreMySQLRuntimeTest(unittest.TestCase):
         repository = FakeKnowledgeRepository([record], events)
         service = make_service(repository, events=events)
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            data_dir = Path(tmpdir) / "data"
-            version_path = data_dir / record.storage_key
-            version_path.parent.mkdir(parents=True)
-            version_path.write_text("active", encoding="utf-8")
-            with (
-                patch.object(
-                    vector_module,
-                    "chroma_conf",
-                    {**vector_module.chroma_conf, "data_path": str(data_dir)},
-                ),
-                patch.object(vector_module, "get_file_hash", return_value="old-hash"),
-            ):
-                result = service.load_document()
+        result = service.load_documents([], return_details=True)
 
-        self.assertEqual(result, (0, 0, 1, 0))
+        self.assertEqual(result["removed_count"], 0)
+        self.assertEqual(result["files"], [])
         self.assertEqual(repository.get_by_doc_id("stable-doc").status, "active")
         self.assertNotIn(("document_delete", "stable-doc"), events)
 

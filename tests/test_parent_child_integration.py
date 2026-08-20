@@ -5,6 +5,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from rag.vector_store import get_vector_store_service
 from rag.rag_service import RagSummarizeService
+from utils.config_handler import chroma_conf
+from utils.path_tool import get_abs_path
 
 
 def main():
@@ -13,7 +15,8 @@ def main():
     if vs.knowledge_repository.get_by_filename(fname) is not None:
         vs.delete_document(fname)
 
-    new, upd, skip, rem = vs.load_document()
+    path = os.path.join(get_abs_path(chroma_conf["data_path"]), fname)
+    new, upd, skip, rem = vs.load_documents([path])
     print("load:", new, upd, skip, rem)
 
     document = vs.knowledge_repository.get_by_filename(fname)

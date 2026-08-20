@@ -5,8 +5,7 @@ from utils.path_tool import get_abs_path
 import os
 from threading import Lock
 from utils.logger_handler import logger
-from utils.file_handler import text_loader, pdf_loader, listdir_with_allowed_type, \
-    get_file_hash
+from utils.file_handler import text_loader, pdf_loader, get_file_hash
 from rag.hybrid_retriever import DynamicHybridRetriever
 from rag.document_chunker import DocumentChunker
 from repositories.knowledge_repository import KnowledgeRepository
@@ -224,47 +223,15 @@ class VectorStoreService:
             pass
         return os.path.basename(resolved)
 
-    def _collect_scan_paths(self, data_dir, allowed_types):
-        """扫描模式路径收集：data 目录顶层文件 + active 记录指向的版本文件。"""
-        paths = list(
-            listdir_with_allowed_type(
-                get_abs_path(chroma_conf["data_path"]),
-                allowed_types,
-            )
-        )
-        known_paths = {os.path.abspath(path) for path in paths}
-        for record in self.knowledge_repository.list_active():
-            storage_key = getattr(record, "storage_key", None) or record.filename
-            candidate = os.path.abspath(
-                storage_key
-                if os.path.isabs(storage_key)
-                else os.path.join(data_dir, storage_key)
-            )
-            try:
-                inside_data_dir = os.path.commonpath([data_dir, candidate]) == data_dir
-            except ValueError:
-                inside_data_dir = False
-            if (
-                inside_data_dir
-                and candidate not in known_paths
-                and candidate.lower().endswith(allowed_types)
-                and os.path.isfile(candidate)
-            ):
-                paths.append(candidate)
-                known_paths.add(candidate)
-        return paths
-
     @staticmethod
-    def _resolve_explicit_paths(file_paths, allowed_types):
-        """指定文件模式：过滤扩展名并解析为实际存在的绝对路径。"""
-        paths = []
-        for path in file_paths:
-            if not path or not path.lower().endswith(allowed_types):
-                continue
-            resolved = os.path.abspath(path if os.path.isabs(path) else get_abs_path(path))
-            if os.path.isfile(resolved):
-                paths.append(resolved)
-        return paths
+    def _resolve_path(file_path, allowed_types):
+        """过滤扩展名并解析为实际存在的绝对路径；不合格返回 None。"""
+        if not file_path or not str(file_path).lower().endswith(allowed_types):
+            return None
+        resolved = os.path.abspath(
+            file_path if os.path.isabs(file_path) else get_abs_path(file_path)
+        )
+        return resolved if os.path.isfile(resolved) else None
 
     def _dedup_result(self, existing, duplicate, *, filename, path, storage_key, file_hash):
         """命中去重（同名同内容 same / 异名同内容 duplicate）时返回跳过结果，否则 None。"""
@@ -314,21 +281,6 @@ class VectorStoreService:
             logger.warning(
                 f"Maintenance orphan from previous generation for {filename}: {exc}"
             )
-
-    def _remove_stale_documents(self, current_paths):
-        """全量扫描后删除磁盘上已不存在的 active 文档记录，返回删除数量。"""
-        current_filenames = {os.path.basename(path) for path in current_paths}
-        stale_records = [
-            record
-            for record in self.knowledge_repository.list_active()
-            if record.filename not in current_filenames
-        ]
-        for record in stale_records:
-            self._delete_document_record(
-                record,
-                rebuild_bm25=False,
-            )
-        return len(stale_records)
 
     def _ingest_one(self, path, data_dir, *, allowed_roles, updated_by):
         """单文件入库全流程：去重 → 分块 → 写 Chroma → activate → 清旧代。
@@ -495,43 +447,37 @@ class VectorStoreService:
 
     def load_document(
         self,
-        file_paths=None,
+        file_path,
         allowed_roles=None,
         updated_by=None,
         return_details=False,
     ):
-        """使用 MySQL 元数据和安全的版本替换流程完成文件入库。
-
-        file_paths=None 走全量扫描（并清理磁盘上已消失的文档记录），
-        否则只入库指定文件。单文件流程见 _ingest_one。
-        """
+        """入库单个文件。不扫描 data/，也不因磁盘缺文件删库记录。"""
         data_dir = os.path.abspath(get_abs_path(chroma_conf["data_path"]))
         allowed_types = tuple(chroma_conf["allow_knowledge_file_type"])
-
-        if file_paths is None:
-            paths = self._collect_scan_paths(data_dir, allowed_types)
-            cleanup_missing = True
+        resolved = self._resolve_path(file_path, allowed_types)
+        if resolved is None:
+            detail = self._file_result(
+                os.path.basename(file_path or ""),
+                file_path,
+                "failed",
+                success=False,
+                error="unsupported type or file not found",
+            )
         else:
-            paths = self._resolve_explicit_paths(file_paths, allowed_types)
-            cleanup_missing = False
-
-        file_details = [
-            self._ingest_one(
-                path,
+            detail = self._ingest_one(
+                resolved,
                 data_dir,
                 allowed_roles=allowed_roles,
                 updated_by=updated_by,
             )
-            for path in paths
-        ]
 
-        statuses = [detail["status"] for detail in file_details]
-        new_count = statuses.count("new")
-        updated_count = statuses.count("updated")
-        skipped_count = statuses.count("same") + statuses.count("duplicate")
-        removed_count = self._remove_stale_documents(paths) if cleanup_missing else 0
+        status = detail["status"]
+        new_count = 1 if status == "new" else 0
+        updated_count = 1 if status == "updated" else 0
+        skipped_count = 1 if status in ("same", "duplicate") else 0
 
-        if new_count or updated_count or removed_count:
+        if new_count or updated_count:
             try:
                 self.hybrid_engine.rebuild_bm25()
             except Exception as exc:
@@ -542,10 +488,10 @@ class VectorStoreService:
                 "new_count": new_count,
                 "updated_count": updated_count,
                 "skipped_count": skipped_count,
-                "removed_count": removed_count,
-                "files": file_details,
+                "removed_count": 0,
+                "files": [detail],
             }
-        return (new_count, updated_count, skipped_count, removed_count)
+        return (new_count, updated_count, skipped_count, 0)
 
     def load_documents(
         self,
@@ -555,13 +501,6 @@ class VectorStoreService:
         return_details=False,
     ):
         """逐个调用单文件入库流程，并汇总本批次处理结果。"""
-        if file_paths is None:
-            return self.load_document(
-                file_paths=None,
-                allowed_roles=allowed_roles,
-                updated_by=updated_by,
-                return_details=return_details,
-            )
         paths = list(file_paths or [])
         aggregate = {
             "new_count": 0,
@@ -573,7 +512,7 @@ class VectorStoreService:
         for path in paths:
             try:
                 result = self.load_document(
-                    file_paths=[path],
+                    path,
                     allowed_roles=allowed_roles,
                     updated_by=updated_by,
                     return_details=True,
@@ -613,11 +552,3 @@ class VectorStoreService:
             aggregate["skipped_count"],
             aggregate["removed_count"],
         )
-
-
-
-
-
-if __name__ == '__main__':
-    vs = get_vector_store_service()
-    vs.load_document()
